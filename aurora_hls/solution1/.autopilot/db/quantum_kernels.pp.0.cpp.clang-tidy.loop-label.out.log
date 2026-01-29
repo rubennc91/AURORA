@@ -1,0 +1,15 @@
+C:\workspace\AURORA\hls_project\aurora_hls\solution1\.autopilot\db\quantum_kernels.pp.0.cpp:436:5: warning: Added loop label VITIS_LOOP_23_1:   [xilinx-label-all-loops]
+    for (int64_t lag = -500; lag <= 500; lag++) {
+    ^~~
+    VITIS_LOOP_23_1: 
+C:\workspace\AURORA\hls_project\aurora_hls\solution1\.autopilot\db\quantum_kernels.pp.0.cpp:436:5: note: FIX-IT applied suggested code changes
+C:\workspace\AURORA\hls_project\aurora_hls\solution1\.autopilot\db\quantum_kernels.pp.0.cpp:441:9: warning: Added loop label VITIS_LOOP_28_2:   [xilinx-label-all-loops]
+        for (uint32_t b_idx = 0; b_idx < size_b; b_idx++) {
+        ^~~
+        VITIS_LOOP_28_2: 
+C:\workspace\AURORA\hls_project\aurora_hls\solution1\.autopilot\db\quantum_kernels.pp.0.cpp:441:9: note: FIX-IT applied suggested code changes
+C:\workspace\AURORA\hls_project\aurora_hls\solution1\.autopilot\db\quantum_kernels.pp.0.cpp:443:2: warning: Added loop label VITIS_LOOP_30_3:   [xilinx-label-all-loops]
+ while (a_idx < size_a && alice_tags[a_idx] < (bob_tags[b_idx] + lag - window)) {
+ ^~~~~
+ VITIS_LOOP_30_3: 
+C:\workspace\AURORA\hls_project\aurora_hls\solution1\.autopilot\db\quantum_kernels.pp.0.cpp:443:2: note: FIX-IT applied suggested code changes

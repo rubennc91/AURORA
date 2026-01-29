@@ -1,0 +1,181 @@
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 28, 
+                   Column: 26 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_28_2
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 30, 
+                   Column: 19 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_30_3
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Missed
+Pass:            reflow-burst-inference
+Name:            CouldNotAnalyzeBoundsPattern
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 30, 
+                   Column: 19 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          Could not analyze the loop bounds
+  - String:          ' _XLX_SEP_ '
+  - LoopName:        VITIS_LOOP_30_3
+  - String:          ' '
+  - LoopLoc:         'aurora_hls/src/quantum_kernels.cpp:30:19'
+  - String:          ' '
+  - Function:        'compute_correlation_hls(unsigned long long const*, unsigned long long const*, unsigned int, unsigned int, unsigned long long, CorrResult&)'
+    DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 10, 
+                       Column: 0 }
+  - String:          ' '
+...
+--- !Missed
+Pass:            reflow-burst-inference
+Name:            AccessInCondBranch
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 33, 
+                   Column: 35 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Access '
+  - Access:          load
+    DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 33, 
+                       Column: 35 }
+  - String:          ' is in the conditional branch'
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      load
+    DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 33, 
+                       Column: 35 }
+  - OrigDirection:   read
+  - OrigID:          land.lhs.true.load.2
+  - ArrayName:       alice_tags
+  - String:          ' '
+  - BundleName:      gmem0
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_28_2
+  - String:          ' '
+  - LoopLoc:         'aurora_hls/src/quantum_kernels.cpp:28:26'
+  - String:          ' '
+  - Function:        'compute_correlation_hls(unsigned long long const*, unsigned long long const*, unsigned int, unsigned int, unsigned long long, CorrResult&)'
+    DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 10, 
+                       Column: 0 }
+  - String:          ' '
+...
+--- !Missed
+Pass:            reflow-burst-inference
+Name:            AccessInCondBranch
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 33, 
+                   Column: 57 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Access '
+  - Access:          load
+    DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 33, 
+                       Column: 57 }
+  - String:          ' is in the conditional branch'
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      load
+    DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 33, 
+                       Column: 57 }
+  - OrigDirection:   read
+  - OrigID:          land.lhs.true.load.3
+  - ArrayName:       bob_tags
+  - String:          ' '
+  - BundleName:      gmem1
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_28_2
+  - String:          ' '
+  - LoopLoc:         'aurora_hls/src/quantum_kernels.cpp:28:26'
+  - String:          ' '
+  - Function:        'compute_correlation_hls(unsigned long long const*, unsigned long long const*, unsigned int, unsigned int, unsigned long long, CorrResult&)'
+    DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 10, 
+                       Column: 0 }
+  - String:          ' '
+...
+--- !Failure
+Pass:            reflow-occurrence-inference
+Name:            NonComputableLoopForm
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 30, 
+                   Column: 19 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Could not analyze occurrence information within '''
+  - LoopName:        VITIS_LOOP_30_3
+  - String:          '''('
+  - LoopLoc:         'aurora_hls/src/quantum_kernels.cpp:30:19'
+  - String:          ') . Requires loop in simplify form and with single exit.'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 28, 
+                   Column: 26 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_28_2
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 30, 
+                   Column: 19 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_30_3
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 28, 
+                   Column: 26 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_28_2
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 30, 
+                   Column: 19 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_30_3
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 28, 
+                   Column: 26 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_28_2
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: aurora_hls/src/quantum_kernels.cpp, Line: 30, 
+                   Column: 19 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_30_3
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
