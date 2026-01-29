@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <filesystem>
+#include "../include/quantum_kernels.h"
 
 //#include <grpcpp/create_channel.h>
 
@@ -76,43 +77,69 @@ size_t check_correlations(
     return n_correlations;
 }
 
+
+// Dentro de tu main.cpp
 correlation_time_t find_time_lag(
         const std::vector<uint64_t>& alice_time_tags, 
         const std::vector<uint64_t>& bob_time_tags, 
         uint64_t correlation_window_half_width_ps
     ) {
 
-    int64_t step = 1;
+    // Creamos la estructura de resultado que definimos en quantum_kernels.h
+    CorrResult aurora_result;
     
-    int64_t first_delta_time = -1000;
-    int64_t maximum_delta = 1000;
+    // Limitamos el tamaño para que sea compatible con el BATCH_LIMIT de la FPGA
+    uint32_t size_a = std::min((uint32_t)alice_time_tags.size(), (uint32_t)BATCH_LIMIT);
+    uint32_t size_b = std::min((uint32_t)bob_time_tags.size(), (uint32_t)BATCH_LIMIT);
 
-    //std::cout << "The number of iterations is: " << (maximum_delta - first_delta_time) / step << ". Beginning with: " << first_delta_time << ", ending with " << maximum_delta << "\n";
+    // LLAMADA AL KERNEL QUE LUEGO IRÁ A LA FPGA
+    compute_correlation_hls(alice_time_tags.data(), bob_time_tags.data(), size_a, size_b, correlation_window_half_width_ps, aurora_result);
 
-    correlation_time_t max_correlation {0, 0};
-
-    //auto init_time = std::chrono::high_resolution_clock::now();
-
-    #pragma omp declare reduction(maximo : struct correlation_time_t : omp_out = omp_in.n_correlations > omp_out.n_correlations ? omp_in : omp_out)
-    #pragma omp parallel for reduction(maximo: max_correlation)
-    for (int64_t delta_time = first_delta_time; delta_time < maximum_delta; delta_time += step) {
-        size_t correlations = check_correlations(alice_time_tags, bob_time_tags, correlation_window_half_width_ps, delta_time);
-        if (correlations > max_correlation.n_correlations) {
-            max_correlation.time_lag = delta_time;
-            max_correlation.n_correlations = correlations;
-        }
-    }
-
-    //auto end_time = std::chrono::high_resolution_clock::now();
-
-    //uint64_t total_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - init_time).count();
-    //std::cout << "Time = " << ((double) total_time) / 1e9  << " s\n";
-
-    max_correlation.n_correlations = check_correlations(alice_time_tags, bob_time_tags, correlation_window_half_width_ps, max_correlation.time_lag);
-    //std::cout << "\nFinal number of correlations obtained = " << max_correlation.n_correlations << " for delta_time = " << max_correlation.time_lag << " with step = " << step << "\n\n";
+    // Mapeamos el resultado a tu estructura original para no romper el resto de tu código
+    correlation_time_t max_correlation;
+    max_correlation.time_lag = aurora_result.best_lag;
+    max_correlation.n_correlations = aurora_result.max_count;
     
     return max_correlation;
 }
+
+// correlation_time_t find_time_lag(
+//         const std::vector<uint64_t>& alice_time_tags, 
+//         const std::vector<uint64_t>& bob_time_tags, 
+//         uint64_t correlation_window_half_width_ps
+//     ) {
+// 
+//     int64_t step = 1;
+//     
+//     int64_t first_delta_time = -1000;
+//     int64_t maximum_delta = 1000;
+// 
+//     //std::cout << "The number of iterations is: " << (maximum_delta - first_delta_time) / step << ". Beginning with: " << first_delta_time << ", ending with " << maximum_delta << "\n";
+// 
+//     correlation_time_t max_correlation {0, 0};
+// 
+//     //auto init_time = std::chrono::high_resolution_clock::now();
+// 
+//     #pragma omp declare reduction(maximo : struct correlation_time_t : omp_out = omp_in.n_correlations > omp_out.n_correlations ? omp_in : omp_out)
+//     #pragma omp parallel for reduction(maximo: max_correlation)
+//     for (int64_t delta_time = first_delta_time; delta_time < maximum_delta; delta_time += step) {
+//         size_t correlations = check_correlations(alice_time_tags, bob_time_tags, correlation_window_half_width_ps, delta_time);
+//         if (correlations > max_correlation.n_correlations) {
+//             max_correlation.time_lag = delta_time;
+//             max_correlation.n_correlations = correlations;
+//         }
+//     }
+// 
+//     //auto end_time = std::chrono::high_resolution_clock::now();
+// 
+//     //uint64_t total_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - init_time).count();
+//     //std::cout << "Time = " << ((double) total_time) / 1e9  << " s\n";
+// 
+//     max_correlation.n_correlations = check_correlations(alice_time_tags, bob_time_tags, correlation_window_half_width_ps, max_correlation.time_lag);
+//     //std::cout << "\nFinal number of correlations obtained = " << max_correlation.n_correlations << " for delta_time = " << max_correlation.time_lag << " with step = " << step << "\n\n";
+//     
+//     return max_correlation;
+// }
 
 std::vector<std::pair<size_t, size_t>> find_corrrelated_indices (
         const std::vector<uint64_t>& alice_time_tags, 
