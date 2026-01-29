@@ -41,14 +41,14 @@ The project is structured in incremental phases to ensure validation at every st
 
 ---
 ## Project Structure
-`
+```text
 AURORA/
 ├── include/           # Header files (HLS-friendly structures)
 ├── src/               # Source code for PS and PC simulation
 ├── hls/               # Vivado HLS project files and scripts
 ├── batches/           # Sample Alice/Bob detection data
 └── Makefile           # Build system for PC validation
-`
+```
 ---
 ### Institutional Collaboration
 This project represents a synergy between two leading Spanish institutions:
