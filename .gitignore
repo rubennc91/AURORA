@@ -1,0 +1,12 @@
+# Ignorar configuraciones de VS Code
+.vscode/
+
+# Ignorar ejecutables de Windows
+*.exe
+
+# Ignorar archivos de salida de compilación
+*.o
+*.obj
+
+# Ignorar carpetas temporales de HLS
+hls/*/solution*/
