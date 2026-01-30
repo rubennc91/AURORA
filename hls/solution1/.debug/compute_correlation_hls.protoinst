@@ -13,7 +13,7 @@
 						"AP_START": { "actual": "ap_start"}
 					}
 				},
-				"grp_compute_correlation_hls_Pipeline_SEARCH_ALICE_fu_318/grp_compute_correlation_hls_Pipeline_SEARCH_ALICE_fu_318_activity": {
+				"grp_compute_correlation_hls_Pipeline_SEARCH_ALICE_fu_528/grp_compute_correlation_hls_Pipeline_SEARCH_ALICE_fu_528_activity": {
 					"interface": "xilinx.com:interface:internal_hls_dataflow:1.0",
 					"ports": {
 						"AP_CLK": { "actual": "ap_clk"},

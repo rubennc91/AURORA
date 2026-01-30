@@ -423,8 +423,6 @@ __attribute__((sdx_kernel("compute_correlation_hls", 0))) void compute_correlati
 # 10 "src/quantum_kernels.cpp"
 
 
-
-
 #pragma HLS INTERFACE m_axi port=alice_tags offset=slave bundle=gmem0
 #pragma HLS INTERFACE m_axi port=bob_tags offset=slave bundle=gmem1
 #pragma HLS INTERFACE s_axilite port=size_a
@@ -439,22 +437,14 @@ __attribute__((sdx_kernel("compute_correlation_hls", 0))) void compute_correlati
     result.best_lag = 0;
 
 
-
-
     LAG_LOOP: for (int16_t lag = -500; lag <= 500; lag++) {
 
         uint32_t current_corr = 0;
         uint32_t a_ptr = 0;
 
 
-
-
         BOB_LOOP: for (uint32_t b_idx = 0; b_idx < 4096; b_idx++) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=4096
-#pragma HLS PIPELINE II=1
-
-
-
 
 
  if (b_idx >= size_b) break;
@@ -464,13 +454,7 @@ __attribute__((sdx_kernel("compute_correlation_hls", 0))) void compute_correlati
             uint64_t max_range = target + window;
 
 
-
-
             SEARCH_ALICE: for (uint32_t i = 0; i < 64; i++) {
-
-
-
-
 #pragma HLS UNROLL
 
  uint32_t idx = a_ptr + i;

@@ -1,14 +1,4 @@
 --- !Passed
-Pass:            reflow-infer-unroll
-Name:            ImplicitUnroll
-DebugLoc:        { File: src/quantum_kernels.cpp, Line: 55, Column: 27 }
-Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
-Args:            
-  - String:          'Loop '''
-  - LoopName:        SEARCH_ALICE
-  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
-...
---- !Passed
 Pass:            reflow-pragma-loop-unroll
 Name:            PragmaFullyUnroll
 DebugLoc:        { File: src/quantum_kernels.cpp, Line: 10, Column: 0 }
@@ -17,7 +7,7 @@ Args:
   - String:          'Unrolling loop '''
   - LoopName:        SEARCH_ALICE
   - String:          ''' ('
-  - LoopLoc:         'src/quantum_kernels.cpp:55:27'
+  - LoopLoc:         'src/quantum_kernels.cpp:43:27'
   - String:          ') '
   - String:          'in function '''
   - String:          compute_correlation_hls
@@ -47,11 +37,19 @@ Args:
 --- !Missed
 Pass:            reflow-burst-inference
 Name:            CouldNotAnalyzeBoundsPattern
-DebugLoc:        { File: src/quantum_kernels.cpp, Line: 38, Column: 19 }
+DebugLoc:        { File: src/quantum_kernels.cpp, Line: 32, Column: 19 }
 Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
 Args:            
   - String:          Could not analyze the loop bounds
   - String:          ' _XLX_SEP_ '
   - LoopName:        BOB_LOOP
   - String:          ' '
-  - LoopLoc:     
+  - LoopLoc:         'src/quantum_kernels.cpp:32:19'
+  - String:          ' '
+  - Function:        'compute_correlation_hls(unsigned long long const*, unsigned long long const*, unsigned int, unsigned int, unsigned long long, CorrResult&)'
+    DebugLoc:        { File: src/quantum_kernels.cpp, Line: 10, Column: 0 }
+  - String:          ' '
+...
+--- !HLSReportInfo
+Pass:            auto-loop-pipeline
+Name:      

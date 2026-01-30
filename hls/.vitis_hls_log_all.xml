@@ -12,7 +12,7 @@
   <warningLogs>
     <logs>
       <synLog>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../../include' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T16:02:51.296+0100" type="Warning"/>
+        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../../include' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T20:54:37.552+0100" type="Warning"/>
       </synLog>
       <simLog/>
       <mgLog/>

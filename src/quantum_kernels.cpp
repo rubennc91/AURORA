@@ -24,14 +24,14 @@ void compute_correlation_hls(
 
     // Bucle Principal: Recorre los posibles desfases temporales (Lags)
     LAG_LOOP: for (int16_t lag = -500; lag <= 500; lag++) {
-
+		// #pragma HLS PIPELINE II=4096
         uint32_t current_corr = 0;
         uint32_t a_ptr = 0;
 
         // Bucle de Bob: Procesa cada etiqueta de tiempo
         BOB_LOOP: for (uint32_t b_idx = 0; b_idx < BATCH_LIMIT; b_idx++) {
             #pragma HLS LOOP_TRIPCOUNT min=1 max=4096
-			#pragma HLS PIPELINE II=1
+			// #pragma HLS PIPELINE II=64
 
             if (b_idx >= size_b) break;
 

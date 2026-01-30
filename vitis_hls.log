@@ -1,2 +1,105 @@
 ECHO est  desactivado.
 ECHO est  desactivado.
+INFO: [HLS 200-10] Running 'C:/Xilinx/Vitis_HLS/2023.2/bin/unwrapped/win64.o/vitis_hls.exe'
+INFO: [HLS 200-10] For user 'ruben.nieto' on host 'mp-5cg0326r5c' (Windows NT_amd64 version 6.2) on Fri Jan 30 21:19:34 +0100 2026
+INFO: [HLS 200-10] In directory 'C:/workspace/AURORA'
+INFO: [HLS 200-2053] The vitis_hls executable is being deprecated. Consider using vitis-run --mode hls --tcl
+Sourcing Tcl script 'C:/workspace/AURORA/hls_sift/solution1/csim.tcl'
+INFO: [HLS 200-1510] Running: source C:/workspace/AURORA/hls_sift/solution1/csim.tcl
+INFO: [HLS 200-1510] Running: open_project hls_sift 
+INFO: [HLS 200-10] Opening project 'C:/workspace/AURORA/hls_sift'.
+INFO: [HLS 200-1510] Running: add_files hls_sift/srcs/quantum_kernels.cpp 
+INFO: [HLS 200-10] Adding design file 'hls_sift/srcs/quantum_kernels.cpp' to the project
+INFO: [HLS 200-1510] Running: add_files hls_sift/srcs/quantum_kernels.h 
+INFO: [HLS 200-10] Adding design file 'hls_sift/srcs/quantum_kernels.h' to the project
+INFO: [HLS 200-1510] Running: add_files -tb hls_sift/srcs/main.cpp 
+INFO: [HLS 200-10] Adding test bench file 'hls_sift/srcs/main.cpp' to the project
+INFO: [HLS 200-1510] Running: open_solution solution1 -flow_target vivado 
+INFO: [HLS 200-10] Opening solution 'C:/workspace/AURORA/hls_sift/solution1'.
+INFO: [SYN 201-201] Setting up clock 'default' with a period of 10ns.
+INFO: [HLS 200-1611] Setting target device to 'xczu7ev-ffvc1156-2-e'
+INFO: [HLS 200-1505] Using flow_target 'vivado'
+Resolution: For help on HLS 200-1505 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-1505.html
+INFO: [HLS 200-1510] Running: set_part xczu7ev-ffvc1156-2-e 
+INFO: [HLS 200-1510] Running: create_clock -period 10 -name default 
+INFO: [HLS 200-1510] Running: csim_design -quiet 
+INFO: [SIM 211-2] *************** CSIM start ***************
+INFO: [SIM 211-4] CSIM will launch GCC as the compiler.
+INFO: [HLS 200-2036] Building debug C Simulation binaries
+   Compiling ../../../srcs/main.cpp in debug mode
+   Compiling ../../../srcs/quantum_kernels.cpp in debug mode
+   Generating csim.exe
+In file included from C:/Xilinx/Vitis_HLS/2023.2/include/floating_point_v7_1_bitacc_cmodel.h:150:0,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_fpo.h:140,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/hls_half_fpo.h:19,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_half.h:26,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_private.h:52,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_common.h:666,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/ap_int.h:10,
+                 from ../../../srcs/quantum_kernels.h:5,
+                 from ../../../srcs/main.cpp:8:
+C:/Xilinx/Vitis_HLS/2023.2/include/gmp.h:58:0: warning: "__GMP_LIBGMP_DLL" redefined
+ #define __GMP_LIBGMP_DLL  0
+ 
+In file included from C:/Xilinx/Vitis_HLS/2023.2/include/hls_fpo.h:140:0,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/hls_half_fpo.h:19,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_half.h:26,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_private.h:52,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_common.h:666,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/ap_int.h:10,
+                 from ../../../srcs/quantum_kernels.h:5,
+                 from ../../../srcs/main.cpp:8:
+C:/Xilinx/Vitis_HLS/2023.2/include/floating_point_v7_1_bitacc_cmodel.h:142:0: note: this is the location of the previous definition
+ #define __GMP_LIBGMP_DLL 1
+ 
+In file included from C:/Xilinx/Vitis_HLS/2023.2/include/floating_point_v7_1_bitacc_cmodel.h:150:0,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_fpo.h:140,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/hls_half_fpo.h:19,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_half.h:26,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_private.h:52,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_common.h:666,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/ap_int.h:10,
+                 from ../../../srcs/quantum_kernels.h:5,
+                 from ../../../srcs/quantum_kernels.cpp:1:
+C:/Xilinx/Vitis_HLS/2023.2/include/gmp.h:58:0: warning: "__GMP_LIBGMP_DLL" redefined
+ #define __GMP_LIBGMP_DLL  0
+ 
+In file included from C:/Xilinx/Vitis_HLS/2023.2/include/hls_fpo.h:140:0,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/hls_half_fpo.h:19,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_half.h:26,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_private.h:52,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_common.h:666,
+                 from C:/Xilinx/Vitis_HLS/2023.2/include/ap_int.h:10,
+                 from ../../../srcs/quantum_kernels.h:5,
+                 from ../../../srcs/quantum_kernels.cpp:1:
+C:/Xilinx/Vitis_HLS/2023.2/include/floating_point_v7_1_bitacc_cmodel.h:142:0: note: this is the location of the previous definition
+ #define __GMP_LIBGMP_DLL 1
+ 
+============================================================
+    AURORA HLS: HW vs SW GOLDEN MODEL VALIDATION
+============================================================
+Batch  1 | Lag:  -71 | Sifted Bits:  41 | HW vs SW: [MATCH OK]
+Batch  2 | Lag:    0 | Sifted Bits:  52 | HW vs SW: [MATCH OK]
+Batch  3 | Lag:    7 | Sifted Bits:  40 | HW vs SW: [MATCH OK]
+Batch  4 | Lag: -338 | Sifted Bits:  20 | HW vs SW: [MATCH OK]
+Batch  5 | Lag: -173 | Sifted Bits:  49 | HW vs SW: [MATCH OK]
+Batch  6 | Lag: -177 | Sifted Bits:  38 | HW vs SW: [MATCH OK]
+Batch  7 | Lag:  -30 | Sifted Bits:  41 | HW vs SW: [MATCH OK]
+Batch  8 | Lag: -354 | Sifted Bits:  26 | HW vs SW: [MATCH OK]
+Batch  9 | Lag: -186 | Sifted Bits:  55 | HW vs SW: [MATCH OK]
+Batch 10 | Lag:    0 | Sifted Bits:  44 | HW vs SW: [MATCH OK]
+Batch 11 | Lag:   51 | Sifted Bits:  58 | HW vs SW: [MATCH OK]
+Batch 12 | Lag: -136 | Sifted Bits:  53 | HW vs SW: [MATCH OK]
+Batch 13 | Lag: -406 | Sifted Bits:  13 | HW vs SW: [MATCH OK]
+Batch 14 | Lag: -500 | Sifted Bits:   6 | HW vs SW: [MATCH OK]
+Batch 15 | Lag: -151 | Sifted Bits:  50 | HW vs SW: [MATCH OK]
+Batch 16 | Lag: -390 | Sifted Bits:  35 | HW vs SW: [MATCH OK]
+Batch 17 | Lag: -500 | Sifted Bits:  15 | HW vs SW: [MATCH OK]
+Batch 18 | Lag: -185 | Sifted Bits:  37 | HW vs SW: [MATCH OK]
+Batch 19 | Lag: -115 | Sifted Bits:  54 | HW vs SW: [MATCH OK]
+Batch 20 | Lag:    0 | Sifted Bits:  38 | HW vs SW: [MATCH OK]
+============================================================
+INFO: [SIM 211-1] CSim done with 0 errors.
+INFO: [SIM 211-3] *************** CSIM finish ***************
+INFO: [HLS 200-111] Finished Command csim_design CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 16.013 seconds; current allocated memory: 0.555 MB.
+INFO: [HLS 200-112] Total CPU user time: 1 seconds. Total CPU system time: 2 seconds. Total elapsed time: 19.452 seconds; peak allocated memory: 134.230 MB.
