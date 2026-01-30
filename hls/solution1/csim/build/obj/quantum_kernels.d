@@ -1,2 +1,2 @@
-obj/quantum_kernels.o: ../../../src/quantum_kernels.cpp \
- ../../../.././../include/quantum_kernels.h
+obj/quantum_kernels.o: ../../../../src/quantum_kernels.cpp \
+ ../../../../src/../include/quantum_kernels.h

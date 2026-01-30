@@ -187,7 +187,7 @@ void read_detections(
 }
 
 int main(int argc, char* argv[]) {
-	std::string batch_str = (argc > 1) ? argv[1] : "../../../../../batches/batch1";
+	std::string batch_str = (argc > 1) ? argv[1] : "../../../../batches/batch1";
 
     detections_t alice_detections, bob_detections;
     read_detections(batch_str, alice_detections, bob_detections);

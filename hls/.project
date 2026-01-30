@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>aurora_hls</name>
+	<name>hls</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -29,47 +29,47 @@
 		<link>
 			<name>source</name>
 			<type>2</type>
-			<location>C:/workspace/AURORA/hls_project/aurora_hls/.apc/.src</location>
+			<location>C:/workspace/AURORA/hls/.apc/.src</location>
 		</link>
 		<link>
 			<name>testbench</name>
 			<type>2</type>
-			<location>C:/workspace/AURORA/hls_project/aurora_hls/.apc/.tb</location>
+			<location>C:/workspace/AURORA/hls/.apc/.tb</location>
 		</link>
 		<link>
 			<name>solution1/constraints</name>
 			<type>2</type>
-			<location>C:/workspace/AURORA/hls_project/aurora_hls/solution1/.tcls</location>
+			<location>C:/workspace/AURORA/hls/solution1/.tcls</location>
 		</link>
 		<link>
 			<name>source/quantum_kernels.cpp</name>
 			<type>1</type>
-			<location>C:/workspace/AURORA/hls_project/aurora_hls/src/quantum_kernels.cpp</location>
+			<location>C:/workspace/AURORA/src/quantum_kernels.cpp</location>
 		</link>
 		<link>
 			<name>testbench/main.cpp</name>
 			<type>1</type>
-			<location>C:/workspace/AURORA/hls_project/aurora_hls/src/main.cpp</location>
+			<location>C:/workspace/AURORA/hls/src/main.cpp</location>
 		</link>
 		<link>
 			<name>testbench/quantum_kernels.h</name>
 			<type>1</type>
-			<location>C:/workspace/AURORA/hls_project/aurora_hls/src/quantum_kernels.h</location>
+			<location>C:/workspace/AURORA/include/quantum_kernels.h</location>
 		</link>
 		<link>
 			<name>solution1/constraints/.xml.directive</name>
 			<type>1</type>
-			<location>C:/workspace/AURORA/hls_project/aurora_hls/solution1/solution1.directive</location>
+			<location>C:/workspace/AURORA/hls/solution1/solution1.directive</location>
 		</link>
 		<link>
 			<name>solution1/constraints/directives.tcl</name>
 			<type>1</type>
-			<location>C:/workspace/AURORA/hls_project/aurora_hls/solution1/directives.tcl</location>
+			<location>C:/workspace/AURORA/hls/solution1/directives.tcl</location>
 		</link>
 		<link>
 			<name>solution1/constraints/script.tcl</name>
 			<type>1</type>
-			<location>C:/workspace/AURORA/hls_project/aurora_hls/solution1/script.tcl</location>
+			<location>C:/workspace/AURORA/hls/solution1/script.tcl</location>
 		</link>
 	</linkedResources>
 </projectDescription>

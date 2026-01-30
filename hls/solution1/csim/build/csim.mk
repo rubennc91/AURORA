@@ -1,8 +1,8 @@
 # ==============================================================
-# Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.2.1 (64-bit)
-# Tool Version Limit: 2023.12
+# Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.2.2 (64-bit)
+# Tool Version Limit: 2024.02
 # Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
-# Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+# Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 # 
 # ==============================================================
 CSIM_DESIGN = 1
@@ -19,7 +19,7 @@ __SIM_DDS__ = 1
 
 ObjDir = obj
 
-HLS_SOURCES = ../../../src/main.cpp ../../../src/quantum_kernels.cpp
+HLS_SOURCES = ../../../src/main.cpp ../../../../src/quantum_kernels.cpp
 
 override TARGET := csim.exe
 
@@ -77,12 +77,12 @@ all: $(TARGET)
 
 $(ObjDir)/main.o: ../../../src/main.cpp $(ObjDir)/.dir
 	$(Echo) "   Compiling ../../../src/main.cpp in $(BuildMode) mode" $(AVE_DIR_DLOG)
-	$(Verb)  $(CC) ${CCFLAG} -c -MMD -I../../../.apc -I../../../.apc -Wno-unknown-pragmas -Wno-unknown-pragmas  $(IFLAG) $(DFLAG) $< -o $@ ; \
+	$(Verb)  $(CC) ${CCFLAG} -c -MMD -I../../../../../include -std=c++17 -Wno-unknown-pragmas -Wno-unknown-pragmas  $(IFLAG) $(DFLAG) $< -o $@ ; \
 
 -include $(ObjDir)/main.d
 
-$(ObjDir)/quantum_kernels.o: ../../../src/quantum_kernels.cpp $(ObjDir)/.dir
-	$(Echo) "   Compiling ../../../src/quantum_kernels.cpp in $(BuildMode) mode" $(AVE_DIR_DLOG)
-	$(Verb)  $(CC) ${CCFLAG} -c -MMD -I../../../../.  $(IFLAG) $(DFLAG) $< -o $@ ; \
+$(ObjDir)/quantum_kernels.o: ../../../../src/quantum_kernels.cpp $(ObjDir)/.dir
+	$(Echo) "   Compiling ../../../../src/quantum_kernels.cpp in $(BuildMode) mode" $(AVE_DIR_DLOG)
+	$(Verb)  $(CC) ${CCFLAG} -c -MMD -std=c++17  $(IFLAG) $(DFLAG) $< -o $@ ; \
 
 -include $(ObjDir)/quantum_kernels.d

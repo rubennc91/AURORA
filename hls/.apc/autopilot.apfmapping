@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <autopilotfilemapping:AutoPilotFileMapping xmlns:autopilotfilemapping="www.autoesl.com/autopilotfilemapping">
   <source>
-    <originFiles name="quantum_kernels.cpp" path="C:\workspace\AURORA\hls_project\aurora_hls\src\quantum_kernels.cpp"/>
+    <originFiles name="quantum_kernels.cpp" path="C:\workspace\AURORA\src\quantum_kernels.cpp"/>
   </source>
   <testbench>
-    <originFiles name="main.cpp" path="C:\workspace\AURORA\hls_project\aurora_hls\src\main.cpp"/>
-    <originFiles name="quantum_kernels.h" path="C:\workspace\AURORA\hls_project\aurora_hls\src\quantum_kernels.h"/>
+    <originFiles name="quantum_kernels.h" path="C:\workspace\AURORA\include\quantum_kernels.h"/>
+    <originFiles name="main.cpp" path="C:\workspace\AURORA\hls\src\main.cpp"/>
   </testbench>
 </autopilotfilemapping:AutoPilotFileMapping>

@@ -1,4 +1,0 @@
-compute_correlation_hls_gmem0_m_axi
-compute_correlation_hls_gmem1_m_axi
-compute_correlation_hls_control_s_axi
-compute_correlation_hls
