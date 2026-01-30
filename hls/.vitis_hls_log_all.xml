@@ -2,41 +2,22 @@
 <vivadoHLSLog:LogRoot xmlns:vivadoHLSLog="www.xilinx.com/vivadoHLSLog">
   <errorLogs>
     <logs>
-      <csimLog>
-        <logs message="ERROR: [SIM 211-100] 'csim_design' failed: nonzero return value." projectName="hls" solutionName="solution1" date="2026-01-30T11:58:13.699+0100"/>
-        <logs message="Error: No data loaded. Check file paths.&#xD;&#xA;@E Simulation failed: Function 'main' returns nonzero value '1'." projectName="hls" solutionName="solution1" date="2026-01-30T11:58:13.683+0100"/>
-        <logs message="ERROR: [SIM 211-100] 'csim_design' failed: compilation error(s)." projectName="hls" solutionName="solution1" date="2026-01-30T11:53:24.447+0100"/>
-        <logs message="ERROR: [SIM 211-100] 'csim_design' failed: compilation error(s)." projectName="hls" solutionName="solution1" date="2026-01-30T11:51:48.319+0100"/>
-        <logs message="ERROR: [SIM 211-100] 'csim_design' failed: compilation error(s)." projectName="hls" solutionName="solution1" date="2026-01-30T11:48:04.259+0100"/>
-        <logs message="ERROR: [SIM 211-100] 'csim_design' failed: compilation error(s)." projectName="hls" solutionName="solution1" date="2026-01-30T09:54:32.668+0100"/>
-        <logs message="ERROR: [SIM 211-100] 'csim_design' failed: compilation error(s)." projectName="hls" solutionName="solution1" date="2026-01-30T09:51:44.821+0100"/>
-        <logs message="ERROR: [SIM 211-100] CSim failed with errors." projectName="hls" solutionName="solution1" date="2026-01-30T09:50:09.108+0100"/>
-        <logs message="ERROR: [HLS 200-627] Cannot find C test bench. Please specify test bench files using 'add_files -tb'." projectName="hls" solutionName="solution1" date="2026-01-30T09:50:09.097+0100"/>
-        <logs message="ERROR: [SIM 211-100] CSim failed with errors." projectName="hls" solutionName="solution1" date="2026-01-30T09:49:34.003+0100"/>
-        <logs message="ERROR: [HLS 200-627] Cannot find C test bench. Please specify test bench files using 'add_files -tb'." projectName="hls" solutionName="solution1" date="2026-01-30T09:49:33.992+0100"/>
-      </csimLog>
+      <synLog/>
+      <simLog/>
+      <mgLog/>
+      <packageLog/>
+      <csimLog/>
     </logs>
   </errorLogs>
   <warningLogs>
     <logs>
-      <csimLog>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../../include' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T11:58:44.054+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../../include' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T11:58:10.707+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../main.cpp' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T11:53:22.871+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-40] Cannot find test bench file 'main.cpp'" projectName="hls" solutionName="solution1" date="2026-01-30T11:53:21.453+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../main.cpp' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T11:51:46.526+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-40] Cannot find test bench file 'main.cpp'" projectName="hls" solutionName="solution1" date="2026-01-30T11:51:45.049+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../main.cpp' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T11:48:02.260+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-40] Cannot find test bench file 'main.cpp'" projectName="hls" solutionName="solution1" date="2026-01-30T11:48:00.598+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../main.cpp' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T09:54:31.212+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-40] Cannot find test bench file 'main.cpp'" projectName="hls" solutionName="solution1" date="2026-01-30T09:54:29.771+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../main.cpp' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T09:51:42.061+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-40] Cannot find test bench file 'main.cpp'" projectName="hls" solutionName="solution1" date="2026-01-30T09:51:40.511+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../main.cpp' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T09:50:09.070+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-40] Cannot find test bench file 'main.cpp'" projectName="hls" solutionName="solution1" date="2026-01-30T09:50:07.597+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../main.cpp' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T09:49:33.967+0100" type="Warning"/>
-        <logs message="WARNING: [HLS 200-40] Cannot find test bench file 'main.cpp'" projectName="hls" solutionName="solution1" date="2026-01-30T09:49:32.146+0100" type="Warning"/>
-      </csimLog>
+      <synLog>
+        <logs message="WARNING: [HLS 200-1998] cannot find relative file path '../../../include' in directory(s): C:/workspace/AURORA/hls/solution C:/workspace/AURORA" projectName="hls" solutionName="solution1" date="2026-01-30T16:02:51.296+0100" type="Warning"/>
+      </synLog>
+      <simLog/>
+      <mgLog/>
+      <packageLog/>
+      <csimLog/>
     </logs>
   </warningLogs>
 </vivadoHLSLog:LogRoot>

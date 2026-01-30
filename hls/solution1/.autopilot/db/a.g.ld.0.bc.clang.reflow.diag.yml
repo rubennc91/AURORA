@@ -1,0 +1,57 @@
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: src/quantum_kernels.cpp, Line: 55, Column: 27 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Loop '''
+  - LoopName:        SEARCH_ALICE
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: src/quantum_kernels.cpp, Line: 10, Column: 0 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        SEARCH_ALICE
+  - String:          ''' ('
+  - LoopLoc:         'src/quantum_kernels.cpp:55:27'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          compute_correlation_hls
+  - String:          ''' completely with a factor of '
+  - Factor:          '64'
+...
+--- !Passed
+Pass:            reflow-array-partition
+Name:            ArrayXform
+DebugLoc:        { File: src/quantum_kernels.cpp, Line: 10, Column: 0 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          'Applying '
+  - String:          array_partition
+  - String:          ' to '''
+  - UOName:          alice_tags
+  - String:          ''':'
+  - String:          ' '
+  - Mode:            Cyclic
+  - String:          ' partitioning'
+  - String:          ' with factor '
+  - Factor:          '16'
+  - String:          ' on dimension '
+  - Dim:             '1'
+  - String:          .
+...
+--- !Missed
+Pass:            reflow-burst-inference
+Name:            CouldNotAnalyzeBoundsPattern
+DebugLoc:        { File: src/quantum_kernels.cpp, Line: 38, Column: 19 }
+Function:        _Z23compute_correlation_hlsPKyS0_jjyR10CorrResult
+Args:            
+  - String:          Could not analyze the loop bounds
+  - String:          ' _XLX_SEP_ '
+  - LoopName:        BOB_LOOP
+  - String:          ' '
+  - LoopLoc:     

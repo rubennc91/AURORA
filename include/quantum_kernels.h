@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define BATCH_LIMIT 4096 
+#define ALICE_LIMIT 64
 
 struct CorrResult {
     int64_t best_lag;

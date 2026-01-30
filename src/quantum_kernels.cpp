@@ -8,7 +8,7 @@ void compute_correlation_hls(
     uint64_t window,
     CorrResult &result
 ) {
-    // Directivas para crear interfaces AXI (Bus de datos de la Zynq)
+    // Interfaces AXI4 para comunicación
     #pragma HLS INTERFACE m_axi port=alice_tags offset=slave bundle=gmem0
     #pragma HLS INTERFACE m_axi port=bob_tags offset=slave bundle=gmem1
     #pragma HLS INTERFACE s_axilite port=size_a
@@ -17,28 +17,48 @@ void compute_correlation_hls(
     #pragma HLS INTERFACE s_axilite port=result
     #pragma HLS INTERFACE s_axilite port=return
 
+	#pragma HLS ARRAY_PARTITION variable=alice_tags cyclic factor=16 dim=1
+
     result.max_count = 0;
     result.best_lag = 0;
 
-    // Este es el bucle que queremos paralelizar
-    for (int64_t lag = -500; lag <= 500; lag++) {
-        // En HLS, podemos usar UNROLL o PIPELINE para que la FPGA
-        // procese varios 'lags' al mismo tiempo.
-        #pragma HLS PIPELINE II=1 
+    // Bucle Principal: Recorre los posibles desfases temporales (Lags)
+    LAG_LOOP: for (int16_t lag = -500; lag <= 500; lag++) {
 
         uint32_t current_corr = 0;
-        uint32_t a_idx = 0;
+        uint32_t a_ptr = 0;
 
-        for (uint32_t b_idx = 0; b_idx < size_b; b_idx++) {
+        // Bucle de Bob: Procesa cada etiqueta de tiempo
+        BOB_LOOP: for (uint32_t b_idx = 0; b_idx < BATCH_LIMIT; b_idx++) {
             #pragma HLS LOOP_TRIPCOUNT min=1 max=4096
-            while (a_idx < size_a && alice_tags[a_idx] < (bob_tags[b_idx] + lag - window)) {
-                a_idx++;
-            }
-            if (a_idx < size_a && alice_tags[a_idx] <= (bob_tags[b_idx] + lag + window)) {
-                current_corr++;
+			#pragma HLS PIPELINE II=1
+
+            if (b_idx >= size_b) break;
+
+            uint64_t target = bob_tags[b_idx] + lag;
+            uint64_t min_range = target - window;
+            uint64_t max_range = target + window;
+
+            // Bucle de Búsqueda en Alice (Ventana Deslizante)
+            SEARCH_ALICE: for (uint32_t i = 0; i < ALICE_LIMIT; i++) {
+                #pragma HLS UNROLL // factor=8
+
+                uint32_t idx = a_ptr + i;
+                if (idx < size_a) {
+                    uint64_t a_tag = alice_tags[idx];
+
+                    // Lógica de coincidencia
+                    if (a_tag >= min_range && a_tag <= max_range) {
+                        current_corr++;
+                        // Actualizamos el puntero para no volver a buscar atrás
+                        a_ptr = idx + 1;
+                        break; // Salimos al encontrar la primera coincidencia
+                    }
+                }
             }
         }
 
+        // Guardamos el mejor resultado encontrado
         if (current_corr > result.max_count) {
             result.max_count = current_corr;
             result.best_lag = lag;
