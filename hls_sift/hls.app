@@ -1,4 +1,4 @@
-<project xmlns="com.autoesl.autopilot.project" top="" name="hls_sift" projectType="C/C++">
+<project xmlns="com.autoesl.autopilot.project" name="hls_sift" top="compute_correlation_hls" projectType="C/C++">
     <includePaths/>
     <libraryPaths/>
     <Simulation>

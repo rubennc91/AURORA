@@ -1,0 +1,57 @@
+{
+    "1": {
+        "name": "compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC",
+        "file": "hls_sift\/srcs\/quantum_kernels.cpp",
+        "fileloc": "38",
+        "instructions": "53",
+        "total_instructions": "53",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "2": {
+        "name": "compute_correlation_hls_Pipeline_SEARCH_ALICE_SIFT",
+        "file": "hls_sift\/srcs\/quantum_kernels.cpp",
+        "fileloc": "79",
+        "instructions": "48",
+        "total_instructions": "48",
+        "calls": "",
+        "basicblocks": "10",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "0": {
+        "name": "compute_correlation_hls",
+        "file": "quantum_kernels.cpp",
+        "fileloc": "7",
+        "instructions": "201",
+        "total_instructions": "302",
+        "calls": "1 2",
+        "basicblocks": "20",
+        "loads": {
+            "L": "12"
+        },
+        "stores": {
+            "L": "12"
+        },
+        "loops": {
+            "L": "2",
+            "N": "1"
+        }
+    }
+}

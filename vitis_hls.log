@@ -1,18 +1,19 @@
 ECHO est  desactivado.
 ECHO est  desactivado.
 INFO: [HLS 200-10] Running 'C:/Xilinx/Vitis_HLS/2023.2/bin/unwrapped/win64.o/vitis_hls.exe'
-INFO: [HLS 200-10] For user 'ruben.nieto' on host 'mp-5cg0326r5c' (Windows NT_amd64 version 6.2) on Fri Jan 30 21:19:34 +0100 2026
+INFO: [HLS 200-10] For user 'ruben.nieto' on host 'mp-5cg0326r5c' (Windows NT_amd64 version 6.2) on Sun Feb 01 10:18:32 +0100 2026
 INFO: [HLS 200-10] In directory 'C:/workspace/AURORA'
 INFO: [HLS 200-2053] The vitis_hls executable is being deprecated. Consider using vitis-run --mode hls --tcl
-Sourcing Tcl script 'C:/workspace/AURORA/hls_sift/solution1/csim.tcl'
-INFO: [HLS 200-1510] Running: source C:/workspace/AURORA/hls_sift/solution1/csim.tcl
+Sourcing Tcl script 'C:/workspace/AURORA/hls_sift/solution1/csynth.tcl'
+INFO: [HLS 200-1510] Running: source C:/workspace/AURORA/hls_sift/solution1/csynth.tcl
 INFO: [HLS 200-1510] Running: open_project hls_sift 
 INFO: [HLS 200-10] Opening project 'C:/workspace/AURORA/hls_sift'.
+INFO: [HLS 200-1510] Running: set_top compute_correlation_hls 
 INFO: [HLS 200-1510] Running: add_files hls_sift/srcs/quantum_kernels.cpp 
 INFO: [HLS 200-10] Adding design file 'hls_sift/srcs/quantum_kernels.cpp' to the project
 INFO: [HLS 200-1510] Running: add_files hls_sift/srcs/quantum_kernels.h 
 INFO: [HLS 200-10] Adding design file 'hls_sift/srcs/quantum_kernels.h' to the project
-INFO: [HLS 200-1510] Running: add_files -tb hls_sift/srcs/main.cpp 
+INFO: [HLS 200-1510] Running: add_files -tb hls_sift/srcs/main.cpp -cflags -Wno-unknown-pragmas 
 INFO: [HLS 200-10] Adding test bench file 'hls_sift/srcs/main.cpp' to the project
 INFO: [HLS 200-1510] Running: open_solution solution1 -flow_target vivado 
 INFO: [HLS 200-10] Opening solution 'C:/workspace/AURORA/hls_sift/solution1'.
@@ -22,84 +23,171 @@ INFO: [HLS 200-1505] Using flow_target 'vivado'
 Resolution: For help on HLS 200-1505 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-1505.html
 INFO: [HLS 200-1510] Running: set_part xczu7ev-ffvc1156-2-e 
 INFO: [HLS 200-1510] Running: create_clock -period 10 -name default 
-INFO: [HLS 200-1510] Running: csim_design -quiet 
-INFO: [SIM 211-2] *************** CSIM start ***************
-INFO: [SIM 211-4] CSIM will launch GCC as the compiler.
-INFO: [HLS 200-2036] Building debug C Simulation binaries
-   Compiling ../../../srcs/main.cpp in debug mode
-   Compiling ../../../srcs/quantum_kernels.cpp in debug mode
-   Generating csim.exe
-In file included from C:/Xilinx/Vitis_HLS/2023.2/include/floating_point_v7_1_bitacc_cmodel.h:150:0,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_fpo.h:140,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/hls_half_fpo.h:19,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_half.h:26,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_private.h:52,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_common.h:666,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/ap_int.h:10,
-                 from ../../../srcs/quantum_kernels.h:5,
-                 from ../../../srcs/main.cpp:8:
-C:/Xilinx/Vitis_HLS/2023.2/include/gmp.h:58:0: warning: "__GMP_LIBGMP_DLL" redefined
- #define __GMP_LIBGMP_DLL  0
- 
-In file included from C:/Xilinx/Vitis_HLS/2023.2/include/hls_fpo.h:140:0,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/hls_half_fpo.h:19,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_half.h:26,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_private.h:52,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_common.h:666,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/ap_int.h:10,
-                 from ../../../srcs/quantum_kernels.h:5,
-                 from ../../../srcs/main.cpp:8:
-C:/Xilinx/Vitis_HLS/2023.2/include/floating_point_v7_1_bitacc_cmodel.h:142:0: note: this is the location of the previous definition
- #define __GMP_LIBGMP_DLL 1
- 
-In file included from C:/Xilinx/Vitis_HLS/2023.2/include/floating_point_v7_1_bitacc_cmodel.h:150:0,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_fpo.h:140,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/hls_half_fpo.h:19,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_half.h:26,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_private.h:52,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_common.h:666,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/ap_int.h:10,
-                 from ../../../srcs/quantum_kernels.h:5,
-                 from ../../../srcs/quantum_kernels.cpp:1:
-C:/Xilinx/Vitis_HLS/2023.2/include/gmp.h:58:0: warning: "__GMP_LIBGMP_DLL" redefined
- #define __GMP_LIBGMP_DLL  0
- 
-In file included from C:/Xilinx/Vitis_HLS/2023.2/include/hls_fpo.h:140:0,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/hls_half_fpo.h:19,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/hls_half.h:26,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_private.h:52,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/etc/ap_common.h:666,
-                 from C:/Xilinx/Vitis_HLS/2023.2/include/ap_int.h:10,
-                 from ../../../srcs/quantum_kernels.h:5,
-                 from ../../../srcs/quantum_kernels.cpp:1:
-C:/Xilinx/Vitis_HLS/2023.2/include/floating_point_v7_1_bitacc_cmodel.h:142:0: note: this is the location of the previous definition
- #define __GMP_LIBGMP_DLL 1
- 
-============================================================
-    AURORA HLS: HW vs SW GOLDEN MODEL VALIDATION
-============================================================
-Batch  1 | Lag:  -71 | Sifted Bits:  41 | HW vs SW: [MATCH OK]
-Batch  2 | Lag:    0 | Sifted Bits:  52 | HW vs SW: [MATCH OK]
-Batch  3 | Lag:    7 | Sifted Bits:  40 | HW vs SW: [MATCH OK]
-Batch  4 | Lag: -338 | Sifted Bits:  20 | HW vs SW: [MATCH OK]
-Batch  5 | Lag: -173 | Sifted Bits:  49 | HW vs SW: [MATCH OK]
-Batch  6 | Lag: -177 | Sifted Bits:  38 | HW vs SW: [MATCH OK]
-Batch  7 | Lag:  -30 | Sifted Bits:  41 | HW vs SW: [MATCH OK]
-Batch  8 | Lag: -354 | Sifted Bits:  26 | HW vs SW: [MATCH OK]
-Batch  9 | Lag: -186 | Sifted Bits:  55 | HW vs SW: [MATCH OK]
-Batch 10 | Lag:    0 | Sifted Bits:  44 | HW vs SW: [MATCH OK]
-Batch 11 | Lag:   51 | Sifted Bits:  58 | HW vs SW: [MATCH OK]
-Batch 12 | Lag: -136 | Sifted Bits:  53 | HW vs SW: [MATCH OK]
-Batch 13 | Lag: -406 | Sifted Bits:  13 | HW vs SW: [MATCH OK]
-Batch 14 | Lag: -500 | Sifted Bits:   6 | HW vs SW: [MATCH OK]
-Batch 15 | Lag: -151 | Sifted Bits:  50 | HW vs SW: [MATCH OK]
-Batch 16 | Lag: -390 | Sifted Bits:  35 | HW vs SW: [MATCH OK]
-Batch 17 | Lag: -500 | Sifted Bits:  15 | HW vs SW: [MATCH OK]
-Batch 18 | Lag: -185 | Sifted Bits:  37 | HW vs SW: [MATCH OK]
-Batch 19 | Lag: -115 | Sifted Bits:  54 | HW vs SW: [MATCH OK]
-Batch 20 | Lag:    0 | Sifted Bits:  38 | HW vs SW: [MATCH OK]
-============================================================
-INFO: [SIM 211-1] CSim done with 0 errors.
-INFO: [SIM 211-3] *************** CSIM finish ***************
-INFO: [HLS 200-111] Finished Command csim_design CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 16.013 seconds; current allocated memory: 0.555 MB.
-INFO: [HLS 200-112] Total CPU user time: 1 seconds. Total CPU system time: 2 seconds. Total elapsed time: 19.452 seconds; peak allocated memory: 134.230 MB.
+INFO: [HLS 200-1510] Running: source ./hls_sift/solution1/directives.tcl
+INFO: [HLS 200-1510] Running: set_directive_top -name compute_correlation_hls compute_correlation_hls 
+INFO: [HLS 200-1510] Running: csynth_design 
+INFO: [HLS 200-111] Finished File checks and directory preparation: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.146 seconds; current allocated memory: 134.164 MB.
+INFO: [HLS 200-10] Analyzing design file 'hls_sift/srcs/quantum_kernels.cpp' ... 
+INFO: [HLS 200-111] Finished Source Code Analysis and Preprocessing: CPU user time: 0 seconds. CPU system time: 1 seconds. Elapsed time: 4.193 seconds; current allocated memory: 136.434 MB.
+INFO: [HLS 200-777] Using interface defaults for 'Vivado' flow target.
+INFO: [HLS 200-1995] There were 182 instructions in the design after the 'Compile/Link' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 176 instructions in the design after the 'Unroll/Inline (step 1)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 137 instructions in the design after the 'Unroll/Inline (step 2)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 143 instructions in the design after the 'Unroll/Inline (step 3)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 143 instructions in the design after the 'Unroll/Inline (step 4)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 137 instructions in the design after the 'Array/Struct (step 1)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 137 instructions in the design after the 'Array/Struct (step 2)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 149 instructions in the design after the 'Array/Struct (step 3)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 142 instructions in the design after the 'Array/Struct (step 4)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 148 instructions in the design after the 'Array/Struct (step 5)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 138 instructions in the design after the 'Performance (step 1)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 138 instructions in the design after the 'Performance (step 2)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 138 instructions in the design after the 'Performance (step 3)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 138 instructions in the design after the 'Performance (step 4)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 188 instructions in the design after the 'HW Transforms (step 1)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 206 instructions in the design after the 'HW Transforms (step 2)' phase of compilation. See the Design Size Report for more details: C:/workspace/AURORA/hls_sift/solution1/syn/report/csynth_design_size.rpt
+WARNING: [HLS 214-386] A depth specification is required for MAXI interface port 'sifted_count' for cosimulation. (hls_sift/srcs/quantum_kernels.cpp:20:0)
+WARNING: [HLS 214-398] Updating loop lower bound from 1000 to 1001 for loop 'LAG_LOOP' (hls_sift/srcs/quantum_kernels.cpp:35:19) in function 'compute_correlation_hls'. (hls_sift/srcs/quantum_kernels.cpp:20:0)
+INFO: [HLS 214-241] Aggregating scalar variable 'result' with compact=bit mode in 48-bits (hls_sift/srcs/quantum_kernels.cpp:20:0)
+INFO: [HLS 200-111] Finished Compiling Optimization and Transform: CPU user time: 1 seconds. CPU system time: 0 seconds. Elapsed time: 8.037 seconds; current allocated memory: 138.895 MB.
+INFO: [HLS 200-111] Finished Checking Pragmas: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.006 seconds; current allocated memory: 138.895 MB.
+INFO: [HLS 200-10] Starting code transformations ...
+INFO: [HLS 200-111] Finished Standard Transforms: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.272 seconds; current allocated memory: 144.242 MB.
+INFO: [HLS 200-10] Checking synthesizability ...
+INFO: [HLS 200-111] Finished Checking Synthesizability: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.067 seconds; current allocated memory: 145.590 MB.
+INFO: [HLS 200-111] Finished Loop, function and other optimizations: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.162 seconds; current allocated memory: 167.422 MB.
+WARNING: [HLS 200-960] Cannot flatten loop 'BOB_LOOP_SYNC' (hls_sift/srcs/quantum_kernels.cpp:41:28) in function 'compute_correlation_hls' the outer loop is not a perfect loop because there is nontrivial logic before entering the inner loop.
+Resolution: For help on HLS 200-960 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-960.html
+WARNING: [HLS 200-960] Cannot flatten loop 'LAG_LOOP' (hls_sift/srcs/quantum_kernels.cpp:35:19) in function 'compute_correlation_hls' the outer loop is not a perfect loop because there is nontrivial logic before entering the inner loop.
+Resolution: For help on HLS 200-960 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-960.html
+WARNING: [HLS 200-960] Cannot flatten loop 'BOB_LOOP_SIFT' (hls_sift/srcs/quantum_kernels.cpp:82:24) in function 'compute_correlation_hls' the outer loop is not a perfect loop because there is nontrivial logic before entering the inner loop.
+Resolution: For help on HLS 200-960 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-960.html
+INFO: [HLS 200-111] Finished Architecture Synthesis: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.208 seconds; current allocated memory: 180.957 MB.
+INFO: [HLS 200-10] Starting hardware synthesis ...
+INFO: [HLS 200-10] Synthesizing 'compute_correlation_hls' ...
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SIFT' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'SEARCH_ALICE_SIFT'.
+WARNING: [HLS 200-878] Unable to schedule the loop exit test ('icmp' operation 1 bit ('icmp_ln101', hls_sift/srcs/quantum_kernels.cpp:101)) in the first pipeline iteration (II = 1 cycles).
+Resolution: For help on HLS 200-878 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-878.html
+WARNING: [HLS 200-878] Unable to schedule the loop exit test ('icmp' operation 1 bit ('icmp_ln101', hls_sift/srcs/quantum_kernels.cpp:101)) in the first pipeline iteration (II = 2 cycles).
+Resolution: For help on HLS 200-878 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-878.html
+WARNING: [HLS 200-878] Unable to schedule the loop exit test ('icmp' operation 1 bit ('icmp_ln101', hls_sift/srcs/quantum_kernels.cpp:101)) in the first pipeline iteration (II = 3 cycles).
+Resolution: For help on HLS 200-878 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-878.html
+WARNING: [HLS 200-878] Unable to schedule the loop exit test ('icmp' operation 1 bit ('icmp_ln101', hls_sift/srcs/quantum_kernels.cpp:101)) in the first pipeline iteration (II = 4 cycles).
+Resolution: For help on HLS 200-878 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-878.html
+WARNING: [HLS 200-878] Unable to schedule the loop exit test ('icmp' operation 1 bit ('icmp_ln101', hls_sift/srcs/quantum_kernels.cpp:101)) in the first pipeline iteration (II = 7 cycles).
+Resolution: For help on HLS 200-878 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-878.html
+WARNING: [HLS 200-878] Unable to schedule the loop exit test ('icmp' operation 1 bit ('icmp_ln101', hls_sift/srcs/quantum_kernels.cpp:101)) in the first pipeline iteration (II = 8 cycles).
+Resolution: For help on HLS 200-878 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-878.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 9, Depth = 9, loop 'SEARCH_ALICE_SIFT'
+WARNING: [HLS 200-871] Estimated clock period (9.619 ns) exceeds the target (target clock period: 10.000 ns, clock uncertainty: 2.700 ns, effective delay budget: 7.300 ns).
+Resolution: For help on HLS 200-871 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SIFT' consists of the following:
+	'load' operation 11 bit ('i', hls_sift/srcs/quantum_kernels.cpp:98) on local variable 'i', hls_sift/srcs/quantum_kernels.cpp:95 [20]  (0.000 ns)
+	'add' operation 32 bit ('idx', hls_sift/srcs/quantum_kernels.cpp:98) [31]  (1.016 ns)
+	'add' operation 64 bit ('add_ln100', hls_sift/srcs/quantum_kernels.cpp:100) [37]  (1.085 ns)
+	'getelementptr' operation 64 bit ('gmem0_addr', hls_sift/srcs/quantum_kernels.cpp:100) [40]  (0.000 ns)
+	bus request operation ('a_tag_req', hls_sift/srcs/quantum_kernels.cpp:100) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:100) [41]  (7.300 ns)
+	blocking operation 0.218 ns on control path)
+
+Resolution: For help on HLS 200-1016 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.579 seconds; current allocated memory: 185.402 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.148 seconds; current allocated memory: 186.688 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'SEARCH_ALICE_SYNC'.
+WARNING: [HLS 200-880] The II Violation in module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' (loop 'SEARCH_ALICE_SYNC'): Unable to enforce a carried dependence constraint (II = 1, distance = 1, offset = 0) between 'store' operation 0 bit ('a_ptr_write_ln39', hls_sift/srcs/quantum_kernels.cpp:39) of variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:60 on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39 and 'load' operation 32 bit ('a_ptr', hls_sift/srcs/quantum_kernels.cpp:57) on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39.
+Resolution: For help on HLS 200-880 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' (loop 'SEARCH_ALICE_SYNC'): Unable to enforce a carried dependence constraint (II = 2, distance = 1, offset = 0) between 'store' operation 0 bit ('a_ptr_write_ln39', hls_sift/srcs/quantum_kernels.cpp:39) of variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:60 on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39 and 'load' operation 32 bit ('a_ptr', hls_sift/srcs/quantum_kernels.cpp:57) on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39.
+Resolution: For help on HLS 200-880 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' (loop 'SEARCH_ALICE_SYNC'): Unable to enforce a carried dependence constraint (II = 3, distance = 1, offset = 0) between 'store' operation 0 bit ('a_ptr_write_ln39', hls_sift/srcs/quantum_kernels.cpp:39) of variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:60 on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39 and 'load' operation 32 bit ('a_ptr', hls_sift/srcs/quantum_kernels.cpp:57) on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39.
+Resolution: For help on HLS 200-880 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' (loop 'SEARCH_ALICE_SYNC'): Unable to enforce a carried dependence constraint (II = 4, distance = 1, offset = 0) between 'store' operation 0 bit ('a_ptr_write_ln39', hls_sift/srcs/quantum_kernels.cpp:39) of variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:60 on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39 and 'load' operation 32 bit ('a_ptr', hls_sift/srcs/quantum_kernels.cpp:57) on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39.
+Resolution: For help on HLS 200-880 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' (loop 'SEARCH_ALICE_SYNC'): Unable to enforce a carried dependence constraint (II = 7, distance = 1, offset = 0) between 'store' operation 0 bit ('a_ptr_write_ln39', hls_sift/srcs/quantum_kernels.cpp:39) of variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:60 on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39 and 'load' operation 32 bit ('a_ptr', hls_sift/srcs/quantum_kernels.cpp:57) on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39.
+Resolution: For help on HLS 200-880 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-880.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 8, Depth = 10, loop 'SEARCH_ALICE_SYNC'
+WARNING: [HLS 200-871] Estimated clock period (9.548 ns) exceeds the target (target clock period: 10.000 ns, clock uncertainty: 2.700 ns, effective delay budget: 7.300 ns).
+Resolution: For help on HLS 200-871 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' consists of the following:
+	bus read operation ('a_tag', hls_sift/srcs/quantum_kernels.cpp:59) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:59) [48]  (7.300 ns)
+	'icmp' operation 1 bit ('icmp_ln60', hls_sift/srcs/quantum_kernels.cpp:60) [49]  (1.085 ns)
+	'xor' operation 1 bit ('xor_ln60', hls_sift/srcs/quantum_kernels.cpp:60) [50]  (0.000 ns)
+	'and' operation 1 bit ('and_ln60', hls_sift/srcs/quantum_kernels.cpp:60) [53]  (0.287 ns)
+	'select' operation 32 bit ('a_ptr', hls_sift/srcs/quantum_kernels.cpp:60) [56]  (0.449 ns)
+	'store' operation 0 bit ('a_ptr_write_ln39', hls_sift/srcs/quantum_kernels.cpp:39) of variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:60 on local variable 'a_ptr', hls_sift/srcs/quantum_kernels.cpp:39 [57]  (0.427 ns)
+
+Resolution: For help on HLS 200-1016 see docs.xilinx.com/access/sources/dita/topic?Doc_Version=2023.2%20English&url=ug1448-hls-guidance&resourceid=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.226 seconds; current allocated memory: 187.363 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.096 seconds; current allocated memory: 187.488 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'compute_correlation_hls' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.263 seconds; current allocated memory: 189.320 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.114 seconds; current allocated memory: 189.566 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SIFT' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SIFT'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.179 seconds; current allocated memory: 191.566 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' pipeline 'SEARCH_ALICE_SYNC' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Finished creating RTL model for 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.237 seconds; current allocated memory: 194.230 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'compute_correlation_hls' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [RTGEN 206-101] Design contains AXI ports. Reset is fixed to synchronous and active low.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/gmem0' to 'm_axi'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/gmem1' to 'm_axi'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/gmem2' to 'm_axi'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/alice_tags' to 's_axilite & ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/alice_meas' to 's_axilite & ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/bob_tags' to 's_axilite & ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/bob_meas' to 's_axilite & ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/size_a' to 'ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/size_b' to 'ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/window' to 'ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/fixed_lag' to 'ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/mode' to 'ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/sifted_key_out' to 's_axilite & ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/sifted_count' to 's_axilite & ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'compute_correlation_hls/result' to 'ap_vld'.
+INFO: [RTGEN 206-500] Setting interface mode on function 'compute_correlation_hls' to 's_axilite & ap_ctrl_hs'.
+INFO: [RTGEN 206-100] Bundling port 'alice_tags', 'alice_meas', 'bob_tags', 'bob_meas', 'sifted_key_out', 'sifted_count' to AXI-Lite port control.
+INFO: [RTGEN 206-100] Finished creating RTL model for 'compute_correlation_hls'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 1 seconds. CPU system time: 0 seconds. Elapsed time: 0.477 seconds; current allocated memory: 199.145 MB.
+INFO: [HLS 200-111] Finished Generating all RTL models: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.979 seconds; current allocated memory: 205.531 MB.
+INFO: [HLS 200-111] Finished Updating report files: CPU user time: 1 seconds. CPU system time: 1 seconds. Elapsed time: 1.417 seconds; current allocated memory: 215.227 MB.
+INFO: [VHDL 208-304] Generating VHDL RTL for compute_correlation_hls.
+INFO: [VLOG 209-307] Generating Verilog RTL for compute_correlation_hls.
+INFO: [HLS 200-790] **** Loop Constraint Status: All loop constraints were NOT satisfied.
+INFO: [HLS 200-789] **** Estimated Fmax: 103.96 MHz
+INFO: [HLS 200-111] Finished Command csynth_design CPU user time: 3 seconds. CPU system time: 2 seconds. Elapsed time: 17.98 seconds; current allocated memory: 81.148 MB.
+INFO: [HLS 200-112] Total CPU user time: 4 seconds. Total CPU system time: 3 seconds. Total elapsed time: 22.584 seconds; peak allocated memory: 215.371 MB.

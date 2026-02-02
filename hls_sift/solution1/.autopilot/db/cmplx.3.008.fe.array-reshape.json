@@ -1,0 +1,17 @@
+{
+  "0": {
+    "basicblocks": 26,
+    "calls": "",
+    "file": "quantum_kernels.cpp",
+    "fileloc": 7,
+    "instructions": 140,
+    "loads": {
+      "T": 6
+    },
+    "name": "compute_correlation_hls",
+    "stores": {
+      "T": 3
+    },
+    "total_instructions": 142
+  }
+}

@@ -4,7 +4,7 @@
     <originFiles name="quantum_kernels.cpp" path="C:\workspace\AURORA\src\quantum_kernels.cpp"/>
   </source>
   <testbench>
-    <originFiles name="quantum_kernels.h" path="C:\workspace\AURORA\include\quantum_kernels.h"/>
     <originFiles name="main.cpp" path="C:\workspace\AURORA\hls\src\main.cpp"/>
+    <originFiles name="quantum_kernels.h" path="C:\workspace\AURORA\include\quantum_kernels.h"/>
   </testbench>
 </autopilotfilemapping:AutoPilotFileMapping>

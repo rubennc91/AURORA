@@ -1,0 +1,31 @@
+INFO: [SIM 2] *************** CSIM start ***************
+INFO: [SIM 4] CSIM will launch GCC as the compiler.
+   Compiling ../../../srcs/main.cpp in debug mode
+   Compiling ../../../srcs/quantum_kernels.cpp in debug mode
+   Generating csim.exe
+============================================================
+    AURORA HLS: FULL SYSTEM (SYNC -> SIFT -> PA)
+============================================================
+Batch  1 | Size:  41 | Final Key (20 bits): [SECURE MATCH] -> OK!
+Batch  2 | Size:  52 | Final Key (26 bits): [SECURE MATCH] -> OK!
+Batch  3 | Size:  40 | Final Key (20 bits): [SECURE MATCH] -> OK!
+Batch  4 | Size:  20 | Final Key (10 bits): [SECURE MATCH] -> OK!
+Batch  5 | Size:  49 | Final Key (24 bits): [SECURE MATCH] -> OK!
+Batch  6 | Size:  38 | Final Key (19 bits): [SECURE MATCH] -> OK!
+Batch  7 | Size:  41 | Final Key (20 bits): [SECURE MATCH] -> OK!
+Batch  8 | Size:  26 | Final Key (13 bits): [SECURE MATCH] -> OK!
+Batch  9 | Size:  55 | Final Key (27 bits): [SECURE MATCH] -> OK!
+Batch 10 | Size:  44 | Final Key (22 bits): [SECURE MATCH] -> OK!
+Batch 11 | Size:  58 | Final Key (29 bits): [SECURE MATCH] -> OK!
+Batch 12 | Size:  53 | Final Key (26 bits): [SECURE MATCH] -> OK!
+Batch 13 | Size:  13 | Final Key (6 bits): [SECURE MATCH] -> OK!
+Batch 14 | Size:   6 | Final Key (3 bits): [SECURE MATCH] -> OK!
+Batch 15 | Size:  50 | Final Key (25 bits): [SECURE MATCH] -> OK!
+Batch 16 | Size:  35 | Final Key (17 bits): [SECURE MATCH] -> OK!
+Batch 17 | Size:  15 | Final Key (7 bits): [SECURE MATCH] -> OK!
+Batch 18 | Size:  37 | Final Key (18 bits): [SECURE MATCH] -> OK!
+Batch 19 | Size:  54 | Final Key (27 bits): [SECURE MATCH] -> OK!
+Batch 20 | Size:  38 | Final Key (19 bits): [SECURE MATCH] -> OK!
+============================================================
+INFO: [SIM 1] CSim done with 0 errors.
+INFO: [SIM 3] *************** CSIM finish ***************

@@ -1,0 +1,776 @@
+
+
+================================================================
+== Vitis HLS Report for 'compute_correlation_hls'
+================================================================
+* Date:           Sun Feb  1 10:18:50 2026
+
+* Version:        2023.2.2 (Build 4101106 on Feb  9 2024)
+* Project:        hls_sift
+* Solution:       solution1 (Vivado IP Flow Target)
+* Product family: zynquplus
+* Target device:  xczu7ev-ffvc1156-2-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+----------+----------+------------+
+    |  Clock |  Target  | Estimated| Uncertainty|
+    +--------+----------+----------+------------+
+    |ap_clk  |  10.00 ns|  9.619 ns|     2.70 ns|
+    +--------+----------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+------------+-----------+------------+-----+------------+---------+
+    |   Latency (cycles)   |   Latency (absolute)   |     Interval     | Pipeline|
+    |   min   |     max    |    min    |     max    | min |     max    |   Type  |
+    +---------+------------+-----------+------------+-----+------------+---------+
+    |        1|  2164852692|  10.000 ns|  21.649 sec|    2|  2164852693|       no|
+    +---------+------------+-----------+------------+-----+------------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +------------------+------------+------------+-----------+-----------+-----------+------+----------+
+        |                  |     Latency (cycles)    | Iteration |  Initiation Interval  | Trip |          |
+        |     Loop Name    |     min    |     max    |  Latency  |  achieved |   target  | Count| Pipelined|
+        +------------------+------------+------------+-----------+-----------+-----------+------+----------+
+        |- LAG_LOOP        |  2164852690|  2164852690|    2162690|          -|          -|  1001|        no|
+        | + BOB_LOOP_SYNC  |     2162688|     2162688|        528|          -|          -|  4096|        no|
+        |- BOB_LOOP_SIFT   |       98304|    37916672|  24 ~ 9257|          -|          -|  4096|        no|
+        +------------------+------------+------------+-----------+-----------+-----------+------+----------+
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 1
+ResetActiveHigh: 1
+IsCombinational: 0
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 0
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 52
+* Pipeline : 0
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 38 2 39 
+2 --> 32 3 
+3 --> 4 
+4 --> 5 
+5 --> 6 
+6 --> 7 
+7 --> 8 
+8 --> 9 
+9 --> 10 
+10 --> 11 
+11 --> 12 
+12 --> 13 
+13 --> 14 
+14 --> 15 31 
+15 --> 16 
+16 --> 17 
+17 --> 18 
+18 --> 19 
+19 --> 20 
+20 --> 21 
+21 --> 22 
+22 --> 23 
+23 --> 24 
+24 --> 25 31 
+25 --> 26 
+26 --> 27 
+27 --> 28 
+28 --> 29 
+29 --> 30 
+30 --> 31 
+31 --> 2 
+32 --> 33 
+33 --> 34 
+34 --> 35 
+35 --> 36 
+36 --> 37 
+37 --> 38 
+38 --> 
+39 --> 40 38 
+40 --> 41 39 
+41 --> 42 
+42 --> 43 
+43 --> 44 
+44 --> 45 
+45 --> 46 
+46 --> 47 
+47 --> 48 
+48 --> 49 
+49 --> 50 
+50 --> 51 
+51 --> 52 
+52 --> 40 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 1.18>
+ST_1 : Operation 53 [1/1] (1.00ns)   --->   "%sifted_count_read = read i64 @_ssdm_op_Read.s_axilite.i64, i64 %sifted_count"   --->   Operation 53 'read' 'sifted_count_read' <Predicate = true> <Delay = 1.00> <CoreInst = "s_axilite">   --->   Core 122 's_axilite' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write'>
+ST_1 : Operation 54 [1/1] (1.00ns)   --->   "%sifted_key_out_read = read i64 @_ssdm_op_Read.s_axilite.i64, i64 %sifted_key_out"   --->   Operation 54 'read' 'sifted_key_out_read' <Predicate = true> <Delay = 1.00> <CoreInst = "s_axilite">   --->   Core 122 's_axilite' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write'>
+ST_1 : Operation 55 [1/1] (0.00ns)   --->   "%mode_read = read i8 @_ssdm_op_Read.ap_auto.i8, i8 %mode"   --->   Operation 55 'read' 'mode_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 56 [1/1] (0.00ns)   --->   "%fixed_lag_read = read i16 @_ssdm_op_Read.ap_auto.i16, i16 %fixed_lag"   --->   Operation 56 'read' 'fixed_lag_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 57 [1/1] (0.00ns)   --->   "%window_read = read i64 @_ssdm_op_Read.ap_auto.i64, i64 %window"   --->   Operation 57 'read' 'window_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 58 [1/1] (0.00ns)   --->   "%size_b_read = read i32 @_ssdm_op_Read.ap_auto.i32, i32 %size_b"   --->   Operation 58 'read' 'size_b_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 59 [1/1] (0.00ns)   --->   "%size_a_read = read i32 @_ssdm_op_Read.ap_auto.i32, i32 %size_a"   --->   Operation 59 'read' 'size_a_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 60 [1/1] (1.00ns)   --->   "%bob_meas_read = read i64 @_ssdm_op_Read.s_axilite.i64, i64 %bob_meas"   --->   Operation 60 'read' 'bob_meas_read' <Predicate = true> <Delay = 1.00> <CoreInst = "s_axilite">   --->   Core 122 's_axilite' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write'>
+ST_1 : Operation 61 [1/1] (1.00ns)   --->   "%bob_tags_read = read i64 @_ssdm_op_Read.s_axilite.i64, i64 %bob_tags"   --->   Operation 61 'read' 'bob_tags_read' <Predicate = true> <Delay = 1.00> <CoreInst = "s_axilite">   --->   Core 122 's_axilite' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write'>
+ST_1 : Operation 62 [1/1] (1.00ns)   --->   "%alice_meas_read = read i64 @_ssdm_op_Read.s_axilite.i64, i64 %alice_meas"   --->   Operation 62 'read' 'alice_meas_read' <Predicate = true> <Delay = 1.00> <CoreInst = "s_axilite">   --->   Core 122 's_axilite' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write'>
+ST_1 : Operation 63 [1/1] (1.00ns)   --->   "%alice_tags_read = read i64 @_ssdm_op_Read.s_axilite.i64, i64 %alice_tags"   --->   Operation 63 'read' 'alice_tags_read' <Predicate = true> <Delay = 1.00> <CoreInst = "s_axilite">   --->   Core 122 's_axilite' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write'>
+ST_1 : Operation 64 [1/1] (0.00ns)   --->   "%idx_loc = alloca i64 1"   --->   Operation 64 'alloca' 'idx_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 65 [1/1] (0.00ns)   --->   "%current_corr_2_loc = alloca i64 1"   --->   Operation 65 'alloca' 'current_corr_2_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 66 [1/1] (0.00ns)   --->   "%a_ptr_3_loc = alloca i64 1"   --->   Operation 66 'alloca' 'a_ptr_3_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 67 [1/1] (0.00ns)   --->   "%spectopmodule_ln7 = spectopmodule void @_ssdm_op_SpecTopModule, void @empty_15" [hls_sift/srcs/quantum_kernels.cpp:7]   --->   Operation 67 'spectopmodule' 'spectopmodule_ln7' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 68 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %gmem0, void @empty, i32 0, i32 0, void @empty_0, i32 0, i32 4096, void @empty_1, void @empty_2, void @empty_0, i32 16, i32 16, i32 16, i32 16, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 68 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 69 [1/1] (0.00ns)   --->   "%specbitsmap_ln0 = specbitsmap void @_ssdm_op_SpecBitsMap, i64 %gmem0"   --->   Operation 69 'specbitsmap' 'specbitsmap_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 70 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %gmem1, void @empty, i32 0, i32 0, void @empty_0, i32 0, i32 4096, void @empty_3, void @empty_2, void @empty_0, i32 16, i32 16, i32 16, i32 16, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 70 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 71 [1/1] (0.00ns)   --->   "%specbitsmap_ln0 = specbitsmap void @_ssdm_op_SpecBitsMap, i64 %gmem1"   --->   Operation 71 'specbitsmap' 'specbitsmap_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 72 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %gmem2, void @empty, i32 0, i32 0, void @empty_0, i32 0, i32 1024, void @empty_4, void @empty_2, void @empty_0, i32 16, i32 16, i32 16, i32 16, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 72 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 73 [1/1] (0.00ns)   --->   "%specbitsmap_ln0 = specbitsmap void @_ssdm_op_SpecBitsMap, i32 %gmem2"   --->   Operation 73 'specbitsmap' 'specbitsmap_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 74 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %alice_tags, void @empty_5, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_6, void @empty_7, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 74 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 75 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %alice_tags, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 75 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 76 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %alice_meas, void @empty_5, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_6, void @empty_10, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 76 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 77 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %alice_meas, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 77 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 78 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %bob_tags, void @empty_5, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_6, void @empty_11, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 78 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 79 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %bob_tags, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 79 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 80 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %bob_meas, void @empty_5, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_6, void @empty_12, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 80 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 81 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %bob_meas, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 81 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 82 [1/1] (0.00ns)   --->   "%specbitsmap_ln0 = specbitsmap void @_ssdm_op_SpecBitsMap, i32 %size_a"   --->   Operation 82 'specbitsmap' 'specbitsmap_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 83 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %size_a, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 83 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 84 [1/1] (0.00ns)   --->   "%specbitsmap_ln0 = specbitsmap void @_ssdm_op_SpecBitsMap, i32 %size_b"   --->   Operation 84 'specbitsmap' 'specbitsmap_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 85 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %size_b, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 85 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 86 [1/1] (0.00ns)   --->   "%specbitsmap_ln0 = specbitsmap void @_ssdm_op_SpecBitsMap, i64 %window"   --->   Operation 86 'specbitsmap' 'specbitsmap_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 87 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %window, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 87 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 88 [1/1] (0.00ns)   --->   "%specbitsmap_ln0 = specbitsmap void @_ssdm_op_SpecBitsMap, i16 %fixed_lag"   --->   Operation 88 'specbitsmap' 'specbitsmap_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 89 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i16 %fixed_lag, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 89 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 90 [1/1] (0.00ns)   --->   "%specbitsmap_ln0 = specbitsmap void @_ssdm_op_SpecBitsMap, i8 %mode"   --->   Operation 90 'specbitsmap' 'specbitsmap_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 91 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i8 %mode, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 91 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 92 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %sifted_key_out, void @empty_5, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_6, void @empty_13, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 92 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 93 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %sifted_key_out, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 93 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 94 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %sifted_count, void @empty_5, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_6, void @empty_14, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 94 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 95 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i64 %sifted_count, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_8, i32 4294967295, i32 0"   --->   Operation 95 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 96 [1/1] (0.00ns)   --->   "%specbitsmap_ln0 = specbitsmap void @_ssdm_op_SpecBitsMap, i48 %result"   --->   Operation 96 'specbitsmap' 'specbitsmap_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 97 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i48 %result, void @empty_9, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_0, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 97 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 98 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 0, void @empty_5, i32 0, i32 0, void @empty_0, i32 0, i32 0, void @empty_6, void @empty_0, void @empty_0, i32 0, i32 0, i32 0, i32 0, void @empty_0, void @empty_0, i32 4294967295, i32 0"   --->   Operation 98 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 99 [1/1] (0.75ns)   --->   "%switch_ln33 = switch i8 %mode_read, void %if.end113, i8 0, void %BOB_LOOP_SYNC.preheader, i8 1, void %BOB_LOOP_SIFT" [hls_sift/srcs/quantum_kernels.cpp:33]   --->   Operation 99 'switch' 'switch_ln33' <Predicate = true> <Delay = 0.75>
+ST_1 : Operation 100 [1/1] (0.00ns)   --->   "%b_idx = alloca i32 1" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 100 'alloca' 'b_idx' <Predicate = (mode_read == 1)> <Delay = 0.00>
+ST_1 : Operation 101 [1/1] (0.00ns)   --->   "%found_bits = alloca i32 1" [hls_sift/srcs/quantum_kernels.cpp:79]   --->   Operation 101 'alloca' 'found_bits' <Predicate = (mode_read == 1)> <Delay = 0.00>
+ST_1 : Operation 102 [1/1] (0.00ns)   --->   "%a_ptr = alloca i32 1" [hls_sift/srcs/quantum_kernels.cpp:80]   --->   Operation 102 'alloca' 'a_ptr' <Predicate = (mode_read == 1)> <Delay = 0.00>
+ST_1 : Operation 103 [1/1] (0.00ns)   --->   "%conv52 = sext i16 %fixed_lag_read"   --->   Operation 103 'sext' 'conv52' <Predicate = (mode_read == 1)> <Delay = 0.00>
+ST_1 : Operation 104 [1/1] (0.42ns)   --->   "%store_ln80 = store i32 0, i32 %a_ptr" [hls_sift/srcs/quantum_kernels.cpp:80]   --->   Operation 104 'store' 'store_ln80' <Predicate = (mode_read == 1)> <Delay = 0.42>
+ST_1 : Operation 105 [1/1] (0.42ns)   --->   "%store_ln79 = store i32 0, i32 %found_bits" [hls_sift/srcs/quantum_kernels.cpp:79]   --->   Operation 105 'store' 'store_ln79' <Predicate = (mode_read == 1)> <Delay = 0.42>
+ST_1 : Operation 106 [1/1] (0.42ns)   --->   "%store_ln82 = store i32 0, i32 %b_idx" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 106 'store' 'store_ln82' <Predicate = (mode_read == 1)> <Delay = 0.42>
+ST_1 : Operation 107 [1/1] (0.00ns)   --->   "%br_ln82 = br void %for.body45" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 107 'br' 'br_ln82' <Predicate = (mode_read == 1)> <Delay = 0.00>
+ST_1 : Operation 108 [1/1] (0.00ns)   --->   "%local_max_count = alloca i32 1" [hls_sift/srcs/quantum_kernels.cpp:29]   --->   Operation 108 'alloca' 'local_max_count' <Predicate = (mode_read == 0)> <Delay = 0.00>
+ST_1 : Operation 109 [1/1] (0.00ns)   --->   "%local_best_lag = alloca i32 1" [hls_sift/srcs/quantum_kernels.cpp:30]   --->   Operation 109 'alloca' 'local_best_lag' <Predicate = (mode_read == 0)> <Delay = 0.00>
+ST_1 : Operation 110 [1/1] (0.00ns)   --->   "%lag = alloca i32 1" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 110 'alloca' 'lag' <Predicate = (mode_read == 0)> <Delay = 0.00>
+ST_1 : Operation 111 [1/1] (0.42ns)   --->   "%store_ln35 = store i10 524, i10 %lag" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 111 'store' 'store_ln35' <Predicate = (mode_read == 0)> <Delay = 0.42>
+ST_1 : Operation 112 [1/1] (0.42ns)   --->   "%store_ln30 = store i16 0, i16 %local_best_lag" [hls_sift/srcs/quantum_kernels.cpp:30]   --->   Operation 112 'store' 'store_ln30' <Predicate = (mode_read == 0)> <Delay = 0.42>
+ST_1 : Operation 113 [1/1] (0.42ns)   --->   "%store_ln29 = store i32 0, i32 %local_max_count" [hls_sift/srcs/quantum_kernels.cpp:29]   --->   Operation 113 'store' 'store_ln29' <Predicate = (mode_read == 0)> <Delay = 0.42>
+ST_1 : Operation 114 [1/1] (0.00ns)   --->   "%br_ln35 = br void %BOB_LOOP_SYNC" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 114 'br' 'br_ln35' <Predicate = (mode_read == 0)> <Delay = 0.00>
+
+State 2 <SV = 1> <Delay = 1.30>
+ST_2 : Operation 115 [1/1] (0.00ns)   --->   "%b_idx_2 = load i32 %b_idx" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 115 'load' 'b_idx_2' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 116 [1/1] (1.01ns)   --->   "%icmp_ln82 = icmp_eq  i32 %b_idx_2, i32 4096" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 116 'icmp' 'icmp_ln82' <Predicate = true> <Delay = 1.01> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 1.01> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 117 [1/1] (1.01ns)   --->   "%add_ln82 = add i32 %b_idx_2, i32 1" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 117 'add' 'add_ln82' <Predicate = true> <Delay = 1.01> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.01> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 118 [1/1] (0.00ns)   --->   "%br_ln82 = br i1 %icmp_ln82, void %for.body45.split, void %for.end112" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 118 'br' 'br_ln82' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 119 [1/1] (0.00ns)   --->   "%zext_ln82 = zext i32 %b_idx_2" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 119 'zext' 'zext_ln82' <Predicate = (!icmp_ln82)> <Delay = 0.00>
+ST_2 : Operation 120 [1/1] (0.00ns)   --->   "%speclooptripcount_ln83 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 4096, i64 4096, i64 4096" [hls_sift/srcs/quantum_kernels.cpp:83]   --->   Operation 120 'speclooptripcount' 'speclooptripcount_ln83' <Predicate = (!icmp_ln82)> <Delay = 0.00>
+ST_2 : Operation 121 [1/1] (0.00ns)   --->   "%specloopname_ln82 = specloopname void @_ssdm_op_SpecLoopName, void @empty_20" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 121 'specloopname' 'specloopname_ln82' <Predicate = (!icmp_ln82)> <Delay = 0.00>
+ST_2 : Operation 122 [1/1] (1.01ns)   --->   "%icmp_ln86 = icmp_ult  i32 %b_idx_2, i32 %size_b_read" [hls_sift/srcs/quantum_kernels.cpp:86]   --->   Operation 122 'icmp' 'icmp_ln86' <Predicate = (!icmp_ln82)> <Delay = 1.01> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 1.01> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 123 [1/1] (0.00ns)   --->   "%br_ln86 = br i1 %icmp_ln86, void %for.end112, void %SEARCH_ALICE_SIFT" [hls_sift/srcs/quantum_kernels.cpp:86]   --->   Operation 123 'br' 'br_ln86' <Predicate = (!icmp_ln82)> <Delay = 0.00>
+ST_2 : Operation 124 [1/1] (0.00ns)   --->   "%shl_ln = bitconcatenate i35 @_ssdm_op_BitConcatenate.i35.i32.i3, i32 %b_idx_2, i3 0" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 124 'bitconcatenate' 'shl_ln' <Predicate = (!icmp_ln82 & icmp_ln86)> <Delay = 0.00>
+ST_2 : Operation 125 [1/1] (0.00ns)   --->   "%zext_ln88 = zext i35 %shl_ln" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 125 'zext' 'zext_ln88' <Predicate = (!icmp_ln82 & icmp_ln86)> <Delay = 0.00>
+ST_2 : Operation 126 [1/1] (1.08ns)   --->   "%add_ln88 = add i64 %zext_ln88, i64 %bob_tags_read" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 126 'add' 'add_ln88' <Predicate = (!icmp_ln82 & icmp_ln86)> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 127 [1/1] (0.00ns)   --->   "%trunc_ln = partselect i61 @_ssdm_op_PartSelect.i61.i64.i32.i32, i64 %add_ln88, i32 3, i32 63" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 127 'partselect' 'trunc_ln' <Predicate = (!icmp_ln82 & icmp_ln86)> <Delay = 0.00>
+ST_2 : Operation 128 [1/1] (1.08ns)   --->   "%add_ln91 = add i64 %zext_ln82, i64 %bob_meas_read" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 128 'add' 'add_ln91' <Predicate = (!icmp_ln82 & icmp_ln86)> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 129 [1/1] (0.00ns)   --->   "%trunc_ln91_1 = partselect i61 @_ssdm_op_PartSelect.i61.i64.i32.i32, i64 %add_ln91, i32 3, i32 63" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 129 'partselect' 'trunc_ln91_1' <Predicate = (!icmp_ln82 & icmp_ln86)> <Delay = 0.00>
+ST_2 : Operation 130 [1/1] (0.00ns)   --->   "%trunc_ln91 = trunc i64 %add_ln91" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 130 'trunc' 'trunc_ln91' <Predicate = (!icmp_ln82 & icmp_ln86)> <Delay = 0.00>
+ST_2 : Operation 131 [1/1] (0.00ns)   --->   "%trunc_ln1 = partselect i62 @_ssdm_op_PartSelect.i62.i64.i32.i32, i64 %sifted_count_read, i32 2, i32 63" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 131 'partselect' 'trunc_ln1' <Predicate = (!icmp_ln86) | (icmp_ln82)> <Delay = 0.00>
+ST_2 : Operation 132 [1/1] (0.00ns)   --->   "%sext_ln116 = sext i62 %trunc_ln1" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 132 'sext' 'sext_ln116' <Predicate = (!icmp_ln86) | (icmp_ln82)> <Delay = 0.00>
+ST_2 : Operation 133 [1/1] (0.00ns)   --->   "%gmem2_addr = getelementptr i32 %gmem2, i64 %sext_ln116" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 133 'getelementptr' 'gmem2_addr' <Predicate = (!icmp_ln86) | (icmp_ln82)> <Delay = 0.00>
+
+State 3 <SV = 2> <Delay = 7.30>
+ST_3 : Operation 134 [1/1] (0.00ns)   --->   "%sext_ln88 = sext i61 %trunc_ln" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 134 'sext' 'sext_ln88' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 135 [1/1] (0.00ns)   --->   "%gmem1_addr = getelementptr i64 %gmem1, i64 %sext_ln88" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 135 'getelementptr' 'gmem1_addr' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 136 [8/8] (7.30ns)   --->   "%gmem1_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 136 'readreq' 'gmem1_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 4 <SV = 3> <Delay = 7.30>
+ST_4 : Operation 137 [7/8] (7.30ns)   --->   "%gmem1_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 137 'readreq' 'gmem1_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_4 : Operation 138 [1/1] (0.00ns)   --->   "%sext_ln91 = sext i61 %trunc_ln91_1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 138 'sext' 'sext_ln91' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 139 [1/1] (0.00ns)   --->   "%gmem1_addr_1 = getelementptr i64 %gmem1, i64 %sext_ln91" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 139 'getelementptr' 'gmem1_addr_1' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 140 [8/8] (7.30ns)   --->   "%gmem1_load_1_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 140 'readreq' 'gmem1_load_1_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 5 <SV = 4> <Delay = 7.30>
+ST_5 : Operation 141 [6/8] (7.30ns)   --->   "%gmem1_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 141 'readreq' 'gmem1_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_5 : Operation 142 [7/8] (7.30ns)   --->   "%gmem1_load_1_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 142 'readreq' 'gmem1_load_1_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 6 <SV = 5> <Delay = 7.30>
+ST_6 : Operation 143 [5/8] (7.30ns)   --->   "%gmem1_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 143 'readreq' 'gmem1_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_6 : Operation 144 [6/8] (7.30ns)   --->   "%gmem1_load_1_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 144 'readreq' 'gmem1_load_1_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 7 <SV = 6> <Delay = 7.30>
+ST_7 : Operation 145 [4/8] (7.30ns)   --->   "%gmem1_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 145 'readreq' 'gmem1_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_7 : Operation 146 [5/8] (7.30ns)   --->   "%gmem1_load_1_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 146 'readreq' 'gmem1_load_1_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 8 <SV = 7> <Delay = 7.30>
+ST_8 : Operation 147 [3/8] (7.30ns)   --->   "%gmem1_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 147 'readreq' 'gmem1_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_8 : Operation 148 [4/8] (7.30ns)   --->   "%gmem1_load_1_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 148 'readreq' 'gmem1_load_1_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 9 <SV = 8> <Delay = 7.30>
+ST_9 : Operation 149 [2/8] (7.30ns)   --->   "%gmem1_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 149 'readreq' 'gmem1_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_9 : Operation 150 [3/8] (7.30ns)   --->   "%gmem1_load_1_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 150 'readreq' 'gmem1_load_1_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 10 <SV = 9> <Delay = 7.30>
+ST_10 : Operation 151 [1/8] (7.30ns)   --->   "%gmem1_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 151 'readreq' 'gmem1_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_10 : Operation 152 [2/8] (7.30ns)   --->   "%gmem1_load_1_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 152 'readreq' 'gmem1_load_1_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 11 <SV = 10> <Delay = 7.30>
+ST_11 : Operation 153 [1/1] (7.30ns)   --->   "%gmem1_addr_read = read i64 @_ssdm_op_Read.m_axi.i64P1A, i64 %gmem1_addr" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 153 'read' 'gmem1_addr_read' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_11 : Operation 154 [1/8] (7.30ns)   --->   "%gmem1_load_1_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 154 'readreq' 'gmem1_load_1_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 12 <SV = 11> <Delay = 7.30>
+ST_12 : Operation 155 [1/1] (0.00ns)   --->   "%a_ptr_load = load i32 %a_ptr"   --->   Operation 155 'load' 'a_ptr_load' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 156 [1/1] (1.08ns)   --->   "%target = add i64 %gmem1_addr_read, i64 %conv52" [hls_sift/srcs/quantum_kernels.cpp:88]   --->   Operation 156 'add' 'target' <Predicate = true> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_12 : Operation 157 [1/1] (1.08ns)   --->   "%min_range = sub i64 %target, i64 %window_read" [hls_sift/srcs/quantum_kernels.cpp:89]   --->   Operation 157 'sub' 'min_range' <Predicate = true> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_12 : Operation 158 [1/1] (1.08ns)   --->   "%max_range = add i64 %target, i64 %window_read" [hls_sift/srcs/quantum_kernels.cpp:90]   --->   Operation 158 'add' 'max_range' <Predicate = true> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_12 : Operation 159 [1/1] (7.30ns)   --->   "%gmem1_addr_1_read = read i64 @_ssdm_op_Read.m_axi.i64P1A, i64 %gmem1_addr_1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 159 'read' 'gmem1_addr_1_read' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_12 : Operation 160 [1/1] (1.08ns)   --->   "%add74 = add i64 %max_range, i64 2000" [hls_sift/srcs/quantum_kernels.cpp:90]   --->   Operation 160 'add' 'add74' <Predicate = true> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_12 : Operation 161 [2/2] (0.00ns)   --->   "%targetBlock = call i2 @compute_correlation_hls_Pipeline_SEARCH_ALICE_SIFT, i64 %gmem0, i32 %a_ptr_load, i32 %size_a_read, i64 %min_range, i64 %max_range, i64 %alice_tags_read, i64 %add74, i32 %idx_loc" [hls_sift/srcs/quantum_kernels.cpp:89]   --->   Operation 161 'call' 'targetBlock' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 13 <SV = 12> <Delay = 2.30>
+ST_13 : Operation 162 [1/1] (0.00ns)   --->   "%shl_ln1 = bitconcatenate i6 @_ssdm_op_BitConcatenate.i6.i3.i3, i3 %trunc_ln91, i3 0" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 162 'bitconcatenate' 'shl_ln1' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 163 [1/1] (0.00ns)   --->   "%zext_ln91 = zext i6 %shl_ln1" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 163 'zext' 'zext_ln91' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 164 [1/1] (1.53ns)   --->   "%lshr_ln91 = lshr i64 %gmem1_addr_1_read, i64 %zext_ln91" [hls_sift/srcs/quantum_kernels.cpp:91]   --->   Operation 164 'lshr' 'lshr_ln91' <Predicate = true> <Delay = 1.53> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 1.53> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 165 [1/1] (0.00ns)   --->   "%tmp = partselect i7 @_ssdm_op_PartSelect.i7.i64.i32.i32, i64 %lshr_ln91, i32 1, i32 7" [hls_sift/srcs/quantum_kernels.cpp:92]   --->   Operation 165 'partselect' 'tmp' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 166 [1/1] (0.77ns)   --->   "%b_diag = icmp_ne  i7 %tmp, i7 0" [hls_sift/srcs/quantum_kernels.cpp:92]   --->   Operation 166 'icmp' 'b_diag' <Predicate = true> <Delay = 0.77> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.77> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 167 [1/2] (0.47ns)   --->   "%targetBlock = call i2 @compute_correlation_hls_Pipeline_SEARCH_ALICE_SIFT, i64 %gmem0, i32 %a_ptr_load, i32 %size_a_read, i64 %min_range, i64 %max_range, i64 %alice_tags_read, i64 %add74, i32 %idx_loc" [hls_sift/srcs/quantum_kernels.cpp:89]   --->   Operation 167 'call' 'targetBlock' <Predicate = true> <Delay = 0.47> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_13 : Operation 168 [1/1] (0.54ns)   --->   "%cond = icmp_eq  i2 %targetBlock, i2 1" [hls_sift/srcs/quantum_kernels.cpp:89]   --->   Operation 168 'icmp' 'cond' <Predicate = true> <Delay = 0.54> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.54> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+
+State 14 <SV = 13> <Delay = 1.08>
+ST_14 : Operation 169 [1/1] (0.00ns)   --->   "%idx_loc_load = load i32 %idx_loc"   --->   Operation 169 'load' 'idx_loc_load' <Predicate = true> <Delay = 0.00>
+ST_14 : Operation 170 [1/1] (0.00ns)   --->   "%br_ln89 = br i1 %cond, void %for.inc109, void %if.then81" [hls_sift/srcs/quantum_kernels.cpp:89]   --->   Operation 170 'br' 'br_ln89' <Predicate = true> <Delay = 0.00>
+ST_14 : Operation 171 [1/1] (0.00ns)   --->   "%zext_ln100 = zext i32 %idx_loc_load" [hls_sift/srcs/quantum_kernels.cpp:100]   --->   Operation 171 'zext' 'zext_ln100' <Predicate = (cond)> <Delay = 0.00>
+ST_14 : Operation 172 [1/1] (1.08ns)   --->   "%add_ln104 = add i64 %zext_ln100, i64 %alice_meas_read" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 172 'add' 'add_ln104' <Predicate = (cond)> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_14 : Operation 173 [1/1] (0.00ns)   --->   "%trunc_ln104_1 = partselect i61 @_ssdm_op_PartSelect.i61.i64.i32.i32, i64 %add_ln104, i32 3, i32 63" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 173 'partselect' 'trunc_ln104_1' <Predicate = (cond)> <Delay = 0.00>
+ST_14 : Operation 174 [1/1] (0.00ns)   --->   "%trunc_ln104 = trunc i64 %add_ln104" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 174 'trunc' 'trunc_ln104' <Predicate = (cond)> <Delay = 0.00>
+
+State 15 <SV = 14> <Delay = 7.30>
+ST_15 : Operation 175 [1/1] (0.00ns)   --->   "%sext_ln104 = sext i61 %trunc_ln104_1" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 175 'sext' 'sext_ln104' <Predicate = true> <Delay = 0.00>
+ST_15 : Operation 176 [1/1] (0.00ns)   --->   "%gmem0_addr = getelementptr i64 %gmem0, i64 %sext_ln104" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 176 'getelementptr' 'gmem0_addr' <Predicate = true> <Delay = 0.00>
+ST_15 : Operation 177 [8/8] (7.30ns)   --->   "%gmem0_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem0_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 177 'readreq' 'gmem0_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 16 <SV = 15> <Delay = 7.30>
+ST_16 : Operation 178 [7/8] (7.30ns)   --->   "%gmem0_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem0_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 178 'readreq' 'gmem0_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 17 <SV = 16> <Delay = 7.30>
+ST_17 : Operation 179 [6/8] (7.30ns)   --->   "%gmem0_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem0_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 179 'readreq' 'gmem0_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 18 <SV = 17> <Delay = 7.30>
+ST_18 : Operation 180 [5/8] (7.30ns)   --->   "%gmem0_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem0_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 180 'readreq' 'gmem0_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 19 <SV = 18> <Delay = 7.30>
+ST_19 : Operation 181 [4/8] (7.30ns)   --->   "%gmem0_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem0_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 181 'readreq' 'gmem0_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 20 <SV = 19> <Delay = 7.30>
+ST_20 : Operation 182 [3/8] (7.30ns)   --->   "%gmem0_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem0_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 182 'readreq' 'gmem0_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 21 <SV = 20> <Delay = 7.30>
+ST_21 : Operation 183 [2/8] (7.30ns)   --->   "%gmem0_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem0_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 183 'readreq' 'gmem0_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 22 <SV = 21> <Delay = 7.30>
+ST_22 : Operation 184 [1/8] (7.30ns)   --->   "%gmem0_load_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem0_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 184 'readreq' 'gmem0_load_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 23 <SV = 22> <Delay = 7.30>
+ST_23 : Operation 185 [1/1] (7.30ns)   --->   "%gmem0_addr_read = read i64 @_ssdm_op_Read.m_axi.i64P1A, i64 %gmem0_addr" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 185 'read' 'gmem0_addr_read' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 24 <SV = 23> <Delay = 3.02>
+ST_24 : Operation 186 [1/1] (0.00ns)   --->   "%shl_ln5 = bitconcatenate i6 @_ssdm_op_BitConcatenate.i6.i3.i3, i3 %trunc_ln104, i3 0" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 186 'bitconcatenate' 'shl_ln5' <Predicate = true> <Delay = 0.00>
+ST_24 : Operation 187 [1/1] (0.00ns)   --->   "%zext_ln104 = zext i6 %shl_ln5" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 187 'zext' 'zext_ln104' <Predicate = true> <Delay = 0.00>
+ST_24 : Operation 188 [1/1] (1.53ns)   --->   "%lshr_ln104 = lshr i64 %gmem0_addr_read, i64 %zext_ln104" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 188 'lshr' 'lshr_ln104' <Predicate = true> <Delay = 1.53> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 1.53> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_24 : Operation 189 [1/1] (0.00ns)   --->   "%trunc_ln104_2 = trunc i64 %lshr_ln104" [hls_sift/srcs/quantum_kernels.cpp:104]   --->   Operation 189 'trunc' 'trunc_ln104_2' <Predicate = true> <Delay = 0.00>
+ST_24 : Operation 190 [1/1] (0.00ns)   --->   "%tmp_1 = partselect i7 @_ssdm_op_PartSelect.i7.i64.i32.i32, i64 %lshr_ln104, i32 1, i32 7" [hls_sift/srcs/quantum_kernels.cpp:105]   --->   Operation 190 'partselect' 'tmp_1' <Predicate = true> <Delay = 0.00>
+ST_24 : Operation 191 [1/1] (0.77ns)   --->   "%a_diag = icmp_ne  i7 %tmp_1, i7 0" [hls_sift/srcs/quantum_kernels.cpp:105]   --->   Operation 191 'icmp' 'a_diag' <Predicate = true> <Delay = 0.77> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.77> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_24 : Operation 192 [1/1] (0.28ns)   --->   "%xor_ln106 = xor i1 %a_diag, i1 %b_diag" [hls_sift/srcs/quantum_kernels.cpp:106]   --->   Operation 192 'xor' 'xor_ln106' <Predicate = true> <Delay = 0.28> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.28> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_24 : Operation 193 [1/1] (0.00ns)   --->   "%br_ln106 = br i1 %xor_ln106, void %if.then89, void %if.end95" [hls_sift/srcs/quantum_kernels.cpp:106]   --->   Operation 193 'br' 'br_ln106' <Predicate = true> <Delay = 0.00>
+ST_24 : Operation 194 [1/1] (0.00ns)   --->   "%found_bits_load = load i32 %found_bits" [hls_sift/srcs/quantum_kernels.cpp:108]   --->   Operation 194 'load' 'found_bits_load' <Predicate = (!xor_ln106)> <Delay = 0.00>
+ST_24 : Operation 195 [1/1] (0.00ns)   --->   "%zext_ln107 = zext i32 %found_bits_load" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 195 'zext' 'zext_ln107' <Predicate = (!xor_ln106)> <Delay = 0.00>
+ST_24 : Operation 196 [1/1] (1.08ns)   --->   "%add_ln107 = add i64 %zext_ln107, i64 %sifted_key_out_read" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 196 'add' 'add_ln107' <Predicate = (!xor_ln106)> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_24 : Operation 197 [1/1] (0.00ns)   --->   "%trunc_ln107 = trunc i64 %add_ln107" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 197 'trunc' 'trunc_ln107' <Predicate = (!xor_ln106)> <Delay = 0.00>
+ST_24 : Operation 198 [1/1] (0.00ns)   --->   "%trunc_ln107_1 = partselect i62 @_ssdm_op_PartSelect.i62.i64.i32.i32, i64 %add_ln107, i32 2, i32 63" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 198 'partselect' 'trunc_ln107_1' <Predicate = (!xor_ln106)> <Delay = 0.00>
+ST_24 : Operation 199 [1/1] (0.00ns)   --->   "%sext_ln107 = sext i62 %trunc_ln107_1" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 199 'sext' 'sext_ln107' <Predicate = (!xor_ln106)> <Delay = 0.00>
+ST_24 : Operation 200 [1/1] (0.00ns)   --->   "%gmem2_addr_1 = getelementptr i32 %gmem2, i64 %sext_ln107" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 200 'getelementptr' 'gmem2_addr_1' <Predicate = (!xor_ln106)> <Delay = 0.00>
+ST_24 : Operation 201 [1/1] (1.01ns)   --->   "%found_bits_1 = add i32 %found_bits_load, i32 1" [hls_sift/srcs/quantum_kernels.cpp:108]   --->   Operation 201 'add' 'found_bits_1' <Predicate = (!xor_ln106)> <Delay = 1.01> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.01> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_24 : Operation 202 [1/1] (0.42ns)   --->   "%store_ln79 = store i32 %found_bits_1, i32 %found_bits" [hls_sift/srcs/quantum_kernels.cpp:79]   --->   Operation 202 'store' 'store_ln79' <Predicate = (!xor_ln106)> <Delay = 0.42>
+
+State 25 <SV = 24> <Delay = 7.30>
+ST_25 : Operation 203 [1/1] (0.00ns)   --->   "%zext_ln107_1 = zext i1 %trunc_ln104_2" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 203 'zext' 'zext_ln107_1' <Predicate = true> <Delay = 0.00>
+ST_25 : Operation 204 [1/1] (0.00ns)   --->   "%zext_ln107_2 = zext i2 %trunc_ln107" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 204 'zext' 'zext_ln107_2' <Predicate = true> <Delay = 0.00>
+ST_25 : Operation 205 [1/1] (0.51ns)   --->   "%shl_ln107 = shl i4 1, i4 %zext_ln107_2" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 205 'shl' 'shl_ln107' <Predicate = true> <Delay = 0.51> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.51> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_25 : Operation 206 [1/1] (0.00ns)   --->   "%shl_ln107_1 = bitconcatenate i5 @_ssdm_op_BitConcatenate.i5.i2.i3, i2 %trunc_ln107, i3 0" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 206 'bitconcatenate' 'shl_ln107_1' <Predicate = true> <Delay = 0.00>
+ST_25 : Operation 207 [1/1] (0.00ns)   --->   "%zext_ln107_3 = zext i5 %shl_ln107_1" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 207 'zext' 'zext_ln107_3' <Predicate = true> <Delay = 0.00>
+ST_25 : Operation 208 [1/1] (0.68ns)   --->   "%shl_ln107_2 = shl i25 %zext_ln107_1, i25 %zext_ln107_3" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 208 'shl' 'shl_ln107_2' <Predicate = true> <Delay = 0.68> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.68> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_25 : Operation 209 [1/1] (7.30ns)   --->   "%empty = writereq i1 @_ssdm_op_WriteReq.m_axi.p1i32, i32 %gmem2_addr_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 209 'writereq' 'empty' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 26 <SV = 25> <Delay = 7.30>
+ST_26 : Operation 210 [1/1] (0.00ns)   --->   "%zext_ln107_4 = zext i25 %shl_ln107_2" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 210 'zext' 'zext_ln107_4' <Predicate = true> <Delay = 0.00>
+ST_26 : Operation 211 [1/1] (7.30ns)   --->   "%write_ln107 = write void @_ssdm_op_Write.m_axi.p1i32, i32 %gmem2_addr_1, i32 %zext_ln107_4, i4 %shl_ln107" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 211 'write' 'write_ln107' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 27 <SV = 26> <Delay = 7.30>
+ST_27 : Operation 212 [5/5] (7.30ns)   --->   "%empty_26 = writeresp i1 @_ssdm_op_WriteResp.m_axi.p1i32, i32 %gmem2_addr_1" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 212 'writeresp' 'empty_26' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 28 <SV = 27> <Delay = 7.30>
+ST_28 : Operation 213 [4/5] (7.30ns)   --->   "%empty_26 = writeresp i1 @_ssdm_op_WriteResp.m_axi.p1i32, i32 %gmem2_addr_1" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 213 'writeresp' 'empty_26' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 29 <SV = 28> <Delay = 7.30>
+ST_29 : Operation 214 [3/5] (7.30ns)   --->   "%empty_26 = writeresp i1 @_ssdm_op_WriteResp.m_axi.p1i32, i32 %gmem2_addr_1" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 214 'writeresp' 'empty_26' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 30 <SV = 29> <Delay = 7.30>
+ST_30 : Operation 215 [2/5] (7.30ns)   --->   "%empty_26 = writeresp i1 @_ssdm_op_WriteResp.m_axi.p1i32, i32 %gmem2_addr_1" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 215 'writeresp' 'empty_26' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 31 <SV = 30> <Delay = 7.30>
+ST_31 : Operation 216 [1/5] (7.30ns)   --->   "%empty_26 = writeresp i1 @_ssdm_op_WriteResp.m_axi.p1i32, i32 %gmem2_addr_1" [hls_sift/srcs/quantum_kernels.cpp:107]   --->   Operation 216 'writeresp' 'empty_26' <Predicate = (cond & !xor_ln106)> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_31 : Operation 217 [1/1] (0.00ns)   --->   "%br_ln109 = br void %if.end95" [hls_sift/srcs/quantum_kernels.cpp:109]   --->   Operation 217 'br' 'br_ln109' <Predicate = (cond & !xor_ln106)> <Delay = 0.00>
+ST_31 : Operation 218 [1/1] (1.01ns)   --->   "%a_ptr_5 = add i32 %idx_loc_load, i32 1" [hls_sift/srcs/quantum_kernels.cpp:110]   --->   Operation 218 'add' 'a_ptr_5' <Predicate = (cond)> <Delay = 1.01> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.01> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_31 : Operation 219 [1/1] (0.42ns)   --->   "%store_ln80 = store i32 %a_ptr_5, i32 %a_ptr" [hls_sift/srcs/quantum_kernels.cpp:80]   --->   Operation 219 'store' 'store_ln80' <Predicate = (cond)> <Delay = 0.42>
+ST_31 : Operation 220 [1/1] (0.00ns)   --->   "%br_ln0 = br void %for.inc109"   --->   Operation 220 'br' 'br_ln0' <Predicate = (cond)> <Delay = 0.00>
+ST_31 : Operation 221 [1/1] (0.42ns)   --->   "%store_ln82 = store i32 %add_ln82, i32 %b_idx" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 221 'store' 'store_ln82' <Predicate = true> <Delay = 0.42>
+ST_31 : Operation 222 [1/1] (0.00ns)   --->   "%br_ln82 = br void %for.body45" [hls_sift/srcs/quantum_kernels.cpp:82]   --->   Operation 222 'br' 'br_ln82' <Predicate = true> <Delay = 0.00>
+
+State 32 <SV = 2> <Delay = 7.30>
+ST_32 : Operation 223 [1/1] (7.30ns)   --->   "%gmem2_addr_req = writereq i1 @_ssdm_op_WriteReq.m_axi.i32P1A, i32 %gmem2_addr, i32 1" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 223 'writereq' 'gmem2_addr_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 33 <SV = 3> <Delay = 7.30>
+ST_33 : Operation 224 [1/1] (0.00ns)   --->   "%found_bits_load_1 = load i32 %found_bits" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 224 'load' 'found_bits_load_1' <Predicate = true> <Delay = 0.00>
+ST_33 : Operation 225 [1/1] (7.30ns)   --->   "%write_ln116 = write void @_ssdm_op_Write.m_axi.i32P1A, i32 %gmem2_addr, i32 %found_bits_load_1, i4 15" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 225 'write' 'write_ln116' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 34 <SV = 4> <Delay = 7.30>
+ST_34 : Operation 226 [5/5] (7.30ns)   --->   "%gmem2_addr_resp = writeresp i1 @_ssdm_op_WriteResp.m_axi.i32P1A, i32 %gmem2_addr" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 226 'writeresp' 'gmem2_addr_resp' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 35 <SV = 5> <Delay = 7.30>
+ST_35 : Operation 227 [4/5] (7.30ns)   --->   "%gmem2_addr_resp = writeresp i1 @_ssdm_op_WriteResp.m_axi.i32P1A, i32 %gmem2_addr" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 227 'writeresp' 'gmem2_addr_resp' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 36 <SV = 6> <Delay = 7.30>
+ST_36 : Operation 228 [3/5] (7.30ns)   --->   "%gmem2_addr_resp = writeresp i1 @_ssdm_op_WriteResp.m_axi.i32P1A, i32 %gmem2_addr" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 228 'writeresp' 'gmem2_addr_resp' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 37 <SV = 7> <Delay = 7.30>
+ST_37 : Operation 229 [2/5] (7.30ns)   --->   "%gmem2_addr_resp = writeresp i1 @_ssdm_op_WriteResp.m_axi.i32P1A, i32 %gmem2_addr" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 229 'writeresp' 'gmem2_addr_resp' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 38 <SV = 8> <Delay = 7.30>
+ST_38 : Operation 230 [1/5] (7.30ns)   --->   "%gmem2_addr_resp = writeresp i1 @_ssdm_op_WriteResp.m_axi.i32P1A, i32 %gmem2_addr" [hls_sift/srcs/quantum_kernels.cpp:116]   --->   Operation 230 'writeresp' 'gmem2_addr_resp' <Predicate = (mode_read == 1)> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+ST_38 : Operation 231 [1/1] (0.00ns)   --->   "%br_ln117 = br void %if.end113" [hls_sift/srcs/quantum_kernels.cpp:117]   --->   Operation 231 'br' 'br_ln117' <Predicate = (mode_read == 1)> <Delay = 0.00>
+ST_38 : Operation 232 [1/1] (0.00ns)   --->   "%br_ln0 = br void %if.end114"   --->   Operation 232 'br' 'br_ln0' <Predicate = (mode_read != 0)> <Delay = 0.00>
+ST_38 : Operation 233 [1/1] (0.00ns)   --->   "%ret_ln118 = ret" [hls_sift/srcs/quantum_kernels.cpp:118]   --->   Operation 233 'ret' 'ret_ln118' <Predicate = true> <Delay = 0.00>
+
+State 39 <SV = 1> <Delay = 0.78>
+ST_39 : Operation 234 [1/1] (0.00ns)   --->   "%lag_1 = load i10 %lag" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 234 'load' 'lag_1' <Predicate = true> <Delay = 0.00>
+ST_39 : Operation 235 [1/1] (0.78ns)   --->   "%icmp_ln35 = icmp_eq  i10 %lag_1, i10 501" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 235 'icmp' 'icmp_ln35' <Predicate = true> <Delay = 0.78> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_39 : Operation 236 [1/1] (0.00ns)   --->   "%br_ln35 = br i1 %icmp_ln35, void %BOB_LOOP_SYNC.split, void %for.end36" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 236 'br' 'br_ln35' <Predicate = true> <Delay = 0.00>
+ST_39 : Operation 237 [1/1] (0.00ns)   --->   "%sext_ln35 = sext i10 %lag_1" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 237 'sext' 'sext_ln35' <Predicate = (!icmp_ln35)> <Delay = 0.00>
+ST_39 : Operation 238 [1/1] (0.00ns)   --->   "%speclooptripcount_ln29 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 1001, i64 1001, i64 1001" [hls_sift/srcs/quantum_kernels.cpp:29]   --->   Operation 238 'speclooptripcount' 'speclooptripcount_ln29' <Predicate = (!icmp_ln35)> <Delay = 0.00>
+ST_39 : Operation 239 [1/1] (0.00ns)   --->   "%specloopname_ln35 = specloopname void @_ssdm_op_SpecLoopName, void @empty_18" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 239 'specloopname' 'specloopname_ln35' <Predicate = (!icmp_ln35)> <Delay = 0.00>
+ST_39 : Operation 240 [1/1] (0.42ns)   --->   "%br_ln41 = br void %for.body6" [hls_sift/srcs/quantum_kernels.cpp:41]   --->   Operation 240 'br' 'br_ln41' <Predicate = (!icmp_ln35)> <Delay = 0.42>
+ST_39 : Operation 241 [1/1] (0.00ns)   --->   "%local_max_count_load = load i32 %local_max_count" [hls_sift/srcs/quantum_kernels.cpp:73]   --->   Operation 241 'load' 'local_max_count_load' <Predicate = (icmp_ln35)> <Delay = 0.00>
+ST_39 : Operation 242 [1/1] (0.00ns)   --->   "%local_best_lag_load = load i16 %local_best_lag" [hls_sift/srcs/quantum_kernels.cpp:73]   --->   Operation 242 'load' 'local_best_lag_load' <Predicate = (icmp_ln35)> <Delay = 0.00>
+ST_39 : Operation 243 [1/1] (0.00ns)   --->   "%spec_select25_partset = bitconcatenate i48 @_ssdm_op_BitConcatenate.i48.i16.i32, i16 %local_best_lag_load, i32 %local_max_count_load" [hls_sift/srcs/quantum_kernels.cpp:73]   --->   Operation 243 'bitconcatenate' 'spec_select25_partset' <Predicate = (icmp_ln35)> <Delay = 0.00>
+ST_39 : Operation 244 [1/1] (0.00ns)   --->   "%write_ln73 = write void @_ssdm_op_Write.ap_auto.i48P0A, i48 %result, i48 %spec_select25_partset" [hls_sift/srcs/quantum_kernels.cpp:73]   --->   Operation 244 'write' 'write_ln73' <Predicate = (icmp_ln35)> <Delay = 0.00>
+ST_39 : Operation 245 [1/1] (0.00ns)   --->   "%br_ln75 = br void %if.end114" [hls_sift/srcs/quantum_kernels.cpp:75]   --->   Operation 245 'br' 'br_ln75' <Predicate = (icmp_ln35)> <Delay = 0.00>
+
+State 40 <SV = 2> <Delay = 1.89>
+ST_40 : Operation 246 [1/1] (0.00ns)   --->   "%b_idx_1 = phi i32 0, void %BOB_LOOP_SYNC.split, i32 %add_ln41, void %if.end" [hls_sift/srcs/quantum_kernels.cpp:41]   --->   Operation 246 'phi' 'b_idx_1' <Predicate = true> <Delay = 0.00>
+ST_40 : Operation 247 [1/1] (0.00ns)   --->   "%a_ptr_1 = phi i32 0, void %BOB_LOOP_SYNC.split, i32 %a_ptr_3_loc_load, void %if.end"   --->   Operation 247 'phi' 'a_ptr_1' <Predicate = true> <Delay = 0.00>
+ST_40 : Operation 248 [1/1] (0.00ns)   --->   "%current_corr = phi i32 0, void %BOB_LOOP_SYNC.split, i32 %current_corr_2_loc_load, void %if.end"   --->   Operation 248 'phi' 'current_corr' <Predicate = true> <Delay = 0.00>
+ST_40 : Operation 249 [1/1] (1.01ns)   --->   "%icmp_ln41 = icmp_eq  i32 %b_idx_1, i32 4096" [hls_sift/srcs/quantum_kernels.cpp:41]   --->   Operation 249 'icmp' 'icmp_ln41' <Predicate = true> <Delay = 1.01> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 1.01> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_40 : Operation 250 [1/1] (1.01ns)   --->   "%add_ln41 = add i32 %b_idx_1, i32 1" [hls_sift/srcs/quantum_kernels.cpp:41]   --->   Operation 250 'add' 'add_ln41' <Predicate = true> <Delay = 1.01> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.01> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_40 : Operation 251 [1/1] (0.00ns)   --->   "%br_ln41 = br i1 %icmp_ln41, void %for.body6.split, void %for.end29" [hls_sift/srcs/quantum_kernels.cpp:41]   --->   Operation 251 'br' 'br_ln41' <Predicate = true> <Delay = 0.00>
+ST_40 : Operation 252 [1/1] (0.00ns)   --->   "%speclooptripcount_ln42 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 4096, i64 4096, i64 4096" [hls_sift/srcs/quantum_kernels.cpp:42]   --->   Operation 252 'speclooptripcount' 'speclooptripcount_ln42' <Predicate = (!icmp_ln41)> <Delay = 0.00>
+ST_40 : Operation 253 [1/1] (0.00ns)   --->   "%specloopname_ln41 = specloopname void @_ssdm_op_SpecLoopName, void @empty_17" [hls_sift/srcs/quantum_kernels.cpp:41]   --->   Operation 253 'specloopname' 'specloopname_ln41' <Predicate = (!icmp_ln41)> <Delay = 0.00>
+ST_40 : Operation 254 [1/1] (1.01ns)   --->   "%icmp_ln45 = icmp_ult  i32 %b_idx_1, i32 %size_b_read" [hls_sift/srcs/quantum_kernels.cpp:45]   --->   Operation 254 'icmp' 'icmp_ln45' <Predicate = (!icmp_ln41)> <Delay = 1.01> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 1.01> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_40 : Operation 255 [1/1] (0.00ns)   --->   "%br_ln45 = br i1 %icmp_ln45, void %for.end29, void %if.end" [hls_sift/srcs/quantum_kernels.cpp:45]   --->   Operation 255 'br' 'br_ln45' <Predicate = (!icmp_ln41)> <Delay = 0.00>
+ST_40 : Operation 256 [1/1] (0.00ns)   --->   "%shl_ln2 = bitconcatenate i35 @_ssdm_op_BitConcatenate.i35.i32.i3, i32 %b_idx_1, i3 0" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 256 'bitconcatenate' 'shl_ln2' <Predicate = (!icmp_ln41 & icmp_ln45)> <Delay = 0.00>
+ST_40 : Operation 257 [1/1] (0.00ns)   --->   "%zext_ln47 = zext i35 %shl_ln2" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 257 'zext' 'zext_ln47' <Predicate = (!icmp_ln41 & icmp_ln45)> <Delay = 0.00>
+ST_40 : Operation 258 [1/1] (1.08ns)   --->   "%add_ln47 = add i64 %zext_ln47, i64 %bob_tags_read" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 258 'add' 'add_ln47' <Predicate = (!icmp_ln41 & icmp_ln45)> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_40 : Operation 259 [1/1] (0.00ns)   --->   "%trunc_ln2 = partselect i61 @_ssdm_op_PartSelect.i61.i64.i32.i32, i64 %add_ln47, i32 3, i32 63" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 259 'partselect' 'trunc_ln2' <Predicate = (!icmp_ln41 & icmp_ln45)> <Delay = 0.00>
+ST_40 : Operation 260 [1/1] (0.00ns)   --->   "%local_max_count_load_1 = load i32 %local_max_count" [hls_sift/srcs/quantum_kernels.cpp:67]   --->   Operation 260 'load' 'local_max_count_load_1' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.00>
+ST_40 : Operation 261 [1/1] (0.00ns)   --->   "%local_best_lag_load_1 = load i16 %local_best_lag" [hls_sift/srcs/quantum_kernels.cpp:67]   --->   Operation 261 'load' 'local_best_lag_load_1' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.00>
+ST_40 : Operation 262 [1/1] (1.01ns)   --->   "%icmp_ln67 = icmp_ugt  i32 %current_corr, i32 %local_max_count_load_1" [hls_sift/srcs/quantum_kernels.cpp:67]   --->   Operation 262 'icmp' 'icmp_ln67' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 1.01> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 1.01> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_40 : Operation 263 [1/1] (0.44ns)   --->   "%local_max_count_1 = select i1 %icmp_ln67, i32 %current_corr, i32 %local_max_count_load_1" [hls_sift/srcs/quantum_kernels.cpp:67]   --->   Operation 263 'select' 'local_max_count_1' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.44> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.44> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_40 : Operation 264 [1/1] (0.00ns)   --->   "%sext_ln67 = sext i10 %lag_1" [hls_sift/srcs/quantum_kernels.cpp:67]   --->   Operation 264 'sext' 'sext_ln67' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.00>
+ST_40 : Operation 265 [1/1] (0.35ns)   --->   "%local_best_lag_1 = select i1 %icmp_ln67, i16 %sext_ln67, i16 %local_best_lag_load_1" [hls_sift/srcs/quantum_kernels.cpp:67]   --->   Operation 265 'select' 'local_best_lag_1' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.35> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.35> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_40 : Operation 266 [1/1] (0.78ns)   --->   "%add_ln35 = add i10 %lag_1, i10 1" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 266 'add' 'add_ln35' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.78> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_40 : Operation 267 [1/1] (0.42ns)   --->   "%store_ln35 = store i10 %add_ln35, i10 %lag" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 267 'store' 'store_ln35' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.42>
+ST_40 : Operation 268 [1/1] (0.42ns)   --->   "%store_ln30 = store i16 %local_best_lag_1, i16 %local_best_lag" [hls_sift/srcs/quantum_kernels.cpp:30]   --->   Operation 268 'store' 'store_ln30' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.42>
+ST_40 : Operation 269 [1/1] (0.42ns)   --->   "%store_ln29 = store i32 %local_max_count_1, i32 %local_max_count" [hls_sift/srcs/quantum_kernels.cpp:29]   --->   Operation 269 'store' 'store_ln29' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.42>
+ST_40 : Operation 270 [1/1] (0.00ns)   --->   "%br_ln35 = br void %BOB_LOOP_SYNC" [hls_sift/srcs/quantum_kernels.cpp:35]   --->   Operation 270 'br' 'br_ln35' <Predicate = (!icmp_ln45) | (icmp_ln41)> <Delay = 0.00>
+
+State 41 <SV = 3> <Delay = 7.30>
+ST_41 : Operation 271 [1/1] (0.00ns)   --->   "%sext_ln47 = sext i61 %trunc_ln2" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 271 'sext' 'sext_ln47' <Predicate = true> <Delay = 0.00>
+ST_41 : Operation 272 [1/1] (0.00ns)   --->   "%gmem1_addr_2 = getelementptr i64 %gmem1, i64 %sext_ln47" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 272 'getelementptr' 'gmem1_addr_2' <Predicate = true> <Delay = 0.00>
+ST_41 : Operation 273 [8/8] (7.30ns)   --->   "%b_tag_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_2, i32 1" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 273 'readreq' 'b_tag_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 42 <SV = 4> <Delay = 7.30>
+ST_42 : Operation 274 [7/8] (7.30ns)   --->   "%b_tag_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_2, i32 1" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 274 'readreq' 'b_tag_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 43 <SV = 5> <Delay = 7.30>
+ST_43 : Operation 275 [6/8] (7.30ns)   --->   "%b_tag_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_2, i32 1" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 275 'readreq' 'b_tag_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 44 <SV = 6> <Delay = 7.30>
+ST_44 : Operation 276 [5/8] (7.30ns)   --->   "%b_tag_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_2, i32 1" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 276 'readreq' 'b_tag_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 45 <SV = 7> <Delay = 7.30>
+ST_45 : Operation 277 [4/8] (7.30ns)   --->   "%b_tag_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_2, i32 1" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 277 'readreq' 'b_tag_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 46 <SV = 8> <Delay = 7.30>
+ST_46 : Operation 278 [3/8] (7.30ns)   --->   "%b_tag_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_2, i32 1" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 278 'readreq' 'b_tag_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 47 <SV = 9> <Delay = 7.30>
+ST_47 : Operation 279 [2/8] (7.30ns)   --->   "%b_tag_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_2, i32 1" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 279 'readreq' 'b_tag_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 48 <SV = 10> <Delay = 7.30>
+ST_48 : Operation 280 [1/8] (7.30ns)   --->   "%b_tag_req = readreq i1 @_ssdm_op_ReadReq.m_axi.i64P1A, i64 %gmem1_addr_2, i32 1" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 280 'readreq' 'b_tag_req' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 49 <SV = 11> <Delay = 7.30>
+ST_49 : Operation 281 [1/1] (7.30ns)   --->   "%b_tag = read i64 @_ssdm_op_Read.m_axi.i64P1A, i64 %gmem1_addr_2" [hls_sift/srcs/quantum_kernels.cpp:47]   --->   Operation 281 'read' 'b_tag' <Predicate = true> <Delay = 7.30> <CoreInst = "m_axi">   --->   Core 121 'm_axi' <Latency = 0> <II = 1> <Delay = 1.00> <Adapter> <Opcode : 'read' 'write' 'readreq' 'writereq' 'writeresp'>
+
+State 50 <SV = 12> <Delay = 3.02>
+ST_50 : Operation 282 [1/1] (1.08ns)   --->   "%target_1 = add i64 %b_tag, i64 %sext_ln35" [hls_sift/srcs/quantum_kernels.cpp:48]   --->   Operation 282 'add' 'target_1' <Predicate = true> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_50 : Operation 283 [1/1] (1.08ns)   --->   "%icmp_ln49 = icmp_ugt  i64 %target_1, i64 %window_read" [hls_sift/srcs/quantum_kernels.cpp:49]   --->   Operation 283 'icmp' 'icmp_ln49' <Predicate = true> <Delay = 1.08> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_50 : Operation 284 [1/1] (1.08ns)   --->   "%sub_ln49 = sub i64 %target_1, i64 %window_read" [hls_sift/srcs/quantum_kernels.cpp:49]   --->   Operation 284 'sub' 'sub_ln49' <Predicate = true> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_50 : Operation 285 [1/1] (0.42ns)   --->   "%min_range_1 = select i1 %icmp_ln49, i64 %sub_ln49, i64 0" [hls_sift/srcs/quantum_kernels.cpp:49]   --->   Operation 285 'select' 'min_range_1' <Predicate = true> <Delay = 0.42> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.42> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_50 : Operation 286 [1/1] (1.08ns)   --->   "%max_range_1 = add i64 %target_1, i64 %window_read" [hls_sift/srcs/quantum_kernels.cpp:50]   --->   Operation 286 'add' 'max_range_1' <Predicate = true> <Delay = 1.08> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 1.08> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_50 : Operation 287 [2/2] (0.42ns)   --->   "%call_ln49 = call void @compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC, i32 %a_ptr_1, i32 %current_corr, i64 %gmem0, i32 %size_a_read, i64 %alice_tags_read, i64 %min_range_1, i64 %max_range_1, i32 %a_ptr_3_loc, i32 %current_corr_2_loc" [hls_sift/srcs/quantum_kernels.cpp:49]   --->   Operation 287 'call' 'call_ln49' <Predicate = true> <Delay = 0.42> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 51 <SV = 13> <Delay = 0.00>
+ST_51 : Operation 288 [1/2] (0.00ns)   --->   "%call_ln49 = call void @compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC, i32 %a_ptr_1, i32 %current_corr, i64 %gmem0, i32 %size_a_read, i64 %alice_tags_read, i64 %min_range_1, i64 %max_range_1, i32 %a_ptr_3_loc, i32 %current_corr_2_loc" [hls_sift/srcs/quantum_kernels.cpp:49]   --->   Operation 288 'call' 'call_ln49' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 52 <SV = 14> <Delay = 0.00>
+ST_52 : Operation 289 [1/1] (0.00ns)   --->   "%a_ptr_3_loc_load = load i32 %a_ptr_3_loc"   --->   Operation 289 'load' 'a_ptr_3_loc_load' <Predicate = true> <Delay = 0.00>
+ST_52 : Operation 290 [1/1] (0.00ns)   --->   "%current_corr_2_loc_load = load i32 %current_corr_2_loc"   --->   Operation 290 'load' 'current_corr_2_loc_load' <Predicate = true> <Delay = 0.00>
+ST_52 : Operation 291 [1/1] (0.00ns)   --->   "%br_ln41 = br void %for.body6" [hls_sift/srcs/quantum_kernels.cpp:41]   --->   Operation 291 'br' 'br_ln41' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 10.000ns, clock uncertainty: 2.700ns.
+
+ <State 1>: 1.181ns
+The critical path consists of the following:
+	wire read operation ('mode_read') on port 'mode' [18]  (0.000 ns)
+	'store' operation 0 bit ('store_ln35', hls_sift/srcs/quantum_kernels.cpp:35) of constant 524 on local variable 'lag', hls_sift/srcs/quantum_kernels.cpp:35 [171]  (0.427 ns)
+	blocking operation 0.7535 ns on control path)
+
+ <State 2>: 1.303ns
+The critical path consists of the following:
+	'load' operation 32 bit ('b_idx', hls_sift/srcs/quantum_kernels.cpp:82) on local variable 'b_idx', hls_sift/srcs/quantum_kernels.cpp:82 [73]  (0.000 ns)
+	'add' operation 64 bit ('add_ln88', hls_sift/srcs/quantum_kernels.cpp:88) [87]  (1.085 ns)
+	blocking operation 0.218 ns on control path)
+
+ <State 3>: 7.300ns
+The critical path consists of the following:
+	'getelementptr' operation 64 bit ('gmem1_addr', hls_sift/srcs/quantum_kernels.cpp:88) [90]  (0.000 ns)
+	bus request operation ('gmem1_load_req', hls_sift/srcs/quantum_kernels.cpp:88) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:88) [91]  (7.300 ns)
+
+ <State 4>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem1_load_req', hls_sift/srcs/quantum_kernels.cpp:88) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:88) [91]  (7.300 ns)
+
+ <State 5>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem1_load_req', hls_sift/srcs/quantum_kernels.cpp:88) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:88) [91]  (7.300 ns)
+
+ <State 6>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem1_load_req', hls_sift/srcs/quantum_kernels.cpp:88) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:88) [91]  (7.300 ns)
+
+ <State 7>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem1_load_req', hls_sift/srcs/quantum_kernels.cpp:88) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:88) [91]  (7.300 ns)
+
+ <State 8>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem1_load_req', hls_sift/srcs/quantum_kernels.cpp:88) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:88) [91]  (7.300 ns)
+
+ <State 9>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem1_load_req', hls_sift/srcs/quantum_kernels.cpp:88) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:88) [91]  (7.300 ns)
+
+ <State 10>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem1_load_req', hls_sift/srcs/quantum_kernels.cpp:88) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:88) [91]  (7.300 ns)
+
+ <State 11>: 7.300ns
+The critical path consists of the following:
+	bus read operation ('gmem1_addr_read', hls_sift/srcs/quantum_kernels.cpp:88) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:88) [92]  (7.300 ns)
+
+ <State 12>: 7.300ns
+The critical path consists of the following:
+	bus read operation ('gmem1_addr_1_read', hls_sift/srcs/quantum_kernels.cpp:91) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:91) [101]  (7.300 ns)
+
+ <State 13>: 2.309ns
+The critical path consists of the following:
+	'lshr' operation 64 bit ('lshr_ln91', hls_sift/srcs/quantum_kernels.cpp:91) [105]  (1.536 ns)
+	'icmp' operation 1 bit ('b_diag', hls_sift/srcs/quantum_kernels.cpp:92) [107]  (0.773 ns)
+
+ <State 14>: 1.085ns
+The critical path consists of the following:
+	'load' operation 32 bit ('idx_loc_load') on local variable 'idx_loc' [110]  (0.000 ns)
+	'add' operation 64 bit ('add_ln104', hls_sift/srcs/quantum_kernels.cpp:104) [115]  (1.085 ns)
+
+ <State 15>: 7.300ns
+The critical path consists of the following:
+	'getelementptr' operation 64 bit ('gmem0_addr', hls_sift/srcs/quantum_kernels.cpp:104) [118]  (0.000 ns)
+	bus request operation ('gmem0_load_req', hls_sift/srcs/quantum_kernels.cpp:104) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:104) [119]  (7.300 ns)
+
+ <State 16>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem0_load_req', hls_sift/srcs/quantum_kernels.cpp:104) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:104) [119]  (7.300 ns)
+
+ <State 17>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem0_load_req', hls_sift/srcs/quantum_kernels.cpp:104) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:104) [119]  (7.300 ns)
+
+ <State 18>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem0_load_req', hls_sift/srcs/quantum_kernels.cpp:104) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:104) [119]  (7.300 ns)
+
+ <State 19>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem0_load_req', hls_sift/srcs/quantum_kernels.cpp:104) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:104) [119]  (7.300 ns)
+
+ <State 20>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem0_load_req', hls_sift/srcs/quantum_kernels.cpp:104) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:104) [119]  (7.300 ns)
+
+ <State 21>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem0_load_req', hls_sift/srcs/quantum_kernels.cpp:104) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:104) [119]  (7.300 ns)
+
+ <State 22>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem0_load_req', hls_sift/srcs/quantum_kernels.cpp:104) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:104) [119]  (7.300 ns)
+
+ <State 23>: 7.300ns
+The critical path consists of the following:
+	bus read operation ('gmem0_addr_read', hls_sift/srcs/quantum_kernels.cpp:104) on port 'gmem0' (hls_sift/srcs/quantum_kernels.cpp:104) [120]  (7.300 ns)
+
+ <State 24>: 3.023ns
+The critical path consists of the following:
+	'lshr' operation 64 bit ('lshr_ln104', hls_sift/srcs/quantum_kernels.cpp:104) [124]  (1.536 ns)
+	'icmp' operation 1 bit ('a_diag', hls_sift/srcs/quantum_kernels.cpp:105) [127]  (0.773 ns)
+	'xor' operation 1 bit ('xor_ln106', hls_sift/srcs/quantum_kernels.cpp:106) [128]  (0.287 ns)
+	'store' operation 0 bit ('store_ln79', hls_sift/srcs/quantum_kernels.cpp:79) of variable 'found_bits', hls_sift/srcs/quantum_kernels.cpp:108 on local variable 'found_bits', hls_sift/srcs/quantum_kernels.cpp:79 [149]  (0.427 ns)
+
+ <State 25>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('empty', hls_sift/srcs/quantum_kernels.cpp:107) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:107) [145]  (7.300 ns)
+
+ <State 26>: 7.300ns
+The critical path consists of the following:
+	bus write operation ('write_ln107', hls_sift/srcs/quantum_kernels.cpp:107) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:107) [146]  (7.300 ns)
+
+ <State 27>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('empty_26', hls_sift/srcs/quantum_kernels.cpp:107) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:107) [147]  (7.300 ns)
+
+ <State 28>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('empty_26', hls_sift/srcs/quantum_kernels.cpp:107) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:107) [147]  (7.300 ns)
+
+ <State 29>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('empty_26', hls_sift/srcs/quantum_kernels.cpp:107) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:107) [147]  (7.300 ns)
+
+ <State 30>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('empty_26', hls_sift/srcs/quantum_kernels.cpp:107) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:107) [147]  (7.300 ns)
+
+ <State 31>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('empty_26', hls_sift/srcs/quantum_kernels.cpp:107) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:107) [147]  (7.300 ns)
+
+ <State 32>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('gmem2_addr_req', hls_sift/srcs/quantum_kernels.cpp:116) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:116) [163]  (7.300 ns)
+
+ <State 33>: 7.300ns
+The critical path consists of the following:
+	'load' operation 32 bit ('found_bits_load_1', hls_sift/srcs/quantum_kernels.cpp:116) on local variable 'found_bits', hls_sift/srcs/quantum_kernels.cpp:79 [159]  (0.000 ns)
+	bus write operation ('write_ln116', hls_sift/srcs/quantum_kernels.cpp:116) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:116) [164]  (7.300 ns)
+
+ <State 34>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('gmem2_addr_resp', hls_sift/srcs/quantum_kernels.cpp:116) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:116) [165]  (7.300 ns)
+
+ <State 35>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('gmem2_addr_resp', hls_sift/srcs/quantum_kernels.cpp:116) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:116) [165]  (7.300 ns)
+
+ <State 36>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('gmem2_addr_resp', hls_sift/srcs/quantum_kernels.cpp:116) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:116) [165]  (7.300 ns)
+
+ <State 37>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('gmem2_addr_resp', hls_sift/srcs/quantum_kernels.cpp:116) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:116) [165]  (7.300 ns)
+
+ <State 38>: 7.300ns
+The critical path consists of the following:
+	bus response operation ('gmem2_addr_resp', hls_sift/srcs/quantum_kernels.cpp:116) on port 'gmem2' (hls_sift/srcs/quantum_kernels.cpp:116) [165]  (7.300 ns)
+
+ <State 39>: 0.787ns
+The critical path consists of the following:
+	'load' operation 10 bit ('lag', hls_sift/srcs/quantum_kernels.cpp:35) on local variable 'lag', hls_sift/srcs/quantum_kernels.cpp:35 [176]  (0.000 ns)
+	'icmp' operation 1 bit ('icmp_ln35', hls_sift/srcs/quantum_kernels.cpp:35) [177]  (0.787 ns)
+
+ <State 40>: 1.892ns
+The critical path consists of the following:
+	'phi' operation 32 bit ('current_corr') with incoming values : ('current_corr_2_loc_load') [187]  (0.000 ns)
+	'icmp' operation 1 bit ('icmp_ln67', hls_sift/srcs/quantum_kernels.cpp:67) [217]  (1.016 ns)
+	'select' operation 32 bit ('local_max_count', hls_sift/srcs/quantum_kernels.cpp:67) [218]  (0.449 ns)
+	'store' operation 0 bit ('store_ln29', hls_sift/srcs/quantum_kernels.cpp:29) of variable 'local_max_count', hls_sift/srcs/quantum_kernels.cpp:67 on local variable 'local_max_count', hls_sift/srcs/quantum_kernels.cpp:29 [224]  (0.427 ns)
+
+ <State 41>: 7.300ns
+The critical path consists of the following:
+	'getelementptr' operation 64 bit ('gmem1_addr_2', hls_sift/srcs/quantum_kernels.cpp:47) [202]  (0.000 ns)
+	bus request operation ('b_tag_req', hls_sift/srcs/quantum_kernels.cpp:47) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:47) [203]  (7.300 ns)
+
+ <State 42>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('b_tag_req', hls_sift/srcs/quantum_kernels.cpp:47) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:47) [203]  (7.300 ns)
+
+ <State 43>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('b_tag_req', hls_sift/srcs/quantum_kernels.cpp:47) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:47) [203]  (7.300 ns)
+
+ <State 44>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('b_tag_req', hls_sift/srcs/quantum_kernels.cpp:47) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:47) [203]  (7.300 ns)
+
+ <State 45>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('b_tag_req', hls_sift/srcs/quantum_kernels.cpp:47) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:47) [203]  (7.300 ns)
+
+ <State 46>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('b_tag_req', hls_sift/srcs/quantum_kernels.cpp:47) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:47) [203]  (7.300 ns)
+
+ <State 47>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('b_tag_req', hls_sift/srcs/quantum_kernels.cpp:47) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:47) [203]  (7.300 ns)
+
+ <State 48>: 7.300ns
+The critical path consists of the following:
+	bus request operation ('b_tag_req', hls_sift/srcs/quantum_kernels.cpp:47) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:47) [203]  (7.300 ns)
+
+ <State 49>: 7.300ns
+The critical path consists of the following:
+	bus read operation ('b_tag', hls_sift/srcs/quantum_kernels.cpp:47) on port 'gmem1' (hls_sift/srcs/quantum_kernels.cpp:47) [204]  (7.300 ns)
+
+ <State 50>: 3.021ns
+The critical path consists of the following:
+	'add' operation 64 bit ('target', hls_sift/srcs/quantum_kernels.cpp:48) [205]  (1.085 ns)
+	'icmp' operation 1 bit ('icmp_ln49', hls_sift/srcs/quantum_kernels.cpp:49) [206]  (1.085 ns)
+	'select' operation 64 bit ('min_range', hls_sift/srcs/quantum_kernels.cpp:49) [208]  (0.424 ns)
+	'call' operation 0 bit ('call_ln49', hls_sift/srcs/quantum_kernels.cpp:49) to 'compute_correlation_hls_Pipeline_SEARCH_ALICE_SYNC' [210]  (0.427 ns)
+
+ <State 51>: 0.000ns
+The critical path consists of the following:
+
+ <State 52>: 0.000ns
+The critical path consists of the following:
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+	State 4
+	State 5
+	State 6
+	State 7
+	State 8
+	State 9
+	State 10
+	State 11
+	State 12
+	State 13
+	State 14
+	State 15
+	State 16
+	State 17
+	State 18
+	State 19
+	State 20
+	State 21
+	State 22
+	State 23
+	State 24
+	State 25
+	State 26
+	State 27
+	State 28
+	State 29
+	State 30
+	State 31
+	State 32
+	State 33
+	State 34
+	State 35
+	State 36
+	State 37
+	State 38
+	State 39
+	State 40
+	State 41
+	State 42
+	State 43
+	State 44
+	State 45
+	State 46
+	State 47
+	State 48
+	State 49
+	State 50
+	State 51
+	State 52
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

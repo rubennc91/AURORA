@@ -1,0 +1,30 @@
+INFO: [SIM 2] *************** CSIM start ***************
+INFO: [SIM 4] CSIM will launch GCC as the compiler.
+   Compiling ../../../srcs/quantum_kernels.cpp in debug mode
+   Generating csim.exe
+============================================================
+    AURORA HLS: HW vs SW GOLDEN MODEL VALIDATION
+============================================================
+Batch  1 | Lag:  -33 | Sifted Bits:  42 | HW vs SW: [MATCH OK]
+Batch  2 | Lag:  -76 | Sifted Bits:  52 | HW vs SW: [MATCH OK]
+Batch  3 | Lag:  104 | Sifted Bits:  44 | HW vs SW: [MATCH OK]
+Batch  4 | Lag:   31 | Sifted Bits:  46 | HW vs SW: [MATCH OK]
+Batch  5 | Lag:  -53 | Sifted Bits:  51 | HW vs SW: [MATCH OK]
+Batch  6 | Lag:   61 | Sifted Bits:  45 | HW vs SW: [MATCH OK]
+Batch  7 | Lag:   -6 | Sifted Bits:  43 | HW vs SW: [MATCH OK]
+Batch  8 | Lag:  -81 | Sifted Bits:  41 | HW vs SW: [MATCH OK]
+Batch  9 | Lag: -149 | Sifted Bits:  58 | HW vs SW: [MATCH OK]
+Batch 10 | Lag:    3 | Sifted Bits:  45 | HW vs SW: [MATCH OK]
+Batch 11 | Lag:  -68 | Sifted Bits:  61 | HW vs SW: [MATCH OK]
+Batch 12 | Lag:  -88 | Sifted Bits:  57 | HW vs SW: [MATCH OK]
+Batch 13 | Lag:   40 | Sifted Bits:  32 | HW vs SW: [MATCH OK]
+Batch 14 | Lag:   40 | Sifted Bits:  54 | HW vs SW: [MATCH OK]
+Batch 15 | Lag:   15 | Sifted Bits:  50 | HW vs SW: [MATCH OK]
+Batch 16 | Lag:  -97 | Sifted Bits:  49 | HW vs SW: [MATCH OK]
+Batch 17 | Lag:    0 | Sifted Bits:  52 | HW vs SW: [MATCH OK]
+Batch 18 | Lag:   25 | Sifted Bits:  45 | HW vs SW: [MATCH OK]
+Batch 19 | Lag:  -67 | Sifted Bits:  55 | HW vs SW: [MATCH OK]
+Batch 20 | Lag:   52 | Sifted Bits:  40 | HW vs SW: [MATCH OK]
+============================================================
+INFO: [SIM 1] CSim done with 0 errors.
+INFO: [SIM 3] *************** CSIM finish ***************

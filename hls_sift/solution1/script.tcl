@@ -5,13 +5,14 @@
 ## Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 ############################################################
 open_project hls_sift
+set_top compute_correlation_hls
 add_files hls_sift/srcs/quantum_kernels.cpp
 add_files hls_sift/srcs/quantum_kernels.h
-add_files -tb hls_sift/srcs/main.cpp
+add_files -tb hls_sift/srcs/main.cpp -cflags "-Wno-unknown-pragmas"
 open_solution "solution1" -flow_target vivado
 set_part {xczu7ev-ffvc1156-2-e}
 create_clock -period 10 -name default
-#source "./hls_sift/solution1/directives.tcl"
+source "./hls_sift/solution1/directives.tcl"
 csim_design
 csynth_design
 cosim_design
