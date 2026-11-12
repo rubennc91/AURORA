@@ -4,6 +4,7 @@
 #   make             compila build/aurora_cli
 #   make test        tests de los kernels nuevos + validacion sobre batches reales
 #   make test-legacy tests que documentan los fallos del codigo anterior (XFAIL)
+#   make test-trng   simulacion RTL del TRNG (requiere Icarus Verilog)
 #   make test-all    todo lo anterior
 #   make pipeline    cadena completa sobre todos los batches
 #   make legacy-sim  simulador original (src/main.cpp)
@@ -24,12 +25,12 @@ endif
 CLI := $(BUILD)/aurora_cli$(EXE)
 
 HW_SRC   := hw/aurora_sync.cpp hw/aurora_sift.cpp hw/aurora_toeplitz.cpp
-SW_SRC   := sw/aurora_host.cpp sw/aurora_auth.cpp
-HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h
+SW_SRC   := sw/aurora_host.cpp sw/aurora_auth.cpp sw/aurora_trng.cpp sw/aurora_trng_driver.cpp
+HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h sw/aurora_trng.h sw/aurora_trng_driver.h
 
 LEGACY_FLAGS := -O2 -std=c++17 -w -Itests/cpp/legacy_stub
 
-.PHONY: all test test-cpp test-python test-legacy test-all pipeline clean legacy-sim hls
+.PHONY: all test test-cpp test-python test-legacy test-trng test-all pipeline clean legacy-sim hls
 
 all: $(CLI)
 
@@ -53,9 +54,17 @@ test: test-cpp test-python
 $(BUILD)/test_auth$(EXE): $(HW_SRC) $(SW_SRC) $(HDRS) tests/cpp/test_framework.h tests/cpp/test_auth.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) $(HW_SRC) $(SW_SRC) tests/cpp/test_auth.cpp -o $@
 
-test-cpp: $(BUILD)/test_kernels$(EXE) $(BUILD)/test_auth$(EXE)
+$(BUILD)/test_trng$(EXE): $(HW_SRC) $(SW_SRC) $(HDRS) tests/cpp/test_framework.h tests/cpp/test_trng.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) $(HW_SRC) $(SW_SRC) tests/cpp/test_trng.cpp -o $@
+
+$(BUILD)/test_trng_driver$(EXE): $(HW_SRC) $(SW_SRC) $(HDRS) tests/cpp/test_framework.h tests/cpp/test_trng_driver.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) $(HW_SRC) $(SW_SRC) tests/cpp/test_trng_driver.cpp -o $@
+
+test-cpp: $(BUILD)/test_kernels$(EXE) $(BUILD)/test_auth$(EXE) $(BUILD)/test_trng$(EXE) $(BUILD)/test_trng_driver$(EXE)
 	$(BUILD)/test_kernels$(EXE)
 	$(BUILD)/test_auth$(EXE)
+	$(BUILD)/test_trng$(EXE)
+	$(BUILD)/test_trng_driver$(EXE)
 
 test-python: $(CLI)
 	AURORA_CLI=$(CLI) AURORA_BATCHES=$(BATCHES) $(PYTHON) -m unittest discover -s tests/python -v
@@ -64,7 +73,11 @@ test-legacy: $(BUILD)/test_legacy_sift$(EXE) $(BUILD)/test_legacy_hashing$(EXE)
 	AURORA_BATCHES=$(BATCHES) $(BUILD)/test_legacy_sift$(EXE)
 	$(BUILD)/test_legacy_hashing$(EXE)
 
-test-all: test test-legacy
+# TRNG: simulacion RTL (Icarus Verilog) contrastada con los modelos de referencia.
+test-trng: $(CLI)
+	AURORA_CLI=$(CLI) $(PYTHON) -m unittest discover -s tests/trng -v
+
+test-all: test test-legacy test-trng
 
 pipeline: $(CLI)
 	$(CLI) pipeline $(BATCHES) 0 100

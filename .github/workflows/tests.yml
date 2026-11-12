@@ -12,13 +12,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install numpy
-        run: pip install numpy
+      - name: Install numpy + Icarus Verilog
+        run: |
+          pip install numpy
+          sudo apt-get update && sudo apt-get install -y iverilog
       - name: Build
         run: make
       - name: Kernels nuevos + validacion sobre batches reales
         run: make test
       - name: Fallos documentados del codigo anterior (XFAIL)
         run: make test-legacy
+      - name: TRNG (simulacion RTL)
+        run: make test-trng
       - name: Pipeline completo
         run: make pipeline

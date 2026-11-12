@@ -263,6 +263,31 @@ TEST(toeplitz_is_linear_and_seed_dependent) {
     CHECK(toeplitz_hash(x, 1500, 1) != toeplitz_hash(x, 1500, 2));
 }
 
+TEST(toeplitz_hash_handles_inputs_larger_than_kernel) {
+    // Regresion: el kernel ignora entradas > AURORA_PA_MAX_IN_BITS y el host
+    // devolvia una clave de ceros (igual en Alice y Bob).
+    std::mt19937_64 rng(21);
+    const uint32_t n = 3 * AURORA_PA_MAX_IN_BITS + 12345, m = (uint32_t)(0.7 * n);
+    Bits x(n);
+    for (auto &v : x) v = rng() & 1;
+    Bits h = toeplitz_hash(x, m, 99);
+    CHECK(h.size() == m);
+    size_t ones = 0;
+    for (auto v : h) ones += v;
+    CHECK_MSG(std::fabs((double)ones - m / 2.0) < 5 * std::sqrt(m / 4.0), std::to_string(ones));
+    CHECK(h == toeplitz_hash(x, m, 99));
+    // Cada bloque depende de su parte de la entrada.
+    Bits y = x;
+    y[n - 1] ^= 1;
+    Bits hy = toeplitz_hash(y, m, 99);
+    CHECK(hy != h);
+    CHECK(std::equal(h.begin(), h.begin() + m / 2, hy.begin()));   // bloques iniciales intactos
+    // Cerca del limite, con un unico bloque, coincide con el kernel directo.
+    Bits small(AURORA_PA_MAX_IN_BITS);
+    for (auto &v : small) v = rng() & 1;
+    CHECK(toeplitz_hash(small, 1000, 5).size() == 1000);
+}
+
 // ------------------------------------------------------------ Cascade y PA ----
 TEST(permutation_is_bijection) {
     // La version anterior fallaba en n = 901, 1802, 2703, 3604.

@@ -8,6 +8,10 @@
 //       con el canal clasico autenticado (Wegman-Carter).
 //   aurora_cli polyhash <clave_hex32> [mensaje_hex]
 //       Hash polinomico GF(2^128) usado por la autenticacion.
+//   aurora_cli trng-analyze <captura> [--h H] [--extract salida.txt]
+//       Tests de salud, min-entropia (SP 800-90B) y extraccion Toeplitz.
+//   aurora_cli trng-health <raw.txt> <rct_cutoff> <apt_cutoff>
+//       Modelo de referencia de los tests de salud del RTL.
 // =============================================================================
 #include <cinttypes>
 #include <cmath>
@@ -17,6 +21,8 @@
 
 #include "aurora_auth.h"
 #include "aurora_host.h"
+#include "aurora_trng.h"
+#include <fstream>
 
 using namespace aurora;
 
@@ -106,6 +112,81 @@ static int cmd_polyhash(const std::string &khex, const std::string &mhex) {
     return 0;
 }
 
+// Bits brutos en formato del testbench: "<indice> <bit>" por linea. Se toma la
+// ultima secuencia que empieza en el indice 0 (tras el ultimo clear).
+static bool load_raw_indexed(const std::string &path, Bits &out) {
+    std::ifstream f(path);
+    if (!f) return false;
+    out.clear();
+    uint64_t idx;
+    int bit;
+    while (f >> idx >> bit) {
+        if (idx == 0) out.clear();
+        if (idx != out.size()) return false;
+        out.push_back((uint8_t)(bit & 1));
+    }
+    return true;
+}
+
+static int cmd_trng_health(const std::string &path, uint32_t rct, uint32_t apt) {
+    Bits raw;
+    if (!load_raw_indexed(path, raw)) { std::fprintf(stderr, "no se puede leer %s\n", path.c_str()); return 2; }
+    HealthConfig hc;
+    hc.rct_cutoff = rct;
+    hc.apt_cutoff = apt;
+    HealthResult r = run_health_tests(raw, hc);
+    std::printf("{\"samples\":%zu,\"rct_idx\":%lld,\"apt_idx\":%lld,\"startup_ok\":%s}\n", raw.size(),
+                (long long)r.rct_fail_idx, (long long)r.apt_fail_idx, r.startup_ok ? "true" : "false");
+    return 0;
+}
+
+// Analisis de una captura (palabras hex de 32 bits): salud, entropia y extraccion.
+static int cmd_trng_analyze(int argc, char **argv) {
+    std::string in, out_path;
+    double h_assumed = 0.5;
+    uint64_t seed = 0x7A3C5E9F1B2D4C6EULL;   // semilla publica del extractor (fija y guardada)
+    for (int i = 2; i < argc; ++i) {
+        std::string a = argv[i];
+        if (a == "--extract" && i + 1 < argc) out_path = argv[++i];
+        else if (a == "--h" && i + 1 < argc) h_assumed = std::atof(argv[++i]);
+        else if (a == "--seed" && i + 1 < argc) seed = std::strtoull(argv[++i], nullptr, 0);
+        else if (a == "--raw-indexed") in = std::string("@") + (i + 1 < argc ? argv[++i] : "");
+        else in = a;
+    }
+    Bits raw;
+    std::string err;
+    if (!in.empty() && in[0] == '@') {
+        if (!load_raw_indexed(in.substr(1), raw)) { std::fprintf(stderr, "no se puede leer %s\n", in.c_str() + 1); return 2; }
+    } else if (!load_trng_words(in, raw, &err)) {
+        std::fprintf(stderr, "%s\n", err.c_str());
+        return 2;
+    }
+    HealthConfig hc;
+    hc.rct_cutoff = rct_cutoff(h_assumed);
+    hc.apt_cutoff = apt_cutoff(h_assumed);
+    HealthResult hr = run_health_tests(raw, hc);
+    EntropyEstimate e = estimate_min_entropy(raw);
+    // Se usa la entropia asumida solo si la estimacion no la contradice.
+    double h_use = std::min(h_assumed, e.min);
+    Bits ext = extract_random(raw, h_use, seed);
+    if (!out_path.empty()) {
+        std::ofstream f(out_path);
+        for (size_t k = 0; k + 32 <= ext.size(); k += 32) {
+            uint32_t w = 0;
+            for (int b = 0; b < 32; ++b) w = (w << 1) | ext[k + (size_t)b];
+            char buf[16];
+            std::snprintf(buf, sizeof buf, "%08x\n", w);
+            f << buf;
+        }
+    }
+    std::printf("{\"bits\":%zu,\"h_assumed\":%.3f,\"mcv\":%.4f,\"markov\":%.4f,\"h_min\":%.4f,"
+                "\"rct_cutoff\":%u,\"apt_cutoff\":%u,\"rct_idx\":%lld,\"apt_idx\":%lld,"
+                "\"h_used\":%.4f,\"extracted\":%zu}\n",
+                raw.size(), h_assumed, e.mcv, e.markov, e.min, hc.rct_cutoff, hc.apt_cutoff,
+                (long long)hr.rct_fail_idx, (long long)hr.apt_fail_idx, h_use, ext.size());
+    return hr.healthy() ? 0 : 1;
+}
+
 int main(int argc, char **argv) {
     if (argc >= 3 && std::string(argv[1]) == "batch") {
         uint32_t w = argc >= 4 ? (uint32_t)std::atoi(argv[3]) : 350;
@@ -115,13 +196,20 @@ int main(int argc, char **argv) {
         uint32_t w = argc >= 6 ? (uint32_t)std::atoi(argv[5]) : 350;
         return cmd_pipeline(argv[2], std::atoi(argv[3]), std::atoi(argv[4]), w);
     }
+    if (argc >= 5 && std::string(argv[1]) == "trng-health") {
+        return cmd_trng_health(argv[2], (uint32_t)std::atoi(argv[3]), (uint32_t)std::atoi(argv[4]));
+    }
+    if (argc >= 3 && std::string(argv[1]) == "trng-analyze") return cmd_trng_analyze(argc, argv);
     if (argc >= 3 && std::string(argv[1]) == "polyhash") {
         return cmd_polyhash(argv[2], argc >= 4 ? argv[3] : "");
     }
     std::fprintf(stderr,
                  "uso:\n  %s batch <prefijo> [half_window_ps]\n"
                  "  %s pipeline <dir> <primero> <ultimo> [half_window_ps]\n"
-                 "  %s polyhash <clave_hex32> [mensaje_hex]\n",
-                 argv[0], argv[0], argv[0]);
+                 "  %s polyhash <clave_hex32> [mensaje_hex]\n"
+                 "  %s trng-analyze <captura_hex> [--h H] [--seed S] [--extract salida.txt]\n"
+                 "  %s trng-analyze --raw-indexed <raw.txt> [--h H] [--extract salida.txt]\n"
+                 "  %s trng-health <raw.txt> <rct_cutoff> <apt_cutoff>\n",
+                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
     return 64;
 }

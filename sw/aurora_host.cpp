@@ -361,16 +361,44 @@ uint32_t pa_output_length(uint32_t n, double qber, uint64_t leak_ec, uint64_t le
     return (uint32_t)std::min<double>(std::floor(m), n);
 }
 
-Bits toeplitz_hash(const Bits &key, uint32_t n_out, uint64_t seed) {
-    const uint32_t n_in = (uint32_t)key.size();
-    if (n_out == 0 || n_out > n_in) return Bits();
+// Un bloque dentro de los limites del kernel.
+static Bits toeplitz_block(const Bits &key, size_t off, uint32_t n_in, uint32_t n_out, uint64_t seed) {
     SplitMix64 rng(seed);
     std::vector<uint64_t> s((n_in + n_out - 1 + 63) / 64 + 1);
     for (auto &w : s) w = rng.next();
-    std::vector<uint64_t> in = pack_bits(key);
+    Bits part(key.begin() + (std::ptrdiff_t)off, key.begin() + (std::ptrdiff_t)(off + n_in));
+    std::vector<uint64_t> in = pack_bits(part);
     std::vector<uint64_t> out((n_out + 63) / 64 + 1, 0);
     aurora_toeplitz(in.data(), n_in, s.data(), out.data(), n_out);
     return unpack_bits(out.data(), n_out);
+}
+
+Bits toeplitz_hash(const Bits &key, uint32_t n_out, uint64_t seed) {
+    const size_t n_in = key.size();
+    if (n_out == 0 || n_out > n_in) return Bits();
+    // El kernel no procesa entradas mayores que AURORA_PA_MAX_IN_BITS (y no
+    // puede avisar). Las entradas grandes se dividen en bloques que se
+    // comprimen en la misma proporcion, cada uno con una semilla distinta.
+    const size_t max_in = AURORA_PA_MAX_IN_BITS;
+    const size_t n_blocks = (n_in + max_in - 1) / max_in;
+    Bits out;
+    out.reserve(n_out);
+    SplitMix64 seeds(seed);
+    size_t in_done = 0, out_done = 0;
+    for (size_t b = 0; b < n_blocks; ++b) {
+        size_t bin = (b + 1 == n_blocks) ? n_in - in_done : max_in;
+        // Salida acumulada proporcional (sin perder bits por redondeo).
+        size_t target = (size_t)((unsigned __int128)n_out * (in_done + bin) / n_in);
+        size_t bout = target - out_done;
+        uint64_t bseed = (n_blocks == 1) ? seed : seeds.next();
+        if (bout > 0) {
+            Bits part = toeplitz_block(key, in_done, (uint32_t)bin, (uint32_t)bout, bseed);
+            out.insert(out.end(), part.begin(), part.end());
+        }
+        in_done += bin;
+        out_done = target;
+    }
+    return out;
 }
 
 } // namespace aurora

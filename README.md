@@ -44,8 +44,10 @@ The project is structured in incremental phases to ensure validation at every st
 ```text
 AURORA/
 ├── hw/                  # Kernels HLS (PL): aurora_sync, aurora_sift, aurora_toeplitz
+├── rtl/trng/            # TRNG de osciladores en anillo (Verilog + AXI4-Lite) y su testbench
 │   └── scripts/         # run_hls.tcl (csim / csynth / cosim / export)
-├── sw/                  # Software del PS: orquestacion, troceado en lotes, Cascade, PA, CLI
+├── sw/                  # Software del PS: orquestacion, Cascade, PA, autenticacion, TRNG, CLI
+├── tools/               # nist_sts.py (bateria NIST SP 800-22 para capturas del TRNG)
 ├── tests/
 │   ├── cpp/             # Tests de kernels (datos sinteticos) y fallos documentados del codigo anterior
 │   ├── python/          # Modelo de referencia independiente + validacion sobre batches reales
@@ -61,6 +63,7 @@ Requisitos: `g++` (C++17), `python3` y `numpy`.
 ```bash
 make test          # kernels nuevos + validacion sobre los 101 batches reales
 make test-legacy   # fallos del codigo anterior (XFAIL = fallo reproducido)
+make test-trng     # simulacion RTL del TRNG (requiere Icarus Verilog)
 make pipeline      # sync -> sifting -> Cascade -> verificacion -> PA
 make hls KERNEL=aurora_sync   # sintesis con Vitis HLS
 ```
@@ -77,6 +80,8 @@ make hls KERNEL=aurora_sync   # sintesis con Vitis HLS
 6. **Autenticacion del canal clasico (PS)**: Wegman-Carter (hash polinomico GF(2^128) + OTP) sobre la
    transcripcion de cada fase en ambos sentidos; la clave se entrega solo si todo verifica y la reserva
    de autenticacion se repone con clave QKD.
+7. **TRNG (PL)**: osciladores en anillo con tests de salud SP 800-90B en hardware y extractor Toeplitz,
+   para las semillas publicas de Cascade, verificacion y PA (ver `rtl/trng/README.md`).
 
 Ver `docs/REVIEW.md` para el detalle de la revision y de las limitaciones conocidas.
 

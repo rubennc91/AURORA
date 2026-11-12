@@ -129,6 +129,8 @@ double binary_entropy(double p);
 // AVISO: no es una prueba de seguridad completa; validar con el equipo de UPM.
 uint32_t pa_output_length(uint32_t n, double qber, uint64_t leak_ec, uint64_t leak_verify, double eps_pa = 1e-10);
 
+// Hash de Toeplitz (PL). Entradas mayores que AURORA_PA_MAX_IN_BITS se
+// procesan por bloques, comprimiendo cada uno en la misma proporcion.
 Bits toeplitz_hash(const Bits &key, uint32_t n_out, uint64_t seed);
 
 // --------------------------------------------------------------- pipeline ----

@@ -90,6 +90,51 @@ del hash con una implementación independiente en Python.
 anuncios de sifting (tiempos y bases de Bob, máscara de Alice) también deben
 entrar en la transcripción autenticada.
 
+## TRNG de osciladores en anillo
+
+RTL en `rtl/trng/` (ver su README para la integración en Vivado) y software en
+`sw/aurora_trng.{h,cpp}` y `sw/aurora_trng_driver.{h,cpp}`.
+
+- **Hardware**: N osciladores en anillo (LUTs con DONT_TOUCH) combinados con
+  XOR, sincronizador de 2 FF y decimación. Tests de salud continuos de
+  SP 800-90B (Repetition Count y Adaptive Proportion) con test de arranque;
+  no sale ningún bit hasta superar el arranque ni después de una alarma.
+  Inyección de fallos (bloqueo, sesgo, osciladores apagados) para el
+  autodiagnóstico, modo bypass solo para capturas de evaluación, FIFO y
+  AXI4-Lite.
+- **Umbrales** calculados según SP 800-90B (para H_min = 0,5: RCT 41, APT 793;
+  para H = 1 dan 21 y 589, los valores de la norma).
+- **Software**: modelo exacto de los tests de salud, estimadores de
+  min-entropía MCV y Markov, extractor Toeplitz y driver con autodiagnóstico
+  al iniciar (si los tests de salud del hardware no funcionan, no arranca).
+- **Validación**:
+  - Simulación RTL con Icarus Verilog (`make test-trng`): 22 comprobaciones
+    del testbench; el índice exacto de la muestra que dispara cada alarma
+    coincide entre RTL, modelo C++ y modelo Python; la salida de la FIFO es
+    exactamente el flujo bruto aceptado tras el arranque; la salida del
+    extractor pasa la batería NIST SP 800-22 con criterio de proporción.
+  - Batería NIST SP 800-22 propia (`tools/nist_sts.py`), validada con los
+    ejemplos numéricos de la norma.
+  - Tests del driver contra un modelo del periférico que simula averías.
+  - Mutaciones del RTL (umbral desplazado en uno, orden de bits del
+    empaquetador) detectadas.
+- **Limitaciones**: el modelo de simulación de los osciladores solo valida la
+  lógica digital; la entropía real hay que medirla en la placa (ver
+  `rtl/trng/README.md`). Solo hay 2 de los estimadores de SP 800-90B; para
+  una evaluación formal, usar la herramienta oficial de NIST. RCT y APT no
+  detectan patrones como 0101… (documentado en un test); el estimador de
+  Markov sí.
+
+## Fallo corregido durante el desarrollo del TRNG
+
+`toeplitz_hash` devolvía **una clave de ceros** cuando la entrada superaba el
+límite del kernel (131.072 bits), porque el kernel ignora esas entradas sin
+avisar. En la amplificación de privacidad, con más de ~330 batches
+acumulados, Alice y Bob habrían obtenido la misma clave toda a ceros y la
+habrían dado por buena. Ahora las entradas grandes se procesan por bloques
+(misma proporción de compresión, semilla distinta por bloque), con un test de
+regresión (`toeplitz_hash_handles_inputs_larger_than_kernel`).
+
 ## Limitaciones conocidas de la implementación nueva
 
 - **Seguridad**: la longitud de PA usa la fórmula asintótica de BB84, sin
