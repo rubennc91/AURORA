@@ -74,6 +74,9 @@ make hls KERNEL=aurora_sync   # sintesis con Vitis HLS
 3. **Correccion de errores (PS)**: Cascade de 4 pases con efecto cascada y recuento de la informacion filtrada.
 4. **Verificacion (PS)**: hash polinomico 2-universal.
 5. **Amplificacion de privacidad (PL)**: hash de Toeplitz; longitud a partir del QBER y la informacion filtrada.
+6. **Autenticacion del canal clasico (PS)**: Wegman-Carter (hash polinomico GF(2^128) + OTP) sobre la
+   transcripcion de cada fase en ambos sentidos; la clave se entrega solo si todo verifica y la reserva
+   de autenticacion se repone con clave QKD.
 
 Ver `docs/REVIEW.md` para el detalle de la revision y de las limitaciones conocidas.
 

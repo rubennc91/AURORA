@@ -172,7 +172,7 @@ class FullPipeline(unittest.TestCase):
                              capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
         self.assertIn("claves finales iguales: SI", out.stdout)
-        self.assertIn("residuales=0", out.stdout)
+        self.assertIn("autenticacion        : OK", out.stdout)
 
 
 if __name__ == "__main__":

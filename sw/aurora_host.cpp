@@ -261,6 +261,16 @@ CascadeResult cascade_correct(const Bits &alice, Bits &bob, const CascadeConfig 
 
     auto block_end = [&](const Pass &p, uint32_t blk) { return std::min(n, (blk + 1) * p.k); };
 
+    // Alice revela una paridad por el canal publico: se cuenta como filtrada,
+    // puede ser alterada por el canal y se registra en las transcripciones.
+    auto disclose = [&](uint32_t pi, uint32_t lo, uint32_t hi) -> uint8_t {
+        uint8_t sent = parity_range(alice, passes[pi], lo, hi);
+        uint8_t recv = cfg.channel ? (uint8_t)(cfg.channel(res.leaked_bits, sent) & 1) : sent;
+        res.leaked_bits++;
+        if (cfg.on_parity) cfg.on_parity(pi, lo, hi, sent, recv);
+        return recv;
+    };
+
     // Busqueda binaria en el bloque 'blk' del pase 'pi'; corrige un bit y
     // devuelve su indice original.
     auto binary_fix = [&](uint32_t pi, uint32_t blk) -> uint32_t {
@@ -268,8 +278,7 @@ CascadeResult cascade_correct(const Bits &alice, Bits &bob, const CascadeConfig 
         uint32_t lo = blk * p.k, hi = block_end(p, blk);
         while (hi - lo > 1) {
             uint32_t mid = lo + (hi - lo) / 2;
-            uint8_t pa = parity_range(alice, p, lo, mid);
-            res.leaked_bits++;
+            uint8_t pa = disclose(pi, lo, mid);
             if (pa != parity_range(bob, p, lo, mid)) hi = mid; else lo = mid;
         }
         uint32_t idx = p.perm[lo];
@@ -291,14 +300,19 @@ CascadeResult cascade_correct(const Bits &alice, Bits &bob, const CascadeConfig 
         for (uint32_t i = 0; i < n; ++i) p.inv[p.perm[i]] = i;
         const uint32_t nblk = (n + p.k - 1) / p.k;
         p.alice_par.resize(nblk);
-        for (uint32_t b = 0; b < nblk; ++b) p.alice_par[b] = parity_range(alice, p, b * p.k, block_end(p, b));
-        res.leaked_bits += nblk;
         passes.push_back(std::move(p));
+        {
+            Pass &cur = passes.back();
+            for (uint32_t b = 0; b < nblk; ++b) cur.alice_par[b] = disclose((uint32_t)pi, b * cur.k, block_end(cur, b));
+        }
 
         std::deque<std::pair<uint32_t, uint32_t>> queue;
         for (uint32_t b = 0; b < nblk; ++b) queue.emplace_back((uint32_t)pi, b);
 
         while (!queue.empty()) {
+            // Cota de trabajo: nunca hacen falta mas de n correcciones. Si se
+            // supera, el canal es inconsistente (ataque o fallo) y se aborta.
+            if (res.corrected >= n) { res.converged = false; return res; }
             auto [qi, blk] = queue.front();
             queue.pop_front();
             const Pass &qp = passes[qi];

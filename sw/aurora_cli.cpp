@@ -4,7 +4,10 @@
 //   aurora_cli batch    <prefijo> [half_window_ps]
 //       Procesa un batch y emite una linea JSON (usada por los tests Python).
 //   aurora_cli pipeline <dir_batches> <primero> <ultimo> [half_window_ps]
-//       Cadena completa: sync -> sifting -> Cascade -> verificacion -> PA.
+//       Cadena completa: sync -> sifting -> Cascade -> verificacion -> PA,
+//       con el canal clasico autenticado (Wegman-Carter).
+//   aurora_cli polyhash <clave_hex32> [mensaje_hex]
+//       Hash polinomico GF(2^128) usado por la autenticacion.
 // =============================================================================
 #include <cinttypes>
 #include <cmath>
@@ -12,6 +15,7 @@
 #include <cstdlib>
 #include <string>
 
+#include "aurora_auth.h"
 #include "aurora_host.h"
 
 using namespace aurora;
@@ -66,27 +70,40 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w)
     uint32_t true_err = 0;
     for (size_t k = 0; k < ka.size(); ++k) true_err += ka[k] != kb[k];
 
-    CascadeConfig cc;
-    CascadeResult cr = cascade_correct(ka, kb, cc);
-    uint32_t residual = 0;
-    for (size_t k = 0; k < ka.size(); ++k) residual += ka[k] != kb[k];
-    const uint64_t vseed = 0x5EED5EED12345678ULL;
-    bool verified = verification_hash(ka, vseed) == verification_hash(kb, vseed);
-    double qber = (double)cr.corrected / ka.size();
-    uint32_t m = verified ? pa_output_length((uint32_t)ka.size(), qber, cr.leaked_bits, 64) : 0;
-    Bits fa = toeplitz_hash(ka, m, 0xC0FFEE0123456789ULL), fb = toeplitz_hash(kb, m, 0xC0FFEE0123456789ULL);
+    // Clave precompartida SIMULADA para autenticar el canal clasico. En el
+    // sistema real se instala de forma segura en ambos equipos y luego se
+    // repone con clave QKD.
+    SplitMix64 psk_rng(0x9E5C7A11D00DULL);
+    Bits psk(4096);
+    for (auto &v : psk) v = (uint8_t)(psk_rng.next() & 1);
+    KeyPool pool_a(psk), pool_b(psk);
+    AuthenticatedConfig cfg;
+    AuthenticatedResult r = run_authenticated_postprocessing(ka, kb, pool_a, pool_b, cfg);
+    double qber = r.sifted ? (double)r.corrected / r.sifted : 0.0;
 
     std::printf("\n=== RESUMEN (%d batches) ===\n", used);
     std::printf("coincidencias        : %" PRIu64 "\n", coinc);
     std::printf("clave cribada        : %zu bits\n", ka.size());
     std::printf("errores reales       : %u (QBER %.3f%%)\n", true_err, 100.0 * true_err / ka.size());
-    std::printf("Cascade              : %u corregidos, %" PRIu64 " bits filtrados (f=%.3f), k1=%u, residuales=%u\n",
-                cr.corrected, cr.leaked_bits,
-                qber > 0 ? cr.leaked_bits / (ka.size() * binary_entropy(qber)) : 0.0, cr.first_block, residual);
-    std::printf("verificacion (hash)  : %s\n", verified ? "OK" : "FALLO");
-    std::printf("clave final (PA)     : %u bits (%.1f%% de la cribada)\n", m, 100.0 * m / ka.size());
-    std::printf("claves finales iguales: %s\n", (m > 0 && fa == fb) ? "SI" : "NO");
-    return (verified && m > 0 && fa == fb) ? 0 : 1;
+    std::printf("Cascade              : %u corregidos, %" PRIu64 " bits filtrados (f=%.3f)\n", r.corrected,
+                r.leaked_ec, qber > 0 ? r.leaked_ec / (ka.size() * binary_entropy(qber)) : 0.0);
+    std::printf("autenticacion        : %s\n", r.ok ? "OK (4 fases, ambos sentidos)" : r.abort_reason.c_str());
+    std::printf("clave final (PA)     : %u bits (%.1f%% de la cribada)\n", r.pa_length,
+                100.0 * r.pa_length / ka.size());
+    std::printf("clave de autenticacion: %" PRIu64 " bits (repuestos en la reserva)\n", r.auth_key_bits);
+    std::printf("clave neta entregada : %zu bits\n", r.alice_key.size());
+    std::printf("claves finales iguales: %s\n", (r.ok && !r.alice_key.empty() && r.alice_key == r.bob_key) ? "SI" : "NO");
+    return (r.ok && !r.alice_key.empty() && r.alice_key == r.bob_key) ? 0 : 1;
+}
+
+// Hash polinomico GF(2^128) (para contrastar con implementaciones independientes).
+static int cmd_polyhash(const std::string &khex, const std::string &mhex) {
+    U128 k;
+    if (!u128_from_hex(khex, k) || mhex.size() % 2) return 2;
+    std::vector<uint8_t> m(mhex.size() / 2);
+    for (size_t i = 0; i < m.size(); ++i) m[i] = (uint8_t)std::stoul(mhex.substr(2 * i, 2), nullptr, 16);
+    std::printf("%s\n", u128_hex(poly_hash(k, m.data(), m.size())).c_str());
+    return 0;
 }
 
 int main(int argc, char **argv) {
@@ -98,9 +115,13 @@ int main(int argc, char **argv) {
         uint32_t w = argc >= 6 ? (uint32_t)std::atoi(argv[5]) : 350;
         return cmd_pipeline(argv[2], std::atoi(argv[3]), std::atoi(argv[4]), w);
     }
+    if (argc >= 3 && std::string(argv[1]) == "polyhash") {
+        return cmd_polyhash(argv[2], argc >= 4 ? argv[3] : "");
+    }
     std::fprintf(stderr,
                  "uso:\n  %s batch <prefijo> [half_window_ps]\n"
-                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps]\n",
-                 argv[0], argv[0]);
+                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps]\n"
+                 "  %s polyhash <clave_hex32> [mensaje_hex]\n",
+                 argv[0], argv[0], argv[0]);
     return 64;
 }

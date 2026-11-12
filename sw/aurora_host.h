@@ -9,6 +9,7 @@
 #define AURORA_HOST_H
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 #include "../hw/aurora_kernels.h"
@@ -96,12 +97,21 @@ struct CascadeConfig {
     int passes = 4;
     double qber_hint = 0.02;    // estimacion previa del QBER para el bloque k1
     uint64_t seed = 0xA0B0C0D0E0F00102ULL;
+    // Canal clasico (opcional). Cada paridad que revela Alice pasa por
+    // 'channel' (p. ej. un atacante) antes de llegar a Bob, y se notifica a
+    // 'on_parity' para registrarla en las transcripciones de ambos lados.
+    //   index: numero de orden de la paridad revelada
+    //   pass, lo, hi: bloque consultado (posiciones [lo,hi) del pase)
+    std::function<uint8_t(uint64_t index, uint8_t parity)> channel;
+    std::function<void(uint32_t pass, uint32_t lo, uint32_t hi, uint8_t sent, uint8_t received)> on_parity;
 };
 
 struct CascadeResult {
     uint32_t corrected = 0;     // bits corregidos en Bob
     uint64_t leaked_bits = 0;   // paridades reveladas por el canal publico
     uint32_t first_block = 0;   // tamano de bloque del pase 1
+    bool converged = true;      // false si se supero el limite de trabajo (canal
+                                // inconsistente, p. ej. paridades alteradas)
 };
 
 // Corrige 'bob' para que coincida con 'alice'. Cada consulta de paridad de

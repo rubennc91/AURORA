@@ -56,13 +56,48 @@ Si algún día pasa (XPASS), la suite falla para avisar de que hay que revisarlo
 - Los ficheros `*.sifted_key` no se han podido reproducir. Si vienen de un
   pipeline de referencia, sería útil saber cuál para usarlos como verdad.
 
+## Autenticación del canal clásico (Wegman-Carter)
+
+`sw/aurora_auth.{h,cpp}`. Sin autenticación, un atacante en medio puede
+suplantar a Alice o a Bob y la QKD no protege nada.
+
+- **MAC**: `tag = PolyHash_k(dirección ‖ secuencia ‖ mensaje) ⊕ r`. PolyHash es
+  la evaluación polinómica en GF(2¹²⁸) con x¹²⁸ = x⁷ + x² + x + 1 y un bloque
+  final de longitud (familia ε-AXU, ε ≤ (L+1)/2¹²⁸). `k` (128 bits) se toma una
+  vez por sesión; `r` (128 bits) es de un solo uso y no se reutiliza nunca.
+- **Reserva de clave** (`KeyPool`): empieza con una clave precompartida y se
+  repone con clave QKD. Los bits consumidos se borran. Cada etiqueta lleva el
+  offset de clave usado; el receptor rechaza si no coincide con el suyo
+  (repetición o desincronización).
+- **Protocolo**: se autentica la transcripción completa de cada fase
+  (parámetros, todas las paridades de Cascade, verificación, semilla y
+  longitud de PA), en ambos sentidos. **No se entrega clave hasta que todas
+  las etiquetas verifican.**
+- **Coste**: 1.152 bits por ronda (128 de `k` + 4 fases × 2 sentidos × 128).
+  Sobre los 101 batches: 29.523 bits tras PA, 1.152 vuelven a la reserva y
+  se entregan **28.371 bits netos**.
+- Cascade tiene ahora una cota de trabajo: con paridades alteradas por un
+  atacante podía no terminar y agotar la memoria.
+
+Tests (`tests/cpp/test_auth.cpp`, `tests/python/test_auth_reference.py`):
+axiomas de cuerpo de GF(2¹²⁸) e inversos; rechazo de cualquier bit alterado
+en el mensaje o en la etiqueta, dirección, secuencia, offset y repetición;
+detección de ataques sobre paridades de Cascade, mensajes y etiquetas de cada
+fase; funcionamiento sostenido con una clave precompartida mínima; y contraste
+del hash con una implementación independiente en Python.
+
+**Pendiente**: cuando Alice y Bob funcionen como procesos separados, los
+anuncios de sifting (tiempos y bases de Bob, máscara de Alice) también deben
+entrar en la transcripción autenticada.
+
 ## Limitaciones conocidas de la implementación nueva
 
 - **Seguridad**: la longitud de PA usa la fórmula asintótica de BB84, sin
   correcciones de tamaño finito ni estimación separada del error de fase. No
   es una prueba de seguridad; hay que validarla con el equipo de UPM.
-- **Semillas**: las semillas de Cascade, de la verificación y de Toeplitz son
-  fijas en el CLI. En el sistema real deben salir de un QRNG y compartirse por
+- **Semillas y clave precompartida**: las semillas de Cascade, de la
+  verificación y de Toeplitz, y la clave precompartida de autenticación, son
+  fijas (simuladas) en el CLI. En el sistema real deben salir de un QRNG y compartirse por
   un canal clásico autenticado.
 - **Síntesis**: los kernels nuevos están escritos para HLS (sin memoria
   dinámica, bucles aplanados con II=1, acumulador con reenvío), pero **no se han

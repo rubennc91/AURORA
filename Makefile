@@ -24,8 +24,8 @@ endif
 CLI := $(BUILD)/aurora_cli$(EXE)
 
 HW_SRC   := hw/aurora_sync.cpp hw/aurora_sift.cpp hw/aurora_toeplitz.cpp
-SW_SRC   := sw/aurora_host.cpp
-HDRS     := hw/aurora_kernels.h sw/aurora_host.h
+SW_SRC   := sw/aurora_host.cpp sw/aurora_auth.cpp
+HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h
 
 LEGACY_FLAGS := -O2 -std=c++17 -w -Itests/cpp/legacy_stub
 
@@ -50,8 +50,12 @@ $(BUILD)/test_legacy_hashing$(EXE): hls_hashing/srcs/quantum_kernels.cpp tests/c
 
 test: test-cpp test-python
 
-test-cpp: $(BUILD)/test_kernels$(EXE)
+$(BUILD)/test_auth$(EXE): $(HW_SRC) $(SW_SRC) $(HDRS) tests/cpp/test_framework.h tests/cpp/test_auth.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) $(HW_SRC) $(SW_SRC) tests/cpp/test_auth.cpp -o $@
+
+test-cpp: $(BUILD)/test_kernels$(EXE) $(BUILD)/test_auth$(EXE)
 	$(BUILD)/test_kernels$(EXE)
+	$(BUILD)/test_auth$(EXE)
 
 test-python: $(CLI)
 	AURORA_CLI=$(CLI) AURORA_BATCHES=$(BATCHES) $(PYTHON) -m unittest discover -s tests/python -v
