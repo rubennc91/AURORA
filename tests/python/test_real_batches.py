@@ -28,6 +28,8 @@ import aurora_ref as ref  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 CLI = Path(os.environ.get("AURORA_CLI", ROOT / "build" / "aurora_cli"))
+if not CLI.exists() and CLI.with_suffix(".exe").exists():   # Windows
+    CLI = CLI.with_suffix(".exe")
 BATCHES = Path(os.environ.get("AURORA_BATCHES", ROOT / "batches"))
 HALF_WINDOW = 350
 
