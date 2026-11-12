@@ -43,12 +43,40 @@ The project is structured in incremental phases to ensure validation at every st
 ## Project Structure
 ```text
 AURORA/
-├── include/           # Header files (HLS-friendly structures)
-├── src/               # Source code for PS and PC simulation
-├── hls/               # Vivado HLS project files and scripts
-├── batches/           # Sample Alice/Bob detection data
-└── Makefile           # Build system for PC validation
+├── hw/                  # Kernels HLS (PL): aurora_sync, aurora_sift, aurora_toeplitz
+│   └── scripts/         # run_hls.tcl (csim / csynth / cosim / export)
+├── sw/                  # Software del PS: orquestacion, troceado en lotes, Cascade, PA, CLI
+├── tests/
+│   ├── cpp/             # Tests de kernels (datos sinteticos) y fallos documentados del codigo anterior
+│   ├── python/          # Modelo de referencia independiente + validacion sobre batches reales
+│   └── data/            # Informe de sintesis del kernel anterior (evidencia)
+├── docs/REVIEW.md       # Revision tecnica: fallos, evidencia, tests y soluciones
+├── batches/             # Capturas reales del receptor (Alice/Bob)
+├── hls*/ src/ include/  # Implementacion anterior (se mantiene como referencia)
+└── Makefile
 ```
+
+## Quick start (PC, sin Vitis)
+Requisitos: `g++` (C++17), `python3` y `numpy`.
+```bash
+make test          # kernels nuevos + validacion sobre los 101 batches reales
+make test-legacy   # fallos del codigo anterior (XFAIL = fallo reproducido)
+make pipeline      # sync -> sifting -> Cascade -> verificacion -> PA
+make hls KERNEL=aurora_sync   # sintesis con Vitis HLS
+```
+
+## Processing chain
+1. **Sync (PL)**: histograma de diferencias de tiempo Alice-Bob (grueso 1 ns, fino 8 ps);
+   el PS calcula el lag como centroide con el fondo restado. Se sincroniza cada batch.
+2. **Sifting (PL)**: emparejamiento voraz en la ventana +-350 ps y descarte de bases distintas;
+   genera las claves de Alice y Bob empaquetadas. El PS trocea batches de cualquier tamano
+   en lotes de hasta 65.536 tags (resultado identico a una sola pasada).
+3. **Correccion de errores (PS)**: Cascade de 4 pases con efecto cascada y recuento de la informacion filtrada.
+4. **Verificacion (PS)**: hash polinomico 2-universal.
+5. **Amplificacion de privacidad (PL)**: hash de Toeplitz; longitud a partir del QBER y la informacion filtrada.
+
+Ver `docs/REVIEW.md` para el detalle de la revision y de las limitaciones conocidas.
+
 ---
 ### Institutional Collaboration
 This project represents a synergy between two leading Spanish institutions:

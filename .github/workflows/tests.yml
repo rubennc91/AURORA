@@ -1,0 +1,24 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pc-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install numpy
+        run: pip install numpy
+      - name: Build
+        run: make
+      - name: Kernels nuevos + validacion sobre batches reales
+        run: make test
+      - name: Fallos documentados del codigo anterior (XFAIL)
+        run: make test-legacy
+      - name: Pipeline completo
+        run: make pipeline

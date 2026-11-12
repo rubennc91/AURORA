@@ -1,0 +1,74 @@
+# Revisión técnica de AURORA y plan de validación
+
+Este documento recoge los fallos encontrados en la implementación anterior
+(`hls/`, `hls_sift/`, `hls_parity/`, `hls_hashing/`), la evidencia que los
+demuestra, el test que los deja documentados y cómo los resuelve la nueva
+implementación (`hw/` + `sw/`).
+
+Los batches de `batches/` son capturas reales del receptor, **sin ground truth**.
+Por eso la validación combina:
+
+1. **Datos sintéticos con la verdad conocida** (`tests/cpp/synth.h`): se inyectan
+   el lag, el jitter, el QBER y el ruido, y se comprueba que se recuperan.
+2. **Equivalencia con un modelo de referencia independiente** en Python
+   (`tests/python/aurora_ref.py`) sobre los 101 batches reales.
+3. **Plausibilidad física "en tiempo de vuelo"** sobre los batches reales:
+   estabilidad del lag, anchura del pico, QBER, relación señal/accidentales,
+   uso uniforme del batch.
+
+## Cómo ejecutar
+
+```bash
+make test          # kernels nuevos (sintético) + batches reales vs Python
+make test-legacy   # fallos del código anterior: deben salir como XFAIL
+make pipeline      # sync -> sifting -> Cascade -> verificación -> PA en los 101 batches
+```
+
+Un test `KNOWN_BUG` / `expectedFailure` documenta un fallo real: **debe fallar**.
+Si algún día pasa (XPASS), la suite falla para avisar de que hay que revisarlo.
+
+## Fallos encontrados en la implementación anterior
+
+| # | Fallo | Evidencia | Test que lo documenta | Solución |
+|---|-------|-----------|-----------------------|----------|
+| 1 | **Truncado a 4096 eventos en intervalos distintos.** Alice detecta ~1,4 MHz y Bob ~0,7 MHz: 4096 tags cubren ~3,3 ms en Alice y ~5,9 ms en Bob, de un batch de ~25 ms. | 3.932 bits cribados en 100 batches frente a 40.755 disponibles (~10 %). | `legacy_sift_covers_full_batch` | `sift_batch` recorre el batch entero en lotes de hasta 65.536 tags, troceando por tiempo de forma exacta (`sift_chunked_equals_single_pass`). |
+| 2 | **SYNC no cuenta coincidencias.** `a_ptr` solo avanza al encontrar pareja y la búsqueda mira 64 posiciones: se atasca. | El máximo de la correlación es 0–9 pares cuando hay 75–95. | `legacy_sync_finds_coincidences` | Kernel `aurora_sync`: histograma de diferencias con dos punteros. |
+| 3 | **Lag erróneo.** Consecuencia de (2) y de elegir el primer máximo de una meseta de ~700 ps. | Errores de hasta 360 ps frente a un pico con σ≈195 ps. | `legacy_sync_lag_is_accurate` | Paso grueso + fino y centroide con el fondo restado; error de ~5 ps en datos sintéticos. |
+| 4 | **Desbordamiento `uint64_t`** en `target - window` con lag negativo cerca de t=0. | Se pierde 1 de 3 coincidencias. | `legacy_sift_no_unsigned_underflow` | Aritmética con signo (`int64_t`) en todos los kernels. |
+| 5 | **PA insegura.** `lfsr >> (j % 64)` repite columnas cada 64 bits; no es una matriz Toeplitz. | Rango GF(2) = 32 para 1000→500 bits; colisiones triviales. | `legacy_pa_matrix_has_full_rank`, `legacy_pa_output_depends_on_all_input_bits` | Kernel `aurora_toeplitz` (Toeplitz real, 2-universal); rango completo verificado. |
+| 6 | **El shuffle no es una permutación** para n = 901, 1802, 2703, 3604. | Solo 53 índices distintos con n=901. | `legacy_shuffle_is_permutation` | Fisher-Yates con generador compartido y muestreo sin sesgo. |
+| 7 | **No hay clave de Bob ni corrección de errores.** En los tests, la clave de Bob era una copia de la de Alice, con un bit invertido a mano. | Lectura del código. | — (de diseño) | `aurora_sift` produce ambas claves; Cascade completo en el PS. |
+| 8 | **Latencia de SYNC**: 2,16·10⁹ ciclos = 21,6 s por batch de 25 ms. | Informe de csynth. | `test_legacy_sync_meets_realtime` | O(N_A + N_B + pares): ~10⁵ ciclos estimados (pendiente de csynth). |
+| 9 | **Margen de timing**: 9,62 ns estimados frente a 7,3 ns de presupuesto (10 − 2,7). | Informe de csynth. | `test_legacy_timing_has_margin` | Pendiente de verificar con csynth de los kernels nuevos. |
+| 10 | Longitud de PA fija en 2:1 y semilla fija en el código. | Lectura del código. | — | `pa_output_length` a partir del QBER y de la información filtrada. |
+
+## Observaciones sobre las capturas reales
+
+- El desfase real Alice−Bob es ≈0 ps y el pico de coincidencias tiene σ≈195 ps:
+  la ventana de ±350 ps es adecuada.
+- **Cada batch tiene su propio desfase** (~77 ps rms entre batches, sin
+  correlación entre batches consecutivos), muy por encima del error del
+  centroide (~7 ps). Dentro de un batch el lag es estable (sin deriva de reloj
+  apreciable). Conclusión: hay que sincronizar cada batch; no se puede
+  reutilizar un lag global.
+- QBER global 1,72 % (700 errores en 40.755 bits). Cascade lo corrige todo con
+  eficiencia f≈1,17, y la clave final es ~72 % de la clave cribada.
+- Los ficheros `*.sifted_key` no se han podido reproducir. Si vienen de un
+  pipeline de referencia, sería útil saber cuál para usarlos como verdad.
+
+## Limitaciones conocidas de la implementación nueva
+
+- **Seguridad**: la longitud de PA usa la fórmula asintótica de BB84, sin
+  correcciones de tamaño finito ni estimación separada del error de fase. No
+  es una prueba de seguridad; hay que validarla con el equipo de UPM.
+- **Semillas**: las semillas de Cascade, de la verificación y de Toeplitz son
+  fijas en el CLI. En el sistema real deben salir de un QRNG y compartirse por
+  un canal clásico autenticado.
+- **Síntesis**: los kernels nuevos están escritos para HLS (sin memoria
+  dinámica, bucles aplanados con II=1, acumulador con reenvío), pero **no se han
+  sintetizado todavía**: hay que ejecutar `make hls KERNEL=...` y revisar
+  latencia, II y recursos. Una mejora posible es mantener en el kernel de sync
+  un buffer circular con los tags de Alice dentro de la ventana, para evitar
+  relecturas por m_axi.
+- Cascade se ejecuta en el PS. Si el throughput lo exige, el siguiente paso
+  sería LDPC en la PL.
