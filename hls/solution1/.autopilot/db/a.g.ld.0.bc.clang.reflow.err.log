@@ -1,4 +1,0 @@
-remark: src/quantum_kernels.cpp:10:0: Unrolling loop 'SEARCH_ALICE' (src/quantum_kernels.cpp:43:27) in function 'compute_correlation_hls' completely with a factor of 64
-remark: src/quantum_kernels.cpp:10:0: Applying array_partition to 'alice_tags': Cyclic partitioning with factor 16 on dimension 1.
-remark: src/quantum_kernels.cpp:32:19: Could not analyze the loop bounds _XLX_SEP_ BOB_LOOP src/quantum_kernels.cpp:32:19 compute_correlation_hls(unsigned long long const*, unsigned long long const*, unsigned int, unsigned int, unsigned long long, CorrResult&) 
-remark: automatically set the pipeline for Loop< BOB_LOOP> at src/quantum_kernels.cpp:32:19 

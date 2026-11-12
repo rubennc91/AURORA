@@ -1,12 +1,24 @@
-# Ignorar configuraciones de VS Code
+# Configuraciones de editor
 .vscode/
 
-# Ignorar ejecutables de Windows
+# Ejecutables y objetos
 *.exe
-
-# Ignorar archivos de salida de compilación
 *.o
 *.obj
+build/
+__pycache__/
+*.pyc
 
-# Ignorar carpetas temporales de HLS
-hls/*/solution*/
+# Productos generados por Vitis HLS (se regeneran con hw/scripts/run_hls.tcl).
+# Se conservan los scripts de cada solucion (script.tcl, directives.tcl, *.directive).
+**/solution*/.autopilot/
+**/solution*/.debug/
+**/solution*/csim/
+**/solution*/syn/
+**/solution*/sim/
+**/solution*/impl/
+**/solution*/*.log
+**/solution*/*.json
+**/solution*/*.aps
+**/.vitis_hls_log_all.xml
+vitis_hls.log
