@@ -1,0 +1,399 @@
+% =============================================================================
+% AURORA - Informe tecnico: post-procesado QKD en Zynq UltraScale+ (ZCU104)
+% Compilar con pdflatex (Overleaf: subir la carpeta docs/report completa).
+% Los datos de recursos y potencia salen de datos.tex (tools/report_data.py).
+% =============================================================================
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-tabla,es-nodecimaldot]{babel}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,fit,arrows.meta,backgrounds}
+\usepackage{caption}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{ps}{HTML}{2F6DB5}
+\definecolor{pl}{HTML}{C0392B}
+\definecolor{ok}{HTML}{1E8449}
+\newcommand{\pend}{\textcolor{orange}{\textit{pendiente}}}
+\newcommand{\PS}{\textcolor{ps}{\textbf{PS}}}
+\newcommand{\PL}{\textcolor{pl}{\textbf{PL}}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\input{datos}
+
+\title{\textbf{AURORA}\\[2pt]\large Post-procesado QKD (BB84) en un SoC Zynq UltraScale+:\\
+codiseño hardware/software, implementación y resultados en placa}
+\author{Informe técnico}
+\date{Noviembre de 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Se describe la implementación del post-procesado de una distribución cuántica
+de claves BB84 en una placa ZCU104 (XCZU7EV). La parte con más volumen de datos
+(sincronización, \emph{sifting}, \emph{hash} de Toeplitz) se ejecuta en la
+lógica programable (PL) como \emph{kernels} HLS en \emph{streaming}; la
+corrección de errores, la autenticación Wegman--Carter del canal clásico y el
+control del protocolo se ejecutan en el procesador (PS). Un generador de
+números aleatorios verdaderos (TRNG) de osciladores en anillo en la PL
+proporciona las semillas públicas, con tests de salud SP~800-90B en hardware.
+Sobre 101 capturas reales (QBER 1,72\%), la placa reproduce bit a bit los
+resultados del modelo de referencia y entrega \textbf{28\,377 bits de clave
+neta} a partir de 40\,755 bits cribados. El TRNG tiene una entropía mínima
+medida de 0,785 bits/muestra (NIST \code{ea\_non\_iid}) y supera el test de
+reinicios de SP~800-90B. Se incluye, como alternativa a Cascade, una
+reconciliación LDPC de un solo sentido.
+\end{abstract}
+
+\tableofcontents
+
+% =============================================================================
+\section{Plataforma y flujo de diseño}
+
+\begin{itemize}
+  \item \textbf{Placa}: Xilinx ZCU104, SoC XCZU7EV-FFVC1156-2-E (4$\times$A53 a 1,2\,GHz + PL UltraScale+).
+  \item \textbf{Herramientas}: Vitis HLS, Vivado y Vitis 2022.2; aplicación \emph{bare-metal} (standalone) en el A53\#0.
+  \item \textbf{Reloj de la PL}: \code{pl\_clk0} = 100\,MHz (objetivo HLS 10\,ns).
+  \item \textbf{Interfaces}: control por \code{M\_AXI\_HPM0\_FPD} (AXI4-Lite). Los \emph{kernels} acceden a la DDR por
+        \code{S\_AXI\_HP0\_FPD} a través de una única SmartConnect; el puerto no es coherente, así que el PS
+        hace \emph{flush} e \emph{invalidate} de la caché.
+  \item \textbf{Flujo reproducible} (\code{Makefile}): \code{make hls-all} $\rightarrow$ \code{make bitstream}
+        $\rightarrow$ \code{make baremetal} $\rightarrow$ \code{make board-run}; los mismos fuentes C++ se compilan en el PC
+        (tests y modelo de referencia), en HLS (\emph{kernels}) y para el A53.
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{Mapa de direcciones (AXI4-Lite).}
+\begin{tabular}{lll}
+\toprule
+Periférico & Base & Implementación \\
+\midrule
+TRNG & \code{0xA000\_0000} & RTL (Verilog) \\
+\code{aurora\_sync} & \code{0xA001\_0000} & HLS \\
+\code{aurora\_sift} & \code{0xA002\_0000} & HLS \\
+\code{aurora\_toeplitz} & \code{0xA003\_0000} & HLS \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =============================================================================
+\section{Codiseño hardware/software}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+  blk/.style={draw, rounded corners=2pt, minimum height=8mm, minimum width=27mm, align=center, font=\small},
+  psb/.style={blk, fill=ps!12, draw=ps},
+  plb/.style={blk, fill=pl!10, draw=pl},
+  arr/.style={-{Latex[length=2mm]}, thick},
+  node distance=4mm and 6mm]
+  % PL
+  \node[plb] (sync) {Sync\\\scriptsize histograma de $\Delta t$};
+  \node[plb, right=of sync] (sift) {Sift\\\scriptsize coincidencias + bases};
+  \node[plb, right=of sift] (toep) {Toeplitz\\\scriptsize PA y extractor};
+  \node[plb, right=of toep] (trng) {TRNG\\\scriptsize 4 RO + salud};
+  % PS
+  \node[psb, below=16mm of sync] (lag) {Lag\\\scriptsize centroide};
+  \node[psb, right=of lag] (ec) {Cascade / LDPC\\\scriptsize reconciliación};
+  \node[psb, right=of ec] (ver) {Verificación\\\scriptsize hash $2^{61}-1$};
+  \node[psb, right=of ver] (auth) {Autenticación\\\scriptsize Wegman--Carter};
+  \begin{scope}[on background layer]
+    \node[draw=pl, fill=pl!3, rounded corners, inner sep=3mm, fit=(sync)(trng), label={[pl,font=\bfseries\small]above:PL (lógica programable)}] {};
+    \node[draw=ps, fill=ps!3, rounded corners, inner sep=3mm, fit=(lag)(auth), label={[ps,font=\bfseries\small]below:PS (A53, bare-metal)}] {};
+  \end{scope}
+  \draw[arr] (sync) -- (lag);
+  \draw[arr] (lag) -- (sift);
+  \draw[arr] (sift) -- (ec);
+  \draw[arr] (ec) -- (ver);
+  \draw[arr] (ver) -- (toep);
+  \draw[arr] (trng) -- node[right,font=\scriptsize,align=left]{semillas\\públicas} (auth);
+  \node[left=6mm of sync, font=\small, align=center] (in) {Batches\\(API)};
+  \draw[arr] (in) -- (sync);
+\end{tikzpicture}
+\caption{Reparto de la cadena de post-procesado entre la PL y el PS. Las flechas entre bloques indican el orden de la cadena;
+todos los datos pasan por la DDR.}
+\label{fig:arch}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Reparto de cada etapa y justificación.}
+\small
+\begin{tabularx}{\textwidth}{l c X}
+\toprule
+Etapa & Dónde & Motivo \\
+\midrule
+TRNG (osciladores, tests RCT/APT, FIFO) & \PL & Solo puede ser hardware; tests de salud continuos sin carga para la CPU. \\
+Sync: histograma de diferencias de tiempo & \PL & $\sim$52\,000 marcas por batch; ventana deslizante a 1 marca/ciclo. \\
+Sync: centroide y elección del lag & \PS & Pocas operaciones sobre 1024 bins. \\
+Sifting & \PL & Mezcla de dos flujos ordenados a 1 elemento/ciclo. \\
+Cascade (o LDPC) & \PS & Interactivo: dominado por los mensajes con el otro extremo, no por el cálculo. Lógica de control con muchas ramas. \\
+Hash de verificación & \PS & Un polinomio sobre $\sim$40\,kbit: despreciable. \\
+Amplificación de privacidad (Toeplitz) & \PL & La operación más costosa: $O(n\,m)$ bits. \\
+Extractor del TRNG (Toeplitz) & \PL & Mismo \emph{kernel} que la amplificación de privacidad. \\
+Autenticación, reserva de clave, protocolo & \PS & Control, red y estado. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{¿Cascade en la PL?} No compensa por ahora. Cascade necesita una ida y vuelta por el
+canal clásico por cada paso de su búsqueda binaria (cientos por bloque); cuando Alice y Bob estén
+en equipos distintos, la latencia de red dominará sobre el cálculo de paridades. Además, el A53 va
+sobrado: el sistema genera $\sim$16\,kbit/s de clave cribada y el post-procesado completo en el PS
+procesa del orden de $10^5$ bits/s. Si en el futuro la tasa sube a Mbit/s o la latencia del enlace
+es alta, la opción natural en la PL es un decodificador LDPC (un solo mensaje por trama, muy
+paralelizable); el código LDPC de la sección~\ref{sec:ldpc} está preparado con un decodificador
+\emph{min-sum} normalizado, que es el adecuado para hardware.
+
+% =============================================================================
+\section{Cadena de post-procesado}
+
+\begin{enumerate}
+  \item \textbf{Sincronización} por batch (25\,ms): histograma de $\Delta t = t_A - t_B$ con paso grueso
+        (1,024\,ns) y fino (8\,ps); lag por centroide con el fondo restado. Las capturas reales tienen un
+        desfase distinto por batch ($\sim$77\,ps rms) y sin deriva dentro del batch: si la sincronización
+        falla, el batch se descarta.
+  \item \textbf{Sifting}: emparejamiento voraz de detecciones dentro de $\pm350$\,ps y comparación de bases.
+  \item \textbf{Reconciliación}: Cascade (4 pases, $k_1 = 0{,}73/Q$, efecto cascada, límite de trabajo) o
+        LDPC (sección~\ref{sec:ldpc}).
+  \item \textbf{Verificación}: hash polinómico 2-universal módulo $2^{61}-1$ con semilla nueva del TRNG (64 bits).
+  \item \textbf{Amplificación de privacidad}: Toeplitz con semilla completa de $n+m-1$ bits por bloque;
+        $m = n\,(1-h(Q)) - \text{fuga}_{EC} - 64 - 2\log_2(1/\varepsilon)$ (fórmula asintótica).
+  \item \textbf{Autenticación}: Wegman--Carter, PolyHash sobre $\mathrm{GF}(2^{128})$ cifrado con un OTP de
+        128 bits; cada fase se autentica en ambos sentidos (1152 bits de clave por ronda, repuestos con clave QKD).
+        La clave se entrega solo si todas las etiquetas verifican.
+\end{enumerate}
+
+% =============================================================================
+\section{Implementación en la PL}
+
+\subsection{Kernels HLS}
+La primera versión de \code{sync} y \code{sift} no cerraba timing (17,2 y 17,6\,ns frente a 10\,ns) porque cada
+lectura \code{m\_axi} dependía de la iteración anterior. Se reescribieron como \code{DATAFLOW} en
+\emph{streaming}: lectores en ráfaga $\rightarrow$ núcleo con el estado en registros $\rightarrow$ escritor.
+En \code{sync}, el núcleo es una ventana deslizante de 32 marcas (máximo observado: 7) con reenvío en el
+histograma; si la ventana se desborda, el \emph{kernel} lo indica (\code{complete = 0}) y el PS rechaza el lag.
+
+\begin{table}[htbp]
+\centering
+\caption{Síntesis HLS (objetivo 10\,ns; todos los bucles principales con II = 1).}
+\begin{tabular}{lrrrrr}
+\toprule
+Kernel & Estimado (ns) & LUT & FF & BRAM18 & DSP \\
+\midrule
+\TablaHLS
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{TRNG}
+Cuatro osciladores en anillo de 3, 5, 7 y 9 etapas (LUT con \code{DONT\_TOUCH}) combinados con XOR,
+sincronizador de dos biestables y decimación (1 muestra cada 64 ciclos: 1,56\,Mmuestras/s).
+Tests de salud SP~800-90B en hardware (RCT, umbral 41; APT, ventana 1024, umbral 793; para
+$H_{\min}=0{,}5$ y $\alpha = 2^{-20}$), test de arranque de 1024 muestras, inyección de fallos para el
+autodiagnóstico y modo \emph{bypass} solo para evaluación. El extractor (Toeplitz con semilla pública fija,
+bloques de 65\,536 bits) se ejecuta en el \emph{kernel} Toeplitz.
+
+\subsection{Implementación (Vivado)}
+\begin{itemize}
+  \item Timing: \textbf{WNS = +\TimingWNS\,ns}, WHS = +\TimingWHS\,ns, sin \emph{endpoints} que fallen.
+  \item DRC: 4 avisos LUTLP-2 (bucles combinacionales permitidos), uno por oscilador en anillo, como se espera.
+  \item Potencia estimada: total \PotenciaTotal{} (dinámica \PotenciaDinamica{}, estática \PotenciaEstatica{}).
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{minipage}[t]{0.38\textwidth}
+\centering
+\captionof{table}{Recursos del diseño completo.}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrr}
+\toprule
+Recurso & Usado & Disp. & \% \\
+\midrule
+\TablaRecursos
+\bottomrule
+\end{tabular}}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.58\textwidth}
+\centering
+\captionof{table}{Recursos por módulo.}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+Módulo & LUT & FF & BRAM36/18 & DSP \\
+\midrule
+\TablaModulos
+\bottomrule
+\end{tabular}}
+\end{minipage}
+\end{table}
+
+% =============================================================================
+\section{Resultados en placa}
+
+\subsection{Cadena completa (bare-metal, ZCU104)}
+Datos: 101 capturas reales de 25\,ms, 79\,532 coincidencias, 40\,755 bits cribados, QBER 1,718\%.
+
+\begin{table}[htbp]
+\centering
+\caption{Prueba en placa: resultado \textcolor{ok}{\textbf{TODO OK (0 fallos)}}.}
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+Prueba & Resultado \\
+\midrule
+TRNG en bruto & 1\,Mbit en 671\,ms (1,56\,Mmuestras/s), sin pérdidas ni alarmas \\
+TRNG autodiagnóstico & Los 3 fallos inyectados disparan alarma; arranque correcto \\
+TRNG extraído & 100\,000 bits en 615\,ms (162\,kbit/s), equilibrados ($z = 0{,}31$) \\
+Sync + sift (3 batches) & Lag, coincidencias y claves \textbf{idénticos bit a bit} al PC; 5,1\,ms + 2,7\,ms por batch de 25\,ms (incluye el trabajo del ARM) \\
+Toeplitz & Idéntico a la definición (2000 $\rightarrow$ 1300 bits en 0,34\,ms) \\
+Cadena autenticada & 40\,755 cribados $\rightarrow$ 29\,529 tras PA $\rightarrow$ \textbf{28\,377 bits netos}; claves iguales; 709\,ms
+  (de ellos, $\sim$430\,ms generando 70\,409 bits de semillas con el TRNG, estimado) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent
+Sync + sift ocupan $\sim$7,8\,ms por batch de 25\,ms (31\% del tiempo real), con margen para procesar en
+línea. El cuello de botella del post-procesado es la generación de semillas; se puede sacar del camino
+crítico generándolas en segundo plano mientras llegan los batches.
+
+\subsection{Entropía del TRNG}
+
+
+
+\begin{itemize}
+  \item La salida en bruto tiene un sesgo del 2\% ($P(0) = 0{,}521$) y falla los tests SP~800-22, como es de
+        esperar; \code{serial\_2}, que cancela el sesgo de primer orden, pasa (no hay correlación apreciable).
+  \item La salida \textbf{extraída} (522\,240 bits) pasa los 9 tests SP~800-22 ($p$ entre 0,28 y 0,92).
+  \item Se mantiene $H_{\min} = 0{,}5$ en el diseño: margen de 1,57 veces sobre el peor estimador.
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{Evaluación SP~800-90B (\code{ea\_non\_iid}, 1\,Mbit en bruto, temperatura ambiente).}
+\begin{tabular}{lr}
+\toprule
+Estimador & $H$ (bit/muestra) \\
+\midrule
+Most Common Value & 0,937 \\
+Collision & 0,910 \\
+Markov & 0,940 \\
+\textbf{Compression} & \textbf{0,785} \\
+t-Tuple / LRS & 0,912 / 0,970 \\
+MultiMCW / Lag / MultiMMC / LZ78Y & 0,944 / 0,992 / 0,938 / 0,938 \\
+\midrule
+$H_{\text{original}}$ & \textbf{0,785} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Test de reinicios SP~800-90B §3.1.4 (1000 reinicios $\times$ 1000 muestras, \code{ea\_restart}, $H_I = 0{,}785$).
+Cordura: frecuencia máxima del valor más común en filas y columnas frente al umbral.}
+\small
+\begin{tabular}{lccccc}
+\toprule
+Modo & Descarte & Cordura & $H_r$ & $H_c$ & $\min(H_r, H_c, H_I)$ \\
+\midrule
+Parada/arranque & 0 & 564 / 648 & 0,779 & 0,803 & \textbf{0,779} \\
+Parada/arranque & 1024 & 567 / 648 & 0,781 & 0,778 & \textbf{0,778} \\
+Corte de alimentación & 0 & \pend & \pend & \pend & \pend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent
+No hay transitorio de arranque: desde la primera muestra tras habilitar los osciladores, el valor más común
+entre reinicios aparece con frecuencia 0,50--0,55. Pendiente: capturas en frío y en caliente (la aplicación
+registra la temperatura del chip en cada captura).
+
+% =============================================================================
+\section{Reconciliación: Cascade frente a LDPC}
+\label{sec:ldpc}
+
+La reconciliación LDPC es de un solo sentido por trama: Alice envía el síndrome y Bob responde con éxito y
+número de errores. Se usa una familia de códigos IRA ($n = 16\,384$, tasas 0,50--0,95) construidos de forma
+determinista (sin ciclos de longitud 4 hasta $R = 0{,}90$), adaptación de tasa con perforado
+\emph{untainted} y acortado, QBER adaptativo trama a trama, y decodificación BP por capas
+(\emph{sum-product} o \emph{min-sum} normalizado). Las tramas que fallan se descartan.
+
+\begin{table}[htbp]
+\centering
+\caption{Tasa de error de trama (FER) del LDPC con $Q = 1{,}72\%$ (simulación, sum-product, 100 iteraciones).}
+\begin{tabular}{lccccccc}
+\toprule
+$f$ objetivo & 1,20 & 1,25 & 1,30 & 1,35 & 1,40 & 1,45 & 1,50 \\
+\midrule
+FER & 13\% & 8\% & 8\% & 2,5\% & 0/124 & 0/120 & 0/120 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Cadena autenticada sobre los 40\,755 bits cribados reales (PC).}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+Método & QBER estimado & $f$ & Fuga & Clave neta & Mensajes & Tiempo (PC) \\
+\midrule
+Cascade & 2,00\% & 1,172 & 5\,985 & 28\,381 & $\sim$6\,000 consultas & 0,05\,s \\
+Cascade & 1,72\% & 1,154 & 5\,891 & 28\,475 & $\sim$6\,000 consultas & 0,05\,s \\
+LDPC    & 2,00\% & 1,480 & 7\,556 & 26\,810 & 3 + 3 & 0,96\,s \\
+LDPC    & 1,72\% & 1,396 & 7\,125 & 27\,241 & 3 + 3 & 0,68\,s \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\noindent
+Con este tamaño de trama, el LDPC entrega un 4\% menos de clave que Cascade, pero con 6 mensajes en lugar
+de miles de consultas: es la opción a elegir cuando la latencia de red domine o cuando se lleve la
+decodificación a la PL. La eficiencia mejoraría con tramas mayores ($n \geq 10^5$) y distribuciones de grados
+optimizadas por evolución de densidad.
+
+% =============================================================================
+\section{Verificación}
+
+\begin{itemize}
+  \item \textbf{Tests en PC} (\code{make test-all}): 73 tests C++ (\emph{kernels}, autenticación, LDPC, TRNG, driver),
+        34 tests Python (incluida la validación sobre los 101 batches reales contra un modelo independiente),
+        tests que documentan los 9 fallos de la implementación anterior, y 6 simulaciones RTL del TRNG (Icarus).
+  \item \textbf{C-simulation HLS} de los tres \emph{kernels} con el mismo \emph{testbench}.
+  \item \textbf{Plataforma simulada}: la aplicación \emph{bare-metal} completa se ejecuta en el PC con los periféricos
+        emulados a nivel de registro.
+  \item \textbf{Placa}: resultados idénticos bit a bit a los del PC; evaluación de entropía con las herramientas de NIST.
+  \item \textbf{Seguridad del canal}: se comprueba que cualquier alteración de paridades, síndromes, mensajes o
+        etiquetas, o la repetición de una etiqueta, aborta la ronda sin entregar clave.
+\end{itemize}
+
+% =============================================================================
+\section{Limitaciones y trabajo futuro}
+
+\begin{itemize}
+  \item \textbf{Seguridad}: la longitud de la amplificación de privacidad usa la fórmula asintótica de BB84, sin
+        correcciones de tamaño finito; debe validarse con el equipo de UPM.
+  \item \textbf{Integración con la API del receptor} y paso a Linux (PetaLinux) con \emph{buffers} contiguos.
+  \item \textbf{Alice y Bob en procesos separados}, con los anuncios del \emph{sifting} dentro de la transcripción autenticada.
+  \item \textbf{Rendimiento en el PS}: medir el reparto de tiempos por etapa; generar las semillas en segundo plano;
+        representar las claves empaquetadas (64 bits por palabra) y usar NEON (\code{PMULL} para $\mathrm{GF}(2^{128})$).
+  \item \textbf{QRNG del receptor}: si la API lo expone, combinarlo con el TRNG (XOR).
+  \item \textbf{LDPC}: tramas mayores, distribuciones optimizadas y, si la tasa lo exige, decodificador en la PL.
+\end{itemize}
+
+\end{document}

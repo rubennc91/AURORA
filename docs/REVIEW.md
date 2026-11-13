@@ -275,11 +275,35 @@ regresión (`toeplitz_hash_handles_inputs_larger_than_kernel`).
   avisadas en la salida). En la placa hay que usar `TrngRandomSource` y la
   clave instalada. En el sistema real deben salir de un QRNG y compartirse por
   un canal clásico autenticado.
-- **Síntesis**: los kernels nuevos están escritos para HLS (sin memoria
-  dinámica, bucles aplanados con II=1, acumulador con reenvío), pero **no se han
-  sintetizado todavía**: hay que ejecutar `make hls KERNEL=...` y revisar
-  latencia, II y recursos. Una mejora posible es mantener en el kernel de sync
-  un buffer circular con los tags de Alice dentro de la ventana, para evitar
-  relecturas por m_axi.
-- Cascade se ejecuta en el PS. Si el throughput lo exige, el siguiente paso
-  sería LDPC en la PL.
+- **Síntesis**: hecha (Vitis HLS 2022.2: 7,3 ns e II = 1 en los tres kernels;
+  Vivado: WNS +3,34 ns). Falta incorporar al informe la utilizacion final
+  (`hw/scripts/vivado_reports.tcl` + `tools/report_data.py`).
+- Cascade se ejecuta en el PS. Hay una alternativa LDPC (ver abajo); si el
+  throughput lo exige, su decodificador min-sum es el candidato a la PL.
+
+## Reconciliacion LDPC (alternativa a Cascade)
+
+`sw/aurora_ldpc.*`, `aurora_cli pipeline ... --ec ldpc`, 12 tests
+(`tests/cpp/test_ldpc.cpp`). Sindrome en un solo sentido por trama (Alice ->
+Bob: plan + sindrome; Bob -> Alice: exito + errores), familia de codigos IRA
+deterministas (n = 16384, R = 0,50..0,95, sin ciclos de 4 hasta R = 0,90),
+perforado *untainted* + acortado, QBER adaptativo, BP por capas (sum-product o
+min-sum normalizado), tramas fallidas descartadas.
+
+| f objetivo (Q = 1,72 %) | 1,20 | 1,25 | 1,30 | 1,35 | 1,40 | 1,45 |
+|---|---|---|---|---|---|---|
+| FER | 13 % | 8 % | 8 % | 2,5 % | 0/124 | 0/120 |
+
+Sobre los 40.755 bits reales (QBER estimado = real): LDPC f = 1,40 y 27.241
+bits netos con 6 mensajes; Cascade f = 1,15 y 28.475 bits con ~6.000 consultas.
+Por defecto f = 1,40 (maximiza la clave neta). Mejoraria con tramas mayores y
+distribuciones de grados optimizadas por evolucion de densidad.
+
+Hallazgo durante el ajuste: con perforado aleatorio la FER se quedaba en
+~20 % para cualquier f (dos bits perforados en la escalera de grado 2
+compartiendo comprobacion no se recuperan nunca). El perforado *untainted*
+lo corrige y lo comprueba un test.
+
+## Informe
+
+`docs/report/` (LaTeX, compila en Overleaf; PDF incluido).
