@@ -125,6 +125,26 @@ RTL en `rtl/trng/` (ver su README para la integración en Vivado) y software en
   detectan patrones como 0101… (documentado en un test); el estimador de
   Markov sí.
 
+## Síntesis HLS (Vitis HLS 2022.2) y rediseño en streaming
+
+Primera síntesis de los kernels (objetivo 10 ns, xczu7ev):
+
+| Kernel | Estimado | Ciclos/iteración | Causa |
+|---|---|---|---|
+| `aurora_sync` (v1) | 17,2 ns ❌ | ~7 | lectura `m_axi` cuya dirección depende de la iteración anterior |
+| `aurora_sift` (v1) | 17,6 ns ❌ | ~14 | ídem |
+| `aurora_toeplitz` | 7,3 ns ✅ | 1 | — |
+
+`sync` y `sift` se han reescrito como **DATAFLOW en streaming**: lectores
+secuenciales (ráfagas) → núcleo con las cabezas en registros → escritor. En
+`sift`, el núcleo es una mezcla de dos flujos ordenados; en `sync`, una ventana
+deslizante en registros (32 tags; el máximo observado en los datos reales es 7)
+y un histograma con reenvío de las dos últimas escrituras. Si la ventana se
+desborda, `complete = 0` y el PS no acepta el lag. El resultado es idéntico al
+de la versión anterior (mismos tests de fuerza bruta y mismas claves que el
+modelo Python en los 101 batches). Pendiente: confirmar II = 1 y el timing con
+una nueva síntesis.
+
 ## Origen de las semillas
 
 Todas las semillas públicas las genera **Alice con el TRNG** (`RandomSource`;

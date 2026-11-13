@@ -80,6 +80,7 @@ static uint32_t gf2_rank(std::vector<std::vector<uint8_t>> m) {
 // ------------------------------------------------------------ sincronizacion --
 TEST(sync_histogram_matches_bruteforce) {
     std::mt19937_64 rng(11);
+    int incomplete = 0;
     for (int trial = 0; trial < 20; ++trial) {
         Detections a = random_dets(rng, 300, 1000 + trial, 400);
         Detections b = random_dets(rng, 200, 900, 600);
@@ -90,14 +91,31 @@ TEST(sync_histogram_matches_bruteforce) {
         aurora_sync(a.tags.data(), (uint32_t)a.size(), b.tags.data(), (uint32_t)b.size(), lag_min, shift, bins,
                     h.data(), &r);
         auto ref = brute_histogram(a, b, lag_min, shift, bins);
+        // Con rangos muy anchos la ventana del kernel (32 tags) puede
+        // desbordarse: entonces debe indicarlo (complete = 0). Si dice que el
+        // resultado es completo, tiene que ser EXACTO.
+        if (!r.complete) { ++incomplete; continue; }
         bool same = true;
         uint64_t tot = 0;
         for (uint32_t i = 0; i < bins; ++i) { same &= h[i] == ref[i]; tot += ref[i]; }
         CHECK_MSG(same, "trial " + std::to_string(trial));
         CHECK(r.total_pairs == tot);
-        CHECK(r.complete == 1);
         CHECK(r.peak_count == *std::max_element(ref.begin(), ref.end()));
     }
+    CHECK_MSG(incomplete <= 5, std::to_string(incomplete) + " casos incompletos de 20");
+}
+
+TEST(sync_flags_window_overflow) {
+    // Muchisimos tags de Alice dentro del rango de cada Bob: el kernel no puede
+    // contarlos todos y debe marcarlo; el PS no debe dar el lag por bueno.
+    Detections a, b;
+    for (uint64_t i = 0; i < 5000; ++i) { a.tags.push_back(1000000 + i * 10); a.states.push_back(0); }
+    for (uint64_t i = 0; i < 100; ++i) { b.tags.push_back(1000000 + i * 500); b.states.push_back(0); }
+    std::vector<uint32_t> h(AURORA_SYNC_MAX_BINS);
+    SyncResult r{};
+    aurora_sync(a.tags.data(), (uint32_t)a.size(), b.tags.data(), (uint32_t)b.size(), -2000, 3, 512, h.data(), &r);
+    CHECK(r.complete == 0);
+    CHECK(!estimate_lag(a, b).ok);
 }
 
 TEST(sync_recovers_injected_lag) {
