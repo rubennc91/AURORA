@@ -24,6 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HEX = re.compile(r"^[0-9a-f]{8}$")
+ROW = re.compile(r"^R \d+ [0-9a-f]+$")   # filas del test de reinicios
 
 
 def read_serial(port: str, baud: int, log: Path, timeout: float) -> None:
@@ -42,7 +43,7 @@ def read_serial(port: str, baud: int, log: Path, timeout: float) -> None:
         print(f"Escuchando {port} a {baud} baudios (Ctrl+C para parar). Lanza ahora la aplicacion en la placa.")
         buf = b""
         t_last = time.time()
-        n_words = 0
+        n_words = n_rows = 0
         with open(log, "wb") as f:
             while True:
                 chunk = os.read(fd, 4096)
@@ -58,6 +59,10 @@ def read_serial(port: str, baud: int, log: Path, timeout: float) -> None:
                             n_words += 1
                             if n_words % 4096 == 0:
                                 print(f"  ... {n_words} palabras del TRNG recibidas")
+                        elif ROW.match(text):
+                            n_rows += 1
+                            if n_rows % 100 == 0:
+                                print(f"  ... {n_rows} reinicios recibidos")
                         else:
                             print(text)
                         if text.startswith("AURORA_END"):

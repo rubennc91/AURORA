@@ -183,6 +183,25 @@ Herramienta oficial NIST `SP800-90B_EntropyAssessment` (`ea_non_iid`, 1 bit/mues
 Pendiente para una evaluacion SP 800-90B completa: repetir la captura en frio
 y en caliente y el test de reinicios (1000 arranques x 1000 muestras).
 
+### Test de reinicios (SP 800-90B 3.1.4)
+
+`tools/restart_test.py` + modo de la aplicacion bare-metal que se elige con un
+buzon en DDR (`board::MAILBOX`, 0x7FFF0000) que escribe `run_board.tcl restart
+<n> <descarte> <apagado_us>` antes de lanzarla:
+
+- `soft`: una sola programacion; el TRNG se para (enable = 0 apaga los
+  osciladores) y se arranca 1000 veces. ~30 s.
+- `power`: corte de alimentacion real con el rele USB (`usbrelay`), una fila por
+  ciclo; reanudable. ~10 h para 1000 ciclos.
+- `--skip 1024` evalua lo que de verdad usa produccion (el TRNG no entrega bits
+  hasta superar el test de arranque de 1024 muestras); `--skip 0`, la fuente
+  desde el primer instante.
+
+Salida: `matrix.bin` para `ea_restart` de NIST y la prueba de cordura de
+3.1.4.3 (frecuencia maxima del valor mas comun en filas y columnas frente al
+valor critico de Binomial(1000, 2^-H_I), alpha = 0.01/4000), que ademas indica
+cuantas muestras hay que descartar si el arranque es predecible.
+
 ## Origen de las semillas
 
 Todas las semillas públicas las genera **Alice con el TRNG** (`RandomSource`;

@@ -15,6 +15,7 @@
 #   make test-baremetal  aplicacion bare-metal sobre una plataforma simulada (PC)
 #   make baremetal   aplicacion bare-metal para la placa (requiere XSCT)
 #   make board-run   programa la placa por JTAG y lanza la aplicacion
+#   make board-restart PORT=/dev/ttyUSB1   test de reinicios del TRNG (SP 800-90B)
 # =============================================================================
 CXX      ?= g++
 CXXFLAGS ?= -O2 -std=c++17 -Wall -Wextra -Wno-unknown-pragmas -Wno-unused-label
@@ -36,7 +37,7 @@ HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h sw/aurora_trng
 
 LEGACY_FLAGS := -O2 -std=c++17 -w -Itests/cpp/legacy_stub
 
-.PHONY: all test test-cpp test-python test-legacy test-trng test-all pipeline clean legacy-sim hls hls-all vivado bitstream baremetal-data test-baremetal baremetal board-run
+.PHONY: all test test-cpp test-python test-legacy test-trng test-all pipeline clean legacy-sim hls hls-all vivado bitstream baremetal-data test-baremetal baremetal board-run board-restart
 
 all: $(CLI)
 
@@ -129,6 +130,10 @@ test-baremetal: baremetal-data
 	grep -v -E '^[0-9a-f]{8}$$' $(BUILD)/bm_sim/log.txt
 	grep -q "RESULTADO: TODO OK" $(BUILD)/bm_sim/log.txt
 	$(PYTHON) tools/uart_capture.py --from-log $(BUILD)/bm_sim/log.txt --out $(BUILD)/bm_sim/trng_capture.txt
+	AURORA_SIM_RESTART="40 1024 100" $(BUILD)/bm_sim/aurora_bm_sim$(EXE) > $(BUILD)/bm_sim/restart_log.txt
+	grep -q "RESTART_END" $(BUILD)/bm_sim/restart_log.txt
+	grep -q "RESULTADO: TODO OK" $(BUILD)/bm_sim/restart_log.txt
+	$(PYTHON) tools/restart_test.py analyze $(BUILD)/bm_sim/restart_log.txt --out $(BUILD)/bm_sim/restart
 
 # Placa (requiere Vitis/XSCT en el PATH y build/vivado/aurora.xsa)
 baremetal: baremetal-data
@@ -138,6 +143,13 @@ baremetal: baremetal-data
 
 board-run:
 	xsct hw/scripts/run_board.tcl
+
+# Test de reinicios del TRNG (soft: sin cortar la alimentacion). SKIP=1024 evalua
+# la salida tal como la usa produccion (tras el test de arranque).
+PORT ?= /dev/ttyUSB1
+SKIP ?= 0
+board-restart:
+	$(PYTHON) tools/restart_test.py soft --port $(PORT) --skip $(SKIP)
 
 clean:
 	rm -rf $(BUILD)

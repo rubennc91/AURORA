@@ -37,6 +37,20 @@ std::map<uintptr_t, uint32_t> regs;   // registros de los kernels
 MockTrng trng;
 std::map<uintptr_t, bool> done_flag;
 
+// AURORA_SIM_RESTART="n skip off_us" simula que XSCT ha escrito el buzon.
+struct MailboxInit {
+    MailboxInit() {
+        const char *e = std::getenv("AURORA_SIM_RESTART");
+        unsigned n = 0, skip = 0, off = 0;
+        if (e && std::sscanf(e, "%u %u %u", &n, &skip, &off) == 3) {
+            regs[board::MAILBOX] = board::MAILBOX_MAGIC_RESTART;
+            regs[board::MAILBOX + 4] = n;
+            regs[board::MAILBOX + 8] = skip;
+            regs[board::MAILBOX + 12] = off;
+        }
+    }
+} mailbox_init;
+
 uint32_t r32(uintptr_t a) { return regs[a]; }
 uint64_t r64(uintptr_t a) { return (uint64_t)regs[a] | ((uint64_t)regs[a + 4] << 32); }
 template <typename T> T *ptr(uintptr_t a) { return reinterpret_cast<T *>((uintptr_t)r64(a)); }

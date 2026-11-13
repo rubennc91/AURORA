@@ -9,6 +9,10 @@
 // 5. Cadena completa (Cascade + verificacion + PA) autenticada, con las
 //    semillas publicas sacadas del TRNG real.
 //
+// Modo test de reinicios (buzon board::MAILBOX escrito por XSCT): solo se
+// ejecuta restart_test() y cada arranque del TRNG se imprime como una linea
+// "R <i> <hex>" (tools/restart_test.py construye la matriz de SP 800-90B).
+//
 // La salida va por la UART. Las lineas entre TRNG_RAW_BEGIN y TRNG_RAW_END son
 // la captura del TRNG (tools/uart_capture.py la extrae).
 // =============================================================================
@@ -28,6 +32,7 @@
 #include "aurora_trng_driver.h"
 
 #include "sleep.h"
+#include "xil_cache.h"
 #include "xil_io.h"
 #include "xtime_l.h"
 
@@ -63,6 +68,79 @@ private:
 };
 
 Bits to_bits(const uint8_t *p, size_t n) { return Bits(p, p + n); }
+
+// ----------------------------------------------------- test de reinicios -----
+struct RestartConfig {
+    bool active = false;
+    uint32_t n = 1000, skip = 0, off_us = 1000;
+};
+
+RestartConfig read_mailbox() {
+    RestartConfig c;
+    Xil_DCacheInvalidateRange((INTPTR)board::MAILBOX, 64);
+    if (Xil_In32(board::MAILBOX) != board::MAILBOX_MAGIC_RESTART) return c;
+    c.active = true;
+    c.n = Xil_In32(board::MAILBOX + 4);
+    c.skip = Xil_In32(board::MAILBOX + 8);
+    c.off_us = Xil_In32(board::MAILBOX + 12);
+    // Se borra para que un arranque posterior sin buzon haga la prueba normal.
+    Xil_Out32(board::MAILBOX, 0);
+    Xil_DCacheFlushRange((INTPTR)board::MAILBOX, 64);
+    return c;
+}
+
+constexpr uint32_t RESTART_SAMPLES = 1000;   // SP 800-90B: 1000 muestras por reinicio
+
+// SP 800-90B 3.1.4: se para la fuente (enable = 0 apaga los osciladores en
+// anillo), se reinicia y se guardan las primeras muestras en bruto. 'skip'
+// descarta las primeras muestras tras el arranque (en produccion el TRNG no
+// entrega nada hasta superar el test de arranque de 1024 muestras).
+void restart_test(TrngRegs &r, const RestartConfig &c) {
+    using namespace trng_reg;
+    std::printf("\n== Test de reinicios del TRNG: %u reinicios x %u muestras, descarte %u, apagado %u us ==\n", c.n,
+                RESTART_SAMPLES, c.skip, c.off_us);
+    if (r.read(ID) != ID_VALUE) { check(false, "registro ID del TRNG"); return; }
+    if (c.n == 0 || c.n > 100000 || c.skip > 1000000) { check(false, "parametros del buzon validos"); return; }
+    const uint32_t total = c.skip + RESTART_SAMPLES;
+    const uint32_t words = (total + 31) / 32;
+    std::vector<uint32_t> buf(words);
+    std::string hex(RESTART_SAMPLES / 4, '0');
+    uint32_t bad = 0;
+    r.write(CTRL, CTRL_CLEAR);
+    r.write(DECIM, 64);
+    std::printf("RESTART_BEGIN %u %u %u %u\n", c.n, RESTART_SAMPLES, c.skip, c.off_us);
+    const double t0 = now_ms();
+    for (uint32_t i = 0; i < c.n; ++i) {
+        r.write(CTRL, CTRL_CLEAR);              // osciladores parados, estado a cero
+        usleep(c.off_us);
+        r.write(CTRL, CTRL_ENABLE | CTRL_BYPASS);
+        uint32_t got = 0;
+        const double ts = now_ms();
+        while (got < words && now_ms() - ts < 1000.0)
+            if (!(r.read(STATUS) & ST_EMPTY)) buf[got++] = r.read(DATA);
+        const uint32_t dropped = r.read(DROPPED);
+        r.write(CTRL, CTRL_CLEAR);
+        if (got < words || dropped != 0) {
+            ++bad;
+            std::printf("RESTART_ERROR %u palabras %u/%u perdidas %u\n", i, got, words, dropped);
+            continue;
+        }
+        // Muestras [skip, skip + 1000) -> 250 digitos hex (bit mas antiguo primero).
+        static const char digits[] = "0123456789abcdef";
+        for (uint32_t k = 0; k < RESTART_SAMPLES / 4; ++k) {
+            uint32_t nib = 0;
+            for (uint32_t b = 0; b < 4; ++b) {
+                const uint32_t idx = c.skip + 4 * k + b;
+                nib = (nib << 1) | ((buf[idx / 32] >> (31 - idx % 32)) & 1u);
+            }
+            hex[k] = digits[nib];
+        }
+        std::printf("R %u %s\n", i, hex.c_str());
+    }
+    std::printf("RESTART_END\n");
+    std::printf("  %u reinicios en %.1f s, %u con error\n", c.n, (now_ms() - t0) / 1000.0, bad);
+    check(bad == 0, "todos los reinicios capturados sin perdidas");
+}
 
 // ----------------------------------------------------------------- TRNG -----
 void trng_raw_capture(TrngRegs &r) {
@@ -185,6 +263,13 @@ int main() {
     std::printf("============================================================\n");
 
     BoardRegs regs(board::TRNG_BASE);
+    const RestartConfig rc = read_mailbox();
+    if (rc.active) {
+        restart_test(regs, rc);
+        std::printf("\nRESULTADO: %s (%d fallos)\n", g_fail == 0 ? "TODO OK" : "HAY FALLOS", g_fail);
+        std::printf("AURORA_END\n");
+        return 0;
+    }
     trng_raw_capture(regs);
 
     TrngDriver drv(regs);
