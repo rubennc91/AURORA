@@ -323,6 +323,36 @@ PL/PS de la seccion 6 de la aplicacion bare-metal es bit a bit.
   bitstream y comprobar la direccion del kernel en `address_map.txt`
   (`aurora_board.h` supone 0xA004_0000).
 
+## Algoritmo de correlacion recibido (`nuevo_algoritmo.cpp`, 13/11/2026)
+
+No incluye la API: lee los mismos ficheros `.detections` y calcula lag,
+coincidencias y QBER (sin reconciliacion ni PA). Lag = argmax de coincidencias
+con paso de 1 ps en [-10, +10] ns (suma de intervalos); emparejamiento voraz;
+ventana +-250 ps. Comparado sobre los 101 batches con la misma ventana:
+
+| | Coincidencias | Cribados | QBER |
+|---|---|---|---|
+| Recibido (w = 250 ps) | 67.062 | 34.813 | 1,476 % |
+| AURORA (w = 250 ps) | 66.413 | 34.485 | 1,438 % |
+
+Lag: diferencia media -2 ps, desviacion 20 ps, maximo 51 ps. Maximizar las
+coincidencias da ~1 % mas de pares pero tambien mas errores: clave neta
+practicamente igual. Detalles: rango de busqueda fijo de +-10 ns (si el
+desfase es mayor no lo detecta y devuelve el maximo del rango); primer maximo
+de la meseta; validacion de estados `state < 0 && state > 3` nunca se cumple
+(deberia ser `||`); si faltan los ficheros sigue con vectores vacios; la rama
+de lag negativo funciona por aritmetica modular de uint64.
+
+Ventana (lo que mas influye; clave neta con Cascade, PA asintotica):
+
+| +-w (ps) | 150 | 200 | 250 | 300 | 350 | 400 | 450 | 500 | 600 |
+|---|---|---|---|---|---|---|---|---|---|
+| Cribados | 22.935 | 29.288 | 34.485 | 38.338 | 40.755 | 42.142 | 42.802 | 43.116 | 43.412 |
+| QBER | 1,25 % | 1,37 % | 1,44 % | 1,56 % | 1,72 % | 1,87 % | 2,04 % | 2,24 % | 2,56 % |
+| Neta | 16.678 | 21.256 | 24.945 | 27.315 | 28.381 | 28.686 | 28.339 | 27.562 | 26.197 |
+
+Optimo en ~400 ps; con 250 ps se pierde un 13 % de clave frente a 400.
+
 ## Informe
 
 `docs/report/` (LaTeX, compila en Overleaf; PDF incluido).
