@@ -9,6 +9,9 @@
 #   make pipeline    cadena completa sobre todos los batches
 #   make legacy-sim  simulador original (src/main.cpp)
 #   make hls KERNEL=aurora_sync|aurora_sift|aurora_toeplitz   (requiere Vitis HLS)
+#   make hls-all     csim + csynth + export de los 3 kernels (requiere Vitis HLS)
+#   make vivado      crea build/vivado/aurora.xpr con el block design
+#   make bitstream   idem + bitstream + build/vivado/aurora.xsa
 # =============================================================================
 CXX      ?= g++
 CXXFLAGS ?= -O2 -std=c++17 -Wall -Wextra -Wno-unknown-pragmas -Wno-unused-label
@@ -30,7 +33,7 @@ HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h sw/aurora_trng
 
 LEGACY_FLAGS := -O2 -std=c++17 -w -Itests/cpp/legacy_stub
 
-.PHONY: all test test-cpp test-python test-legacy test-trng test-all pipeline clean legacy-sim hls
+.PHONY: all test test-cpp test-python test-legacy test-trng test-all pipeline clean legacy-sim hls hls-all vivado bitstream
 
 all: $(CLI)
 
@@ -88,6 +91,19 @@ legacy-sim: | $(BUILD)
 KERNEL ?= aurora_sync
 hls:
 	vitis_hls -f hw/scripts/run_hls.tcl -tclargs $(KERNEL)
+
+# Requiere Vitis HLS / Vivado en el PATH (source <Xilinx>/Vivado/<ver>/settings64.sh)
+hls-all:
+	for k in aurora_sync aurora_sift aurora_toeplitz; do \
+		vitis_hls -f hw/scripts/run_hls.tcl -tclargs $$k csim csynth export || exit 1; \
+	done
+
+VIVADO_ARGS ?=
+vivado:
+	vivado -mode batch -nojournal -log build/vivado_create.log -source hw/scripts/create_vivado.tcl -tclargs $(VIVADO_ARGS)
+
+bitstream:
+	vivado -mode batch -nojournal -log build/vivado_bit.log -source hw/scripts/create_vivado.tcl -tclargs bitstream $(VIVADO_ARGS)
 
 clean:
 	rm -rf $(BUILD)

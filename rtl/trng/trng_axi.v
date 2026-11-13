@@ -27,7 +27,12 @@ module trng_axi #(
     parameter integer N_RO = 4,
     parameter integer FIFO_DEPTH_LOG2 = 8
 ) (
+    // Anotaciones para que Vivado asocie reloj/reset al bus s_axi (block design).
+    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clk CLK" *)
+    (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF s_axi, ASSOCIATED_RESET resetn" *)
     input  wire        clk,
+    (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 resetn RST" *)
+    (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_LOW" *)
     input  wire        resetn,
     // AXI4-Lite esclavo
     input  wire [7:0]  s_axi_awaddr,
