@@ -25,10 +25,29 @@ platform generate
 set dom [domain active]
 puts "AURORA: dominio $dom"
 
-# Aplicacion C++ vacia + nuestras fuentes.
-if {[catch {app create -name aurora_test -platform aurora_pf -domain $dom -template {Empty Application(C++)}} err]} {
-    puts "AURORA: plantilla 'Empty Application(C++)' no disponible ($err); se prueba con otro nombre"
-    app create -name aurora_test -platform aurora_pf -domain $dom -template {Empty Application (C++)}
+# Aplicacion C++ vacia + nuestras fuentes. El nombre de la plantilla cambia
+# entre versiones de Vitis: se prueban las variantes conocidas.
+set candidates {
+    {-template {Empty Application(C++)}}
+    {-template {Empty Application (C++)}}
+    {-template {Empty Application(C)} -lang c++}
+    {-template {Empty Application (C)} -lang c++}
+    {-template {Empty Application} -lang c++}
+}
+set created 0
+foreach opts $candidates {
+    if {![catch {app create -name aurora_test -platform aurora_pf -domain $dom {*}$opts} err]} {
+        puts "AURORA: aplicacion creada con: $opts"
+        set created 1
+        break
+    }
+    puts "AURORA: '$opts' no valido"
+    catch {app remove aurora_test}
+}
+if {!$created} {
+    puts "AURORA: plantillas disponibles en esta instalacion:"
+    catch {puts [repo -apps]}
+    error "No se pudo crear la aplicacion: envia la lista de plantillas de arriba"
 }
 importsources -name aurora_test -path $src
 
