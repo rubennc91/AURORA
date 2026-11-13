@@ -159,8 +159,29 @@ Resultado: **TODO OK (0 fallos)**.
 | Toeplitz | Salida identica a la definicion (2000 -> 1300 bits en 0,34 ms) |
 | Cadena completa autenticada (semillas del TRNG) | 40.755 bits cribados -> 29.529 tras PA -> **28.377 netos**, claves iguales, 709 ms |
 
-Pendiente: analizar la captura del TRNG (`aurora_cli trng-analyze`,
-`tools/nist_sts.py`) y repetirla a varias temperaturas para fijar H_min.
+### Entropia del TRNG (captura de 1 Mbit en bruto, temperatura ambiente)
+
+Herramienta oficial NIST `SP800-90B_EntropyAssessment` (`ea_non_iid`, 1 bit/muestra):
+
+| Estimador | H (bit/muestra) |
+|---|---|
+| Most Common Value | 0,937 (p(0) = 0,521: sesgo del 2 %) |
+| Collision | 0,910 |
+| Markov | 0,940 |
+| **Compression** | **0,785** (el minimo) |
+| t-Tuple / LRS | 0,912 / 0,970 |
+| MultiMCW / Lag / MultiMMC / LZ78Y | 0,944 / 0,992 / 0,938 / 0,938 |
+| **H_original** | **0,785** |
+
+- La salida en bruto falla los tests NIST SP 800-22 por el sesgo (esperado;
+  `serial_2`, que cancela el sesgo de primer orden, pasa: no hay correlacion
+  apreciable entre bits consecutivos).
+- La salida **extraida** (522.240 bits con H = 0,5) pasa los 9 tests
+  SP 800-22 (p entre 0,28 y 0,92).
+- Se mantiene **H_min = 0,5**: margen de 1,57x sobre el peor estimador.
+
+Pendiente para una evaluacion SP 800-90B completa: repetir la captura en frio
+y en caliente y el test de reinicios (1000 arranques x 1000 muestras).
 
 ## Origen de las semillas
 
