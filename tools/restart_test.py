@@ -25,7 +25,7 @@ Modos:
          ya capturadas se conservan.
 
              python3 tools/restart_test.py power --port /dev/serial/by-id/... \\
-                 --relay 0NSAZ_1
+                 --relay 0NSAZ_1,959BI_1 --off-at-end
 
   analyze  Analiza filas ya capturadas (rows.txt o un log de la UART).
 
@@ -181,8 +181,10 @@ def run_board_once(port: str, baud: int, log: Path, n: int, skip: int, off_us: i
     return proc.returncode or 0
 
 
-def relay(cmd: str, name: str, state: int) -> None:
-    subprocess.run([cmd, f"{name}={state}"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+def relay(cmd: str, names: str, state: int) -> None:
+    """Pone todos los reles de 'names' (separados por comas) en 'state'."""
+    for name in [n.strip() for n in names.split(",") if n.strip()]:
+        subprocess.run([cmd, f"{name}={state}"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def wait_port(port: str, timeout: float) -> bool:
@@ -247,6 +249,7 @@ def cmd_power(a) -> int:
     finally:
         if a.off_at_end:
             relay(a.relay_cmd, a.relay, 0)
+            print(f"Reles {a.relay} apagados")
     return 0 if write_outputs(rows, out, a.h_i) else 1
 
 
@@ -278,7 +281,7 @@ def main() -> int:
     p = sub.add_parser("power", help="reinicios con corte de alimentacion (rele USB)")
     common(p)
     p.add_argument("--n", type=int, default=N_RESTARTS)
-    p.add_argument("--relay", default="0NSAZ_1", help="rele del enchufe de la placa (usbrelay)")
+    p.add_argument("--relay", default="0NSAZ_1", help="rele(s) del enchufe de la placa, separados por comas (p. ej. 0NSAZ_1,959BI_1)")
     p.add_argument("--relay-cmd", default="usbrelay")
     p.add_argument("--off-s", type=float, default=5.0, help="s con la placa apagada")
     p.add_argument("--boot-s", type=float, default=8.0, help="s de espera tras aparecer la UART")
