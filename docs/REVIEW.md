@@ -353,6 +353,30 @@ Ventana (lo que mas influye; clave neta con Cascade, PA asintotica):
 
 Optimo en ~400 ps; con 250 ps se pierde un 13 % de clave frente a 400.
 
+## Integracion con el sistema de recepcion (preparada, sin la API)
+
+Lo que se sabe (reunion): conexion al sistema de recepcion (REST u otra API)
+que entrega lotes con el mismo formato que los ficheros actuales, tanto de
+Alice como de Bob. Los datos lo confirman: **cada batch es independiente**
+(los tags de Bob empiezan en 0 en los 101 batches; los de Alice en
+~0,31 ms y terminan en ~25,31 ms, frente a 25,00 ms de Bob: en los
+extremos de cada batch hay ~0,3 ms sin pareja). La sincronizacion por batch
+de AURORA ya cubre este caso. Sobre la referencia de tiempo: el desfase por
+batch es de decenas de ps y sin deriva dentro del batch, lo que indica que
+los tags de Alice y Bob ya estan en una base de tiempo comun (mismo equipo
+o ya alineados por el sistema); hay que confirmarlo con el fabricante antes
+de separar Alice y Bob en equipos distintos.
+
+`aurora_cli stream <dir>`: vigila una carpeta, procesa cada batch
+(`<nombre>_alice.detections` + `<nombre>_bob.detections`) en cuanto esta
+completo (mismo tamano en dos sondeos), en orden natural, descarta los
+corruptos o sin sincronizacion, y cada `--block-bits` bits cribados ejecuta la
+cadena autenticada y anade la clave a `--out`. El cliente de la API solo tiene
+que escribir los ficheros en esa carpeta. Probado en vivo con los 101 batches
+y con 3 tests (`tests/python/test_stream.py`). Con bloques de 10.000 bits sale
+~60 % de clave neta (la autenticacion cuesta 1.152 bits por bloque); con
+40.000, ~70 %.
+
 ## Informe
 
 `docs/report/` (LaTeX, compila en Overleaf; PDF incluido).

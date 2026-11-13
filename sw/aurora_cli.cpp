@@ -6,6 +6,12 @@
 //   aurora_cli pipeline <dir_batches> <primero> <ultimo> [half_window_ps]
 //       Cadena completa: sync -> sifting -> Cascade -> verificacion -> PA,
 //       con el canal clasico autenticado (Wegman-Carter).
+//   aurora_cli stream <dir> [--block-bits N] [--out claves.txt] [--once] ...
+//       Modo de integracion: vigila <dir> y procesa cada batch
+//       (<nombre>_alice.detections + <nombre>_bob.detections) en cuanto esta
+//       completo; acumula clave cribada y, cada N bits, ejecuta la cadena
+//       autenticada y anade la clave final a claves.txt. El cliente de la API
+//       del receptor solo tiene que escribir ahi los ficheros.
 //   aurora_cli polyhash <clave_hex32> [mensaje_hex]
 //       Hash polinomico GF(2^128) usado por la autenticacion.
 //   aurora_cli trng-analyze <captura> [--h H] [--extract salida.txt]
@@ -16,12 +22,18 @@
 //       Instalacion: bits del generador del sistema operativo (semilla publica
 //       del extractor del TRNG o clave precompartida de autenticacion).
 // =============================================================================
+#include <cctype>
 #include <cinttypes>
 #include <cmath>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
+#include <filesystem>
+#include <map>
+#include <set>
 #include <string>
+#include <thread>
 
 #include "aurora_auth.h"
 #include "aurora_host.h"
@@ -231,7 +243,129 @@ static int cmd_gen_random(const std::string &what, const std::string &out_path, 
     return 0;
 }
 
+// ------------------------------------------------------------------ stream --
+namespace fs = std::filesystem;
+
+// Clave natural de ordenacion: el ultimo numero del nombre (batch12 < batch100).
+static std::pair<long long, std::string> natural_key(const std::string &name) {
+    long long num = -1;
+    size_t i = name.size();
+    while (i > 0 && !std::isdigit((unsigned char)name[i - 1])) --i;
+    size_t j = i;
+    while (j > 0 && std::isdigit((unsigned char)name[j - 1])) --j;
+    if (j < i) num = std::stoll(name.substr(j, i - j));
+    return {num, name};
+}
+
+static int cmd_stream(int argc, char **argv) {
+    const std::string dir = argv[2];
+    uint32_t block_bits = 40000, w = 350;
+    double poll_s = 0.5, hint = 0;
+    bool once = false;
+    int ldpc = 0;
+    std::string out_path = "claves.txt";
+    for (int i = 3; i < argc; ++i) {
+        std::string a = argv[i];
+        auto next = [&]() { return i + 1 < argc ? std::string(argv[++i]) : std::string(); };
+        if (a == "--block-bits") block_bits = (uint32_t)std::stoul(next());
+        else if (a == "--out") out_path = next();
+        else if (a == "--once") once = true;
+        else if (a == "--window") w = (uint32_t)std::stoul(next());
+        else if (a == "--poll") poll_s = std::stod(next());
+        else if (a == "--qber-hint") hint = std::stod(next());
+        else if (a == "--ec") { std::string e = next(); ldpc = e == "ldpc" ? 1 : (e == "ldpc-fixed" ? 2 : 0); }
+        else { std::fprintf(stderr, "opcion desconocida: %s\n", a.c_str()); return 64; }
+    }
+    if (!fs::is_directory(dir)) { std::fprintf(stderr, "no existe el directorio %s\n", dir.c_str()); return 2; }
+
+    // Clave precompartida y fuente aleatoria SIMULADAS (PC); en la placa: las reales.
+    SplitMix64 psk_rng(0x9E5C7A11D00DULL);
+    Bits psk(4096);
+    for (auto &v : psk) v = (uint8_t)(psk_rng.next() & 1);
+    KeyPool pool_a(psk), pool_b(psk);
+    SimulatedRandomSource alice_rng(0x5EED0002ULL);
+    AuthenticatedConfig cfg;
+    cfg.half_window = w;
+    if (ldpc) cfg.reconciliation = Reconciliation::LDPC;
+    if (ldpc == 2) cfg.ldpc = ldpc_config_fixed();
+    if (hint > 0) cfg.cascade.qber_hint = cfg.ldpc.qber_hint = hint;
+
+    std::printf("AURORA stream: %s, bloque %u bits, ventana +-%u ps, salida %s%s\n", dir.c_str(), block_bits, w,
+                out_path.c_str(), once ? " (una pasada)" : " (Ctrl+C para parar)");
+    std::printf("AVISO: clave precompartida y semillas SIMULADAS (solo PC)\n");
+    std::set<std::string> done;
+    std::map<std::string, uintmax_t> last_size;   // estabilidad: mismo tamano en dos sondeos
+    Bits ka, kb;
+    uint64_t batches = 0, discarded = 0, blocks = 0, total_key = 0;
+    for (;;) {
+        std::vector<std::string> ready;
+        for (const auto &e : fs::directory_iterator(dir)) {
+            const std::string f = e.path().filename().string();
+            const std::string suf = "_alice.detections";
+            if (f.size() <= suf.size() || f.compare(f.size() - suf.size(), suf.size(), suf) != 0) continue;
+            const std::string name = f.substr(0, f.size() - suf.size());
+            if (done.count(name)) continue;
+            const fs::path pa = fs::path(dir) / f, pb = fs::path(dir) / (name + "_bob.detections");
+            if (!fs::exists(pb)) continue;
+            const uintmax_t sz = fs::file_size(pa) + fs::file_size(pb);
+            if (!once && (last_size[name] != sz || sz == 0)) { last_size[name] = sz; continue; }
+            ready.push_back(name);
+        }
+        std::sort(ready.begin(), ready.end(),
+                  [](const std::string &x, const std::string &y) { return natural_key(x) < natural_key(y); });
+        for (const auto &name : ready) {
+            done.insert(name);
+            ++batches;
+            Detections a, b;
+            std::string err;
+            if (!load_batch((fs::path(dir) / name).string(), a, b, &err) || !validate_detections(a, &err) ||
+                !validate_detections(b, &err)) {
+                std::printf("%s: descartado (%s)\n", name.c_str(), err.c_str());
+                ++discarded;
+                continue;
+            }
+            LagEstimate lag = estimate_lag(a, b);
+            if (!lag.ok) {
+                std::printf("%s: sync fallido (snr %.1f), descartado\n", name.c_str(), lag.snr);
+                ++discarded;
+                continue;
+            }
+            SiftOutput s = sift_batch(a, b, (int64_t)std::llround(lag.lag), w);
+            ka.insert(ka.end(), s.alice_key.begin(), s.alice_key.end());
+            kb.insert(kb.end(), s.bob_key.begin(), s.bob_key.end());
+            std::printf("%s: lag %.1f ps, %zu bits cribados (acumulados %zu/%u)\n", name.c_str(), lag.lag,
+                        s.alice_key.size(), ka.size(), block_bits);
+            while (ka.size() >= block_bits) {
+                Bits ba(ka.begin(), ka.begin() + block_bits), bb(kb.begin(), kb.begin() + block_bits);
+                ka.erase(ka.begin(), ka.begin() + block_bits);
+                kb.erase(kb.begin(), kb.begin() + block_bits);
+                AuthenticatedResult r = run_authenticated_postprocessing(ba, bb, pool_a, pool_b, cfg, alice_rng);
+                ++blocks;
+                const bool ok = r.ok && !r.alice_key.empty() && r.alice_key == r.bob_key;
+                const double q = r.reconciled ? (double)r.corrected / r.reconciled : 0.0;
+                std::printf("BLOQUE %" PRIu64 ": %s, QBER %.3f%%, clave neta %zu bits%s%s\n", blocks,
+                            ok ? "OK" : "ABORTADO", 100 * q, r.alice_key.size(), ok ? "" : " - ",
+                            ok ? "" : r.abort_reason.c_str());
+                if (ok) {
+                    std::ofstream o(out_path, std::ios::app);
+                    o << "bloque " << blocks << " bits " << r.alice_key.size() << " " << bits_to_hex(r.alice_key)
+                      << "\n";
+                    total_key += r.alice_key.size();
+                }
+            }
+            std::fflush(stdout);
+        }
+        if (once) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds((int)(poll_s * 1000)));
+    }
+    std::printf("RESUMEN: %" PRIu64 " batches (%" PRIu64 " descartados), %" PRIu64
+                " bloques, %" PRIu64 " bits de clave, %zu bits cribados pendientes\n",
+                batches, discarded, blocks, total_key, ka.size());
+    return 0;
+}
+
 int main(int argc, char **argv) {
+    if (argc >= 3 && std::string(argv[1]) == "stream") return cmd_stream(argc, argv);
     if (argc >= 3 && std::string(argv[1]) == "batch") {
         uint32_t w = argc >= 4 ? (uint32_t)std::atoi(argv[3]) : 350;
         return cmd_batch(argv[2], w);
@@ -266,11 +400,12 @@ int main(int argc, char **argv) {
     std::fprintf(stderr,
                  "uso:\n  %s batch <prefijo> [half_window_ps]\n"
                  "  %s pipeline <dir> <primero> <ultimo> [half_window_ps] [--ec cascade|ldpc|ldpc-fixed] [--qber-hint Q]\n"
+                 "  %s stream <dir> [--block-bits N] [--out claves.txt] [--once] [--window ps] [--ec cascade|ldpc|ldpc-fixed]\n"
                  "  %s polyhash <clave_hex32> [mensaje_hex]\n"
                  "  %s trng-analyze <captura_hex> [--h H] [--seed S | --seed-file F] [--extract salida.txt]\n"
                  "  %s trng-analyze --raw-indexed <raw.txt> [--h H] [--extract salida.txt]\n"
                  "  %s trng-health <raw.txt> <rct_cutoff> <apt_cutoff>\n"
                  "  %s gen-random <n_bits | extractor> <salida.txt> [--h H]\n",
-                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
+                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
     return 64;
 }
