@@ -22,3 +22,26 @@ __pycache__/
 **/solution*/*.aps
 **/.vitis_hls_log_all.xml
 vitis_hls.log
+
+# Proyectos de Vivado (recomendado: crearlos dentro de build/ o fuera del repo)
+*.xpr
+*.cache/
+*.runs/
+*.sim/
+*.hw/
+*.gen/
+*.ip_user_files/
+*.srcs/
+.Xil/
+NA/
+*.jou
+vivado*.log
+vivado*.str
+*.backup.jou
+*.backup.log
+webtalk*
+
+# Workspace de Vitis (IDE unificado / clasico)
+_ide/
+.metadata/
+.ipcache/
