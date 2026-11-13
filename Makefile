@@ -32,8 +32,8 @@ endif
 CLI := $(BUILD)/aurora_cli$(EXE)
 
 HW_SRC   := hw/aurora_sync.cpp hw/aurora_sift.cpp hw/aurora_toeplitz.cpp
-SW_SRC   := sw/aurora_host.cpp sw/aurora_auth.cpp sw/aurora_trng.cpp sw/aurora_trng_driver.cpp sw/aurora_random.cpp
-HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h sw/aurora_trng.h sw/aurora_trng_driver.h sw/aurora_random.h
+SW_SRC   := sw/aurora_host.cpp sw/aurora_auth.cpp sw/aurora_ldpc.cpp sw/aurora_trng.cpp sw/aurora_trng_driver.cpp sw/aurora_random.cpp
+HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h sw/aurora_ldpc.h sw/aurora_trng.h sw/aurora_trng_driver.h sw/aurora_random.h
 
 LEGACY_FLAGS := -O2 -std=c++17 -w -Itests/cpp/legacy_stub
 
@@ -67,9 +67,13 @@ $(BUILD)/test_trng$(EXE): $(HW_SRC) $(SW_SRC) $(HDRS) tests/cpp/test_framework.h
 $(BUILD)/test_trng_driver$(EXE): $(HW_SRC) $(SW_SRC) $(HDRS) tests/cpp/test_framework.h tests/cpp/test_trng_driver.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) $(HW_SRC) $(SW_SRC) tests/cpp/test_trng_driver.cpp -o $@
 
-test-cpp: $(BUILD)/test_kernels$(EXE) $(BUILD)/test_auth$(EXE) $(BUILD)/test_trng$(EXE) $(BUILD)/test_trng_driver$(EXE)
+$(BUILD)/test_ldpc$(EXE): $(HW_SRC) $(SW_SRC) $(HDRS) tests/cpp/test_framework.h tests/cpp/test_ldpc.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) $(HW_SRC) $(SW_SRC) tests/cpp/test_ldpc.cpp -o $@
+
+test-cpp: $(BUILD)/test_kernels$(EXE) $(BUILD)/test_auth$(EXE) $(BUILD)/test_ldpc$(EXE) $(BUILD)/test_trng$(EXE) $(BUILD)/test_trng_driver$(EXE)
 	$(BUILD)/test_kernels$(EXE)
 	$(BUILD)/test_auth$(EXE)
+	$(BUILD)/test_ldpc$(EXE)
 	$(BUILD)/test_trng$(EXE)
 	$(BUILD)/test_trng_driver$(EXE)
 
@@ -110,7 +114,7 @@ bitstream:
 	vivado -mode batch -nojournal -log build/vivado_bit.log -source hw/scripts/create_vivado.tcl -tclargs bitstream $(VIVADO_ARGS)
 
 # ---------------------------------------------------------------- bare-metal --
-BM_SRCS := sw/baremetal/main.cpp sw/baremetal/hw_backend.cpp sw/aurora_host.cpp sw/aurora_auth.cpp \
+BM_SRCS := sw/baremetal/main.cpp sw/baremetal/hw_backend.cpp sw/aurora_host.cpp sw/aurora_auth.cpp sw/aurora_ldpc.cpp \
            sw/aurora_trng.cpp sw/aurora_trng_driver.cpp
 
 baremetal-data: $(CLI)

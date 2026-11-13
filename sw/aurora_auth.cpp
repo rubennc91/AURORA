@@ -235,15 +235,18 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
         msg.u64((uint64_t)cfg.lag_ps);
         msg.u32(cfg.half_window);
         msg.u64(cascade_seed);
+        msg.u32(cfg.reconciliation == Reconciliation::LDPC ? 1u : 0u);
         msg.u32((uint32_t)cfg.cascade.passes);
         msg.u64(dbl_bits(cfg.cascade.qber_hint));
+        msg.u64(dbl_bits(cfg.ldpc.qber_hint));
+        msg.u64(dbl_bits(cfg.ldpc.f_target));
         send(PHASE_PARAMS, msg.bytes, ta, tb);
         if (!close_phase(PHASE_PARAMS, ta, tb)) return res;
     }
 
-    // ---- Fase 1: Cascade ----------------------------------------------------
-    Bits kb = bob_sifted;
-    {
+    // ---- Fase 1: reconciliacion (Cascade o LDPC) ------------------------------
+    Bits ka = alice_sifted, kb = bob_sifted;
+    if (cfg.reconciliation == Reconciliation::CASCADE) {
         Transcript ta, tb;
         CascadeConfig cc = cfg.cascade;
         cc.seed = cascade_seed;   // permutaciones: pseudoaleatorias a partir de 64 bits (suficiente: no afectan a la seguridad)
@@ -254,14 +257,40 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
             ta.u8(sent);
             tb.u8(recv);
         };
-        CascadeResult cr = cascade_correct(alice_sifted, kb, cc);
+        CascadeResult cr = cascade_correct(ka, kb, cc);
         res.corrected = cr.corrected;
         res.leaked_ec = cr.leaked_bits;
         // Primero se autentica la transcripcion: si un atacante altero las
         // paridades, este es el motivo real del fallo.
         if (!close_phase(PHASE_CASCADE, ta, tb)) return res;
         if (!cr.converged) { res.abort_reason = "Cascade no converge"; return res; }
+    } else {
+        // LDPC: por trama, Alice -> Bob (plan + sindrome) y Bob -> Alice (exito
+        // + errores). Los bits perforados son secretos de Alice: del TRNG.
+        Transcript ta, tb;
+        LdpcIo io;
+        io.alice_to_bob = [&](const std::vector<uint8_t> &m) { return send(PHASE_CASCADE, m, ta, tb); };
+        io.bob_to_alice = [&](const std::vector<uint8_t> &m) {
+            std::vector<uint8_t> wire = m;
+            eve.message(PHASE_CASCADE, wire);
+            tb.raw(m);
+            ta.raw(wire);
+            return wire;
+        };
+        bool rng_ok = true;
+        LdpcReconcileResult lr = ldpc_reconcile(alice_sifted, bob_sifted, cfg.ldpc, cascade_seed,
+                                                [&](size_t n, Bits &out) { return rng_ok = draw(n, out); }, &io);
+        if (!rng_ok) return res;
+        ka = lr.alice;
+        kb = lr.bob;
+        res.corrected = lr.corrected;
+        res.leaked_ec = lr.leaked_bits;
+        res.ec_frames = lr.frames;
+        res.ec_failed = lr.failed;
+        if (!close_phase(PHASE_CASCADE, ta, tb)) return res;
+        if (ka.empty()) { res.abort_reason = "LDPC: ninguna trama reconciliada"; return res; }
     }
+    res.reconciled = (uint32_t)ka.size();
 
     // ---- Fase 2: verificacion ----------------------------------------------
     {
@@ -269,7 +298,7 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
         if (!draw_u64(verify_seed)) return res;
         Transcript ta, tb, msg;
         msg.u64(verify_seed);
-        msg.u64(verification_hash(alice_sifted, verify_seed));
+        msg.u64(verification_hash(ka, verify_seed));
         std::vector<uint8_t> wire = send(PHASE_VERIFY, msg.bytes, ta, tb);
         if (!close_phase(PHASE_VERIFY, ta, tb)) return res;
         uint64_t seed_rx = rd64(wire, 0), hash_rx = rd64(wire, 8);
@@ -280,15 +309,15 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
     }
 
     // ---- Fase 3: amplificacion de privacidad --------------------------------
-    const double qber = res.sifted ? (double)res.corrected / res.sifted : 0.0;
+    const double qber = ka.empty() ? 0.0 : (double)res.corrected / ka.size();
     // La autenticacion no filtra informacion de la clave (etiquetas cifradas con OTP).
-    uint32_t m = pa_output_length(res.sifted, qber, res.leaked_ec, 64);
+    uint32_t m = pa_output_length((uint32_t)ka.size(), qber, res.leaked_ec, 64);
     if (m == 0) { res.abort_reason = "clave demasiado corta para la amplificacion de privacidad"; return res; }
     Bits fa, fb;
     {
         // Semilla Toeplitz COMPLETA (n + m - 1 bits por bloque), uniforme.
         Bits seed;
-        if (!draw(toeplitz_seed_length(alice_sifted.size(), m), seed)) return res;
+        if (!draw(toeplitz_seed_length(ka.size(), m), seed)) return res;
         Transcript ta, tb, msg;
         msg.u32(m);
         msg.u64(seed.size());
@@ -305,7 +334,7 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
         Bits seed_rx;
         for (uint64_t i = 0; i < nseed_rx && 12 + (i >> 3) < wire.size(); ++i)
             seed_rx.push_back((wire[12 + (i >> 3)] >> (i & 7)) & 1);
-        fa = toeplitz_hash_seeded(alice_sifted, m, seed);
+        fa = toeplitz_hash_seeded(ka, m, seed);
         fb = toeplitz_hash_seeded(kb, m_rx, seed_rx);
         if (fa.size() != m || fb.size() != m) { res.abort_reason = "semilla de Toeplitz invalida"; return res; }
     }

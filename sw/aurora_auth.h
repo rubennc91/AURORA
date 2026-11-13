@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "aurora_host.h"
+#include "aurora_ldpc.h"
 
 namespace aurora {
 
@@ -123,11 +124,17 @@ struct AuthenticatedResult {
     uint64_t auth_key_bits = 0;    // clave consumida por la autenticacion (cada lado)
     int64_t net_key_bits = 0;      // pa_length - auth_key_bits
     uint64_t random_bits_used = 0; // bits pedidos a la fuente aleatoria de Alice (semillas publicas)
+    uint32_t reconciled = 0;       // bits que siguen tras la reconciliacion (LDPC descarta tramas fallidas)
+    uint32_t ec_frames = 0, ec_failed = 0;   // tramas LDPC (0 con Cascade)
     Bits alice_key, bob_key;       // clave neta entregada (vacia si !ok)
 };
 
+enum class Reconciliation { CASCADE, LDPC };
+
 struct AuthenticatedConfig {
+    Reconciliation reconciliation = Reconciliation::CASCADE;
     CascadeConfig cascade;
+    LdpcConfig ldpc;
     int64_t lag_ps = 0;
     uint32_t half_window = 350;
     bool refill_pools = true;      // reponer la reserva con clave nueva

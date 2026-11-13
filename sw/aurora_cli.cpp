@@ -18,6 +18,7 @@
 // =============================================================================
 #include <cinttypes>
 #include <cmath>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -52,7 +53,7 @@ static int cmd_batch(const std::string &prefix, uint32_t w) {
     return lag.ok ? 0 : 1;
 }
 
-static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w) {
+static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w, bool ldpc) {
     Bits ka, kb;
     uint64_t coinc = 0;
     int used = 0;
@@ -88,23 +89,29 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w)
     for (auto &v : psk) v = (uint8_t)(psk_rng.next() & 1);
     KeyPool pool_a(psk), pool_b(psk);
     AuthenticatedConfig cfg;
+    if (ldpc) cfg.reconciliation = Reconciliation::LDPC;
     // En el PC no hay TRNG: fuente SIMULADA. En la placa: TrngRandomSource.
     SimulatedRandomSource alice_rng(0x5EED0001ULL);
+    const auto t0 = std::chrono::steady_clock::now();
     AuthenticatedResult r = run_authenticated_postprocessing(ka, kb, pool_a, pool_b, cfg, alice_rng);
-    double qber = r.sifted ? (double)r.corrected / r.sifted : 0.0;
+    const double t_post = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    double qber = r.reconciled ? (double)r.corrected / r.reconciled : 0.0;
 
     std::printf("\n=== RESUMEN (%d batches) ===\n", used);
     std::printf("coincidencias        : %" PRIu64 "\n", coinc);
     std::printf("clave cribada        : %zu bits\n", ka.size());
     std::printf("errores reales       : %u (QBER %.3f%%)\n", true_err, 100.0 * true_err / ka.size());
-    std::printf("Cascade              : %u corregidos, %" PRIu64 " bits filtrados (f=%.3f)\n", r.corrected,
-                r.leaked_ec, qber > 0 ? r.leaked_ec / (ka.size() * binary_entropy(qber)) : 0.0);
+    std::printf("%-21s: %u corregidos, %" PRIu64 " bits filtrados (f=%.3f)", ldpc ? "LDPC" : "Cascade", r.corrected,
+                r.leaked_ec, qber > 0 ? r.leaked_ec / (r.reconciled * binary_entropy(qber)) : 0.0);
+    if (ldpc) std::printf(", %u tramas, %u descartadas, %u bits conservados", r.ec_frames, r.ec_failed, r.reconciled);
+    std::printf("\n");
     std::printf("autenticacion        : %s\n", r.ok ? "OK (4 fases, ambos sentidos)" : r.abort_reason.c_str());
     std::printf("semillas publicas    : %" PRIu64 " bits de la fuente %s\n", r.random_bits_used, alice_rng.name());
     std::printf("clave final (PA)     : %u bits (%.1f%% de la cribada)\n", r.pa_length,
                 100.0 * r.pa_length / ka.size());
     std::printf("clave de autenticacion: %" PRIu64 " bits (repuestos en la reserva)\n", r.auth_key_bits);
     std::printf("clave neta entregada : %zu bits\n", r.alice_key.size());
+    std::printf("tiempo post-procesado: %.3f s (PC)\n", t_post);
     std::printf("claves finales iguales: %s\n", (r.ok && !r.alice_key.empty() && r.alice_key == r.bob_key) ? "SI" : "NO");
     return (r.ok && !r.alice_key.empty() && r.alice_key == r.bob_key) ? 0 : 1;
 }
@@ -228,8 +235,14 @@ int main(int argc, char **argv) {
         return cmd_batch(argv[2], w);
     }
     if (argc >= 5 && std::string(argv[1]) == "pipeline") {
-        uint32_t w = argc >= 6 ? (uint32_t)std::atoi(argv[5]) : 350;
-        return cmd_pipeline(argv[2], std::atoi(argv[3]), std::atoi(argv[4]), w);
+        uint32_t w = 350;
+        bool ldpc = false;
+        for (int i = 5; i < argc; ++i) {
+            std::string a = argv[i];
+            if (a == "--ec" && i + 1 < argc) ldpc = std::string(argv[++i]) == "ldpc";
+            else w = (uint32_t)std::atoi(argv[i]);
+        }
+        return cmd_pipeline(argv[2], std::atoi(argv[3]), std::atoi(argv[4]), w, ldpc);
     }
     if (argc >= 5 && std::string(argv[1]) == "trng-health") {
         return cmd_trng_health(argv[2], (uint32_t)std::atoi(argv[3]), (uint32_t)std::atoi(argv[4]));
@@ -245,7 +258,7 @@ int main(int argc, char **argv) {
     }
     std::fprintf(stderr,
                  "uso:\n  %s batch <prefijo> [half_window_ps]\n"
-                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps]\n"
+                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps] [--ec cascade|ldpc]\n"
                  "  %s polyhash <clave_hex32> [mensaje_hex]\n"
                  "  %s trng-analyze <captura_hex> [--h H] [--seed S | --seed-file F] [--extract salida.txt]\n"
                  "  %s trng-analyze --raw-indexed <raw.txt> [--h H] [--extract salida.txt]\n"
