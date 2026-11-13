@@ -295,6 +295,7 @@ def main() -> int:
     p.set_defaults(func=cmd_analyze)
 
     a = ap.parse_args()
+    sys.stdout.reconfigure(line_buffering=True)   # progreso visible tambien con nohup > fichero
     return a.func(a)
 
 
