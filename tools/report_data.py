@@ -23,6 +23,7 @@ MODULES = [  # (patron de instancia, nombre en el informe)
     (r"aurora_sync", "Kernel sync (HLS)"),
     (r"aurora_sift", "Kernel sift (HLS)"),
     (r"aurora_toeplitz", "Kernel Toeplitz (HLS)"),
+    (r"aurora_ldpc", "Kernel LDPC (HLS)"),
     (r"trng", "TRNG (RTL)"),
     (r"smc|smartconnect|interconnect|axi_", "Interconexion AXI"),
 ]
@@ -167,12 +168,14 @@ def main() -> int:
     L.append(r"\newcommand{\TimingWHS}{" + tm.get("whs", "0.009") + "}")
 
     L.append(r"\newcommand{\TablaHLS}{%")
-    for k, name in (("aurora_sync", "sync"), ("aurora_sift", "sift"), ("aurora_toeplitz", "toeplitz")):
+    for k, name in (("aurora_sync", "sync"), ("aurora_sift", "sift"), ("aurora_toeplitz", "toeplitz"),
+                    ("aurora_ldpc_dec", "ldpc\\_dec")):
         h = parse_hls(k)
         if h:
             L.append(f"{name} & {h['est']} & {tex_int(h['lut'])} & {tex_int(h['ff'])} & {h['bram']} & {h['dsp']} \\\\")
         else:
-            L.append(f"{name} & 7{{,}}300 & {P} & & & \\\\")
+            est = "7{,}300" if "ldpc" not in k else P
+            L.append(f"{name} & {est} & {P} & & & \\\\")
     L.append("}")
     OUT.write_text("\n".join(L) + "\n")
     print(f"escrito {OUT}")

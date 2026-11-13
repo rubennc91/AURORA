@@ -364,6 +364,53 @@ LDPC    & 1,72\% & 1,396 & 7\,125 & 27\,241 & 3 + 3 & 0,68\,s \\
 \end{tabular}}
 \end{table}
 
+\subsection{Decodificador LDPC en la PL}
+El \emph{kernel} \code{aurora\_ldpc\_dec} implementa la decodificación de Bob con \emph{min-sum} normalizado
+por capas en coma fija: LLR de entrada y mensajes de 8 bits, posteriores de 16 bits y normalización
+$\alpha = 0{,}6875 = \tfrac12+\tfrac14-\tfrac1{16}$ (solo sumas y desplazamientos). El código (matriz $H$
+en CSR) se guarda en memoria interna (URAM/BRAM) y solo se recarga al cambiar de código. El mismo fuente
+C++ es el modelo de software, de modo que la comparación PL/PS es exacta bit a bit. Las etapas de
+planificación, perforado, síndrome de Alice y mensajes siguen en el PS.
+
+\begin{table}[htbp]
+\centering
+\caption{FER del decodificador en coma fija ($Q = 1{,}72\%$, 300 tramas por punto) frente a sum-product en flotante.}
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{3}{c}{Min-sum coma fija (PL)} & Sum-product (PS) \\
+$f$ objetivo & 1,50 & 1,55 & 1,60 & 1,40 \\
+\midrule
+FER & 1,7\% & 0,7\% & 1,0\% & 0/151 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent
+El \emph{min-sum} en coma fija necesita más margen ($f = 1{,}50$) y tiene un suelo de error de $\sim$1\%:
+con los datos reales entrega $\sim$25\,800 bits netos frente a 27\,241 con sum-product. A cambio, es la
+variante que se puede llevar a hardware.
+
+\begin{table}[htbp]
+\centering
+\caption{Decodificación LDPC de los 40\,755 bits reales en la placa: PL frente a PS (\code{make board-run}, sección 6).}
+\begin{tabular}{lccc}
+\toprule
+Decodificador & Tiempo & Resultado & Clave neta \\
+\midrule
+PL, min-sum coma fija & \pend & \pend & \pend \\
+PS (A53), min-sum coma fija & \pend & \pend & \pend \\
+PS (A53), sum-product flotante & \pend & \pend & \pend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent
+Estimación previa: el \emph{kernel} procesa una arista por ciclo (100\,M aristas/s); con $\sim$83\,000
+aristas, tres pasadas por iteración y $\sim$10 iteraciones, son unos 30\,ms por trama. Es del mismo orden
+que el A53, así que la aceleración esperada de esta primera versión es pequeña. Para una ganancia grande
+habría que procesar varias filas en paralelo, lo que exige códigos cuasi-cíclicos (QC-LDPC): es el
+siguiente paso si la medida en placa lo justifica.
+
 \noindent
 Con este tamaño de trama, el LDPC entrega un 4\% menos de clave que Cascade, pero con 6 mensajes en lugar
 de miles de consultas: es la opción a elegir cuando la latencia de red domine o cuando se lleve la
@@ -396,7 +443,7 @@ optimizadas por evolución de densidad.
   \item \textbf{Rendimiento en el PS}: medir el reparto de tiempos por etapa; generar las semillas en segundo plano;
         representar las claves empaquetadas (64 bits por palabra) y usar NEON (\code{PMULL} para $\mathrm{GF}(2^{128})$).
   \item \textbf{QRNG del receptor}: si la API lo expone, combinarlo con el TRNG (XOR).
-  \item \textbf{LDPC}: tramas mayores, distribuciones optimizadas y, si la tasa lo exige, decodificador en la PL.
+  \item \textbf{LDPC}: tramas mayores, distribuciones optimizadas; en la PL, códigos QC-LDPC para decodificar varias filas en paralelo.
 \end{itemize}
 
 \end{document}

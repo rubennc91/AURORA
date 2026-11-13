@@ -8,6 +8,9 @@
 // 4. Kernel Toeplitz comparado con un modelo independiente.
 // 5. Cadena completa (Cascade + verificacion + PA) autenticada, con las
 //    semillas publicas sacadas del TRNG real.
+// 6. Reconciliacion LDPC: decodificador en la PL frente al mismo algoritmo en
+//    el PS (comparacion bit a bit y de tiempos), frente a sum-product en coma
+//    flotante, y cadena autenticada completa con LDPC en la PL.
 //
 // Modo test de reinicios (buzon board::MAILBOX escrito por XSCT): solo se
 // ejecuta restart_test() y cada arranque del TRNG se imprime como una linea
@@ -27,6 +30,7 @@
 #include "aurora_board.h"
 #include "aurora_data.h"
 #include "aurora_host.h"
+#include "aurora_ldpc.h"
 #include "aurora_random.h"
 #include "aurora_trng.h"
 #include "aurora_trng_driver.h"
@@ -275,6 +279,77 @@ void full_pipeline(RandomSource &rng) {
     check(r.alice_key.size() > bm_sifted_len / 2, "clave neta > 50% de la cribada (en el PC: ~70%)");
 }
 
+// --------------------------------------------------------------- LDPC -------
+struct LdpcRun {
+    LdpcReconcileResult r;
+    double ms = 0;
+};
+
+LdpcRun run_ldpc(const Bits &ka, const Bits &kb, const LdpcConfig &cfg) {
+    // Bits perforados de Alice: aqui un PRNG fijo para que las tres ejecuciones
+    // reciban exactamente la misma entrada (en la cadena real salen del TRNG).
+    SplitMix64 prng(0x1D9C0FFEEull);
+    LdpcRun out;
+    const double t0 = now_ms();
+    out.r = ldpc_reconcile(ka, kb, cfg, 0xA11CEull, [&](size_t n, Bits &o) {
+        o.resize(n);
+        for (auto &v : o) v = (uint8_t)(prng.next() & 1);
+        return true;
+    });
+    out.ms = now_ms() - t0;
+    return out;
+}
+
+void ldpc_hw_vs_sw(RandomSource *rng) {
+    std::printf("\n== 6. Reconciliacion LDPC: PL frente a PS ==\n");
+    Bits ka = to_bits(bm_sifted_alice, bm_sifted_len), kb = to_bits(bm_sifted_bob, bm_sifted_len);
+    uint32_t errors = 0;
+    for (size_t i = 0; i < ka.size(); ++i) errors += ka[i] != kb[i];
+    const double q = (double)errors / ka.size();
+
+    LdpcConfig hw = ldpc_config_fixed();                       // kernel de la PL
+    LdpcConfig sw = ldpc_config_fixed(sw_aurora_ldpc_dec);     // mismo algoritmo en el A53
+    LdpcConfig fl;                                             // sum-product, coma flotante (A53)
+    hw_kernel_timeout = false;
+    // Primera pasada: construye (una vez) los codigos que se usan y los carga
+    // en el kernel; las medidas de abajo ya no incluyen ese coste.
+    double t0 = now_ms();
+    run_ldpc(ka, kb, hw);
+    run_ldpc(ka, kb, fl);
+    std::printf("  primera ejecucion (construccion de codigos incluida): %.0f ms\n", now_ms() - t0);
+    LdpcRun a = run_ldpc(ka, kb, hw);
+    LdpcRun b = run_ldpc(ka, kb, sw);
+    LdpcRun c = run_ldpc(ka, kb, fl);
+    auto line = [&](const char *name, const LdpcRun &x) {
+        const double f = x.r.alice.empty() ? 0.0 : x.r.leaked_bits / (x.r.alice.size() * binary_entropy(q));
+        std::printf("  %-28s %8.1f ms  tramas %u (fallidas %u)  fuga %" PRIu64 "  f=%.3f  iter.max %.0f  claves %s\n",
+                    name, x.ms, x.r.frames, x.r.failed, x.r.leaked_bits, f, x.r.max_iter_seen,
+                    x.r.alice == x.r.bob ? "iguales" : "DISTINTAS");
+    };
+    line("PL (min-sum, coma fija)", a);
+    line("PS (min-sum, coma fija)", b);
+    line("PS (sum-product, flotante)", c);
+    if (a.ms > 0) std::printf("  aceleracion PL / PS (mismo algoritmo): x%.1f\n", b.ms / a.ms);
+    check(!hw_kernel_timeout, "el kernel LDPC termina");
+    check(a.r.alice == a.r.bob && !a.r.alice.empty(), "PL: claves de Alice y Bob iguales");
+    check(a.r.bob == b.r.bob && a.r.leaked_bits == b.r.leaked_bits && a.r.failed == b.r.failed &&
+              a.r.max_iter_seen == b.r.max_iter_seen,
+          "PL y PS (mismo algoritmo) identicos bit a bit");
+    check(c.r.alice == c.r.bob, "PS sum-product: claves iguales");
+
+    if (!rng) return;
+    Bits psk = to_bits(bm_psk, bm_psk_len);
+    KeyPool pa(psk), pb(psk);
+    AuthenticatedConfig cfg;
+    cfg.reconciliation = Reconciliation::LDPC;
+    cfg.ldpc = hw;
+    t0 = now_ms();
+    AuthenticatedResult r = run_authenticated_postprocessing(ka, kb, pa, pb, cfg, *rng);
+    std::printf("  cadena autenticada con LDPC en la PL: PA %u bits, neto %zu bits, %.1f ms%s%s\n", r.pa_length,
+                r.alice_key.size(), now_ms() - t0, r.ok ? "" : " - ", r.ok ? "" : r.abort_reason.c_str());
+    check(r.ok && !r.alice_key.empty() && r.alice_key == r.bob_key, "cadena autenticada con LDPC en la PL");
+}
+
 } // namespace
 
 int main() {
@@ -302,9 +377,11 @@ int main() {
     if (trng_ok) {
         TrngRandomSource src(drv, to_bits(bm_extractor_seed, bm_extractor_seed_len));
         full_pipeline(src);
+        ldpc_hw_vs_sw(&src);
     } else {
         std::printf("\n== 5. Cadena completa: OMITIDA (el TRNG no arranco) ==\n");
         ++g_fail;
+        ldpc_hw_vs_sw(nullptr);
     }
 
     std::printf("\nRESULTADO: %s (%d fallos)\n", g_fail == 0 ? "TODO OK" : "HAY FALLOS", g_fail);

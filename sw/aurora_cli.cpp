@@ -53,7 +53,7 @@ static int cmd_batch(const std::string &prefix, uint32_t w) {
     return lag.ok ? 0 : 1;
 }
 
-static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w, bool ldpc, double hint) {
+static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w, int ldpc, double hint) {
     Bits ka, kb;
     uint64_t coinc = 0;
     int used = 0;
@@ -90,6 +90,7 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w,
     KeyPool pool_a(psk), pool_b(psk);
     AuthenticatedConfig cfg;
     if (ldpc) cfg.reconciliation = Reconciliation::LDPC;
+    if (ldpc == 2) cfg.ldpc = ldpc_config_fixed();   // algoritmo del kernel de la PL (modelo C++)
     if (hint > 0) cfg.cascade.qber_hint = cfg.ldpc.qber_hint = hint;
     // En el PC no hay TRNG: fuente SIMULADA. En la placa: TrngRandomSource.
     SimulatedRandomSource alice_rng(0x5EED0001ULL);
@@ -102,7 +103,7 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w,
     std::printf("coincidencias        : %" PRIu64 "\n", coinc);
     std::printf("clave cribada        : %zu bits\n", ka.size());
     std::printf("errores reales       : %u (QBER %.3f%%)\n", true_err, 100.0 * true_err / ka.size());
-    std::printf("%-21s: %u corregidos, %" PRIu64 " bits filtrados (f=%.3f)", ldpc ? "LDPC" : "Cascade", r.corrected,
+    std::printf("%-21s: %u corregidos, %" PRIu64 " bits filtrados (f=%.3f)", ldpc == 2 ? "LDPC (coma fija)" : (ldpc ? "LDPC" : "Cascade"), r.corrected,
                 r.leaked_ec, qber > 0 ? r.leaked_ec / (r.reconciled * binary_entropy(qber)) : 0.0);
     if (ldpc) std::printf(", %u tramas, %u descartadas, %u bits conservados", r.ec_frames, r.ec_failed, r.reconciled);
     std::printf("\n");
@@ -237,11 +238,14 @@ int main(int argc, char **argv) {
     }
     if (argc >= 5 && std::string(argv[1]) == "pipeline") {
         uint32_t w = 350;
-        bool ldpc = false;
+        int ldpc = 0;
         double hint = 0;
         for (int i = 5; i < argc; ++i) {
             std::string a = argv[i];
-            if (a == "--ec" && i + 1 < argc) ldpc = std::string(argv[++i]) == "ldpc";
+            if (a == "--ec" && i + 1 < argc) {
+                std::string ec = argv[++i];
+                ldpc = ec == "ldpc" ? 1 : (ec == "ldpc-fixed" ? 2 : 0);
+            }
             else if (a == "--qber-hint" && i + 1 < argc) hint = std::atof(argv[++i]);
             else w = (uint32_t)std::atoi(argv[i]);
         }
@@ -261,7 +265,7 @@ int main(int argc, char **argv) {
     }
     std::fprintf(stderr,
                  "uso:\n  %s batch <prefijo> [half_window_ps]\n"
-                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps] [--ec cascade|ldpc] [--qber-hint Q]\n"
+                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps] [--ec cascade|ldpc|ldpc-fixed] [--qber-hint Q]\n"
                  "  %s polyhash <clave_hex32> [mensaje_hex]\n"
                  "  %s trng-analyze <captura_hex> [--h H] [--seed S | --seed-file F] [--extract salida.txt]\n"
                  "  %s trng-analyze --raw-indexed <raw.txt> [--h H] [--extract salida.txt]\n"

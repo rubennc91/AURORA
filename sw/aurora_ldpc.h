@@ -40,6 +40,9 @@ struct LdpcCode {
     std::vector<uint32_t> chk_ptr, chk_var;
     // Y para cada variable, sus comprobaciones (CSR).
     std::vector<uint32_t> var_ptr, var_chk;
+    // Copia de chk_var en 16 bits para el kernel de la PL (n <= 65536).
+    std::vector<uint16_t> chk_var16;
+    uint64_t id = 0;   // identificador unico (el kernel conserva el ultimo codigo cargado)
     double rate() const { return n ? 1.0 - (double)m / n : 0.0; }
     uint32_t edges() const { return (uint32_t)chk_var.size(); }
 };
@@ -69,7 +72,14 @@ std::vector<uint32_t> ldpc_untainted_puncturing(const LdpcCode &c, const std::ve
 // true si el codigo no tiene ciclos de longitud 4.
 bool ldpc_girth_at_least_6(const LdpcCode &c);
 
-enum class LdpcAlgo { SUM_PRODUCT, MIN_SUM };
+// SUM_PRODUCT / MIN_SUM: coma flotante en el PS.
+// FIXED_MIN_SUM: el algoritmo del kernel aurora_ldpc_dec (coma fija); en el PC
+// y en el PS se ejecuta su modelo C++ (el mismo fuente), en la placa la PL.
+enum class LdpcAlgo { SUM_PRODUCT, MIN_SUM, FIXED_MIN_SUM };
+
+// Firma del decodificador en coma fija (hw/aurora_kernels.h: aurora_ldpc_dec).
+typedef void (*LdpcFixedDecoder)(const uint32_t *, const uint16_t *, uint32_t, uint32_t, uint32_t, const int8_t *,
+                                 const uint8_t *, uint32_t, uint8_t *, uint32_t *);
 
 struct LdpcDecodeResult {
     bool ok = false;
@@ -79,7 +89,7 @@ struct LdpcDecodeResult {
 // Decodifica en 'x' (entrada: LLR a priori por bit, positivo = 0).
 LdpcDecodeResult ldpc_decode(const LdpcCode &c, const Bits &syndrome, const std::vector<float> &llr, Bits &x,
                              uint32_t max_iter = 100, LdpcAlgo algo = LdpcAlgo::SUM_PRODUCT,
-                             float min_sum_alpha = 0.8f);
+                             float min_sum_alpha = 0.8f, LdpcFixedDecoder fixed = nullptr);
 
 // ----------------------------------------------- reconciliacion por tramas ----
 struct LdpcFramePlan {
@@ -103,7 +113,23 @@ struct LdpcConfig {
     uint32_t max_iter = 100;
     LdpcAlgo algo = LdpcAlgo::SUM_PRODUCT;
     uint32_t n = LDPC_N;
+    // Con FIXED_MIN_SUM hay que subir f_target a 1.50. Medido (Q = 1.72 %, 300
+    // tramas): FER 1.7 % con 1.50, 0.7 % con 1.55 y 1.0 % con 1.60 (suelo de
+    // error del min-sum en coma fija; 1.50 y 1.55 dan la misma clave neta).
+    // Ver ldpc_config_fixed().
+    // Solo con FIXED_MIN_SUM: decodificador a usar (nullptr = aurora_ldpc_dec,
+    // que en la placa es el kernel de la PL).
+    LdpcFixedDecoder fixed_decoder = nullptr;
 };
+
+// Configuracion para el decodificador en coma fija (kernel de la PL).
+inline LdpcConfig ldpc_config_fixed(LdpcFixedDecoder dec = nullptr) {
+    LdpcConfig c;
+    c.algo = LdpcAlgo::FIXED_MIN_SUM;
+    c.f_target = 1.50;
+    c.fixed_decoder = dec;
+    return c;
+}
 
 // Simulacion local (sin canal autenticado): Alice y Bob en el mismo proceso.
 // Los bits de las tramas que fallan se descartan (no se usan como clave), por

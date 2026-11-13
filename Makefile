@@ -8,8 +8,8 @@
 #   make test-all    todo lo anterior
 #   make pipeline    cadena completa sobre todos los batches
 #   make legacy-sim  simulador original (src/main.cpp)
-#   make hls KERNEL=aurora_sync|aurora_sift|aurora_toeplitz   (requiere Vitis HLS)
-#   make hls-all     csim + csynth + export de los 3 kernels (requiere Vitis HLS)
+#   make hls KERNEL=aurora_sync|aurora_sift|aurora_toeplitz|aurora_ldpc_dec   (requiere Vitis HLS)
+#   make hls-all     csim + csynth + export de los 4 kernels (requiere Vitis HLS)
 #   make vivado      crea build/vivado/aurora.xpr con el block design
 #   make bitstream   idem + bitstream + build/vivado/aurora.xsa
 #   make test-baremetal  aplicacion bare-metal sobre una plataforma simulada (PC)
@@ -31,7 +31,7 @@ EXE :=
 endif
 CLI := $(BUILD)/aurora_cli$(EXE)
 
-HW_SRC   := hw/aurora_sync.cpp hw/aurora_sift.cpp hw/aurora_toeplitz.cpp
+HW_SRC   := hw/aurora_sync.cpp hw/aurora_sift.cpp hw/aurora_toeplitz.cpp hw/aurora_ldpc_dec.cpp
 SW_SRC   := sw/aurora_host.cpp sw/aurora_auth.cpp sw/aurora_ldpc.cpp sw/aurora_trng.cpp sw/aurora_trng_driver.cpp sw/aurora_random.cpp
 HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h sw/aurora_ldpc.h sw/aurora_trng.h sw/aurora_trng_driver.h sw/aurora_random.h
 
@@ -102,7 +102,7 @@ hls:
 
 # Requiere Vitis HLS / Vivado en el PATH (source <Xilinx>/Vivado/<ver>/settings64.sh)
 hls-all:
-	for k in aurora_sync aurora_sift aurora_toeplitz; do \
+	for k in aurora_sync aurora_sift aurora_toeplitz aurora_ldpc_dec; do \
 		vitis_hls -f hw/scripts/run_hls.tcl -tclargs $$k csim csynth export || exit 1; \
 	done
 
@@ -114,7 +114,8 @@ bitstream:
 	vivado -mode batch -nojournal -log build/vivado_bit.log -source hw/scripts/create_vivado.tcl -tclargs bitstream $(VIVADO_ARGS)
 
 # ---------------------------------------------------------------- bare-metal --
-BM_SRCS := sw/baremetal/main.cpp sw/baremetal/hw_backend.cpp sw/aurora_host.cpp sw/aurora_auth.cpp sw/aurora_ldpc.cpp \
+BM_SRCS := sw/baremetal/main.cpp sw/baremetal/hw_backend.cpp sw/baremetal/ldpc_sw_model.cpp \
+           sw/aurora_host.cpp sw/aurora_auth.cpp sw/aurora_ldpc.cpp \
            sw/aurora_trng.cpp sw/aurora_trng_driver.cpp
 
 baremetal-data: $(CLI)

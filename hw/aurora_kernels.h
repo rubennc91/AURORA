@@ -93,4 +93,21 @@ void aurora_toeplitz(
     uint64_t       *key_out, uint32_t n_out
 );
 
+// -----------------------------------------------------------------------------
+// aurora_ldpc_dec: decodificador LDPC por sindrome (min-sum normalizado por
+// capas, coma fija). Ver hw/aurora_ldpc_dec.cpp.
+// -----------------------------------------------------------------------------
+#define AURORA_LDPC_MAX_N    16384
+#define AURORA_LDPC_MAX_M    8192
+#define AURORA_LDPC_MAX_E    98304
+#define AURORA_LDPC_MAX_DEG  128     // grado maximo de comprobacion
+#define AURORA_LDPC_MAX_ITER 255
+#define AURORA_LDPC_LLR_SCALE 4      // LLR int8 = round(4 * LLR natural), saturado a +-127
+
+void aurora_ldpc_dec(
+    const uint32_t *chk_ptr, const uint16_t *chk_var, uint32_t n, uint32_t m, uint32_t load_code,
+    const int8_t *llr, const uint8_t *syndrome, uint32_t max_iter,
+    uint8_t *x_out, uint32_t *status          // status[0] = exito, status[1] = iteraciones
+);
+
 #endif // AURORA_KERNELS_H

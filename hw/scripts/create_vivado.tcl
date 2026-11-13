@@ -15,7 +15,7 @@
 # Contenido del block design:
 #   * Zynq UltraScale+ (PS) con M_AXI_HPM0_FPD (registros) y S_AXI_HP0_FPD (DDR)
 #   * TRNG (rtl/trng/trng_axi.v) como modulo RTL, esclavo AXI4-Lite
-#   * Kernels HLS aurora_sync, aurora_sift y aurora_toeplitz si se han
+#   * Kernels HLS aurora_sync, aurora_sift, aurora_toeplitz y aurora_ldpc_dec si se han
 #     exportado antes (build/hls/<kernel>/solution1/impl/ip); control por
 #     AXI4-Lite y acceso a DDR por sus puertos m_axi a traves de S_AXI_HP0_FPD
 #
@@ -66,7 +66,7 @@ update_compile_order -fileset sources_1
 # IPs de los kernels HLS exportados
 set hls_kernels {}
 set ip_paths {}
-foreach k {aurora_sync aurora_sift aurora_toeplitz} {
+foreach k {aurora_sync aurora_sift aurora_toeplitz aurora_ldpc_dec} {
     set ipdir $root/build/hls/$k/solution1/impl/ip
     if {[file exists $ipdir]} {
         lappend ip_paths $ipdir

@@ -9,6 +9,7 @@
 #include <string>
 
 #include "../../sw/aurora_host.h"
+#include "../../sw/aurora_ldpc.h"
 #include "synth.h"
 #include "test_framework.h"
 
@@ -389,6 +390,85 @@ TEST(end_to_end_synthetic_pipeline) {
     uint32_t m = pa_output_length((uint32_t)ka.size(), q, cr.leaked_bits, 64);
     CHECK_MSG(m > 0.5 * ka.size(), "m=" + std::to_string(m) + " de " + std::to_string(ka.size()));
     CHECK(toeplitz_hash(ka, m, 1) == toeplitz_hash(kb, m, 1));
+}
+
+// ------------------------------------------------------------ aurora_ldpc_dec --
+// Llamada directa al kernel (tambien es el testbench de la C-simulation HLS).
+struct LdpcFrame {
+    Bits xa, xb;
+    std::vector<int8_t> llr;
+    Bits syn;
+};
+static LdpcFrame ldpc_frame(const LdpcCode &c, double q, std::mt19937_64 &r) {
+    LdpcFrame f;
+    f.xa.resize(c.n);
+    for (auto &v : f.xa) v = r() & 1;
+    f.xb = f.xa;
+    std::bernoulli_distribution flip(q);
+    for (auto &v : f.xb) v ^= flip(r) ? 1 : 0;
+    const int l = (int)std::lround(AURORA_LDPC_LLR_SCALE * std::log((1 - q) / q));
+    f.llr.resize(c.n);
+    for (uint32_t i = 0; i < c.n; ++i) f.llr[i] = (int8_t)(f.xb[i] ? -l : l);
+    f.syn = ldpc_syndrome(c, f.xa);
+    return f;
+}
+static void run_ldpc_kernel(const LdpcCode &c, const LdpcFrame &f, uint32_t load, uint32_t iters, Bits &x,
+                            uint32_t st[2]) {
+    x.assign(c.n, 0xEE);
+    st[0] = st[1] = 0xDEAD;
+    aurora_ldpc_dec(c.chk_ptr.data(), c.chk_var16.data(), c.n, c.m, load, f.llr.data(), f.syn.data(), iters,
+                    x.data(), st);
+}
+
+TEST(ldpc_kernel_corrects_errors_and_reuses_loaded_code) {
+    std::mt19937_64 r(21);
+    auto c = ldpc_code(0.85);
+    Bits x;
+    uint32_t st[2];
+    for (int t = 0; t < 3; ++t) {
+        LdpcFrame f = ldpc_frame(*c, 0.01, r);
+        run_ldpc_kernel(*c, f, t == 0 ? 1u : 0u, 50, x, st);   // solo la primera carga el codigo
+        CHECK(st[0] == 1);
+        CHECK_MSG(st[1] > 0 && st[1] <= 50, std::to_string(st[1]));
+        CHECK(x == f.xa);
+    }
+}
+
+TEST(ldpc_kernel_reports_failure_after_max_iter) {
+    std::mt19937_64 r(22);
+    auto c = ldpc_code(0.90);   // h(0.03) = 0.19 > 0.10: imposible
+    LdpcFrame f = ldpc_frame(*c, 0.03, r);
+    Bits x;
+    uint32_t st[2];
+    run_ldpc_kernel(*c, f, 1, 12, x, st);
+    CHECK(st[0] == 0 && st[1] == 12);
+    for (auto v : x) CHECK(v <= 1);
+}
+
+TEST(ldpc_kernel_refuses_code_not_loaded) {
+    std::mt19937_64 r(23);
+    auto a = ldpc_code(0.80), b = ldpc_code(0.70);
+    LdpcFrame f = ldpc_frame(*a, 0.01, r);
+    Bits x;
+    uint32_t st[2];
+    run_ldpc_kernel(*a, f, 1, 20, x, st);
+    CHECK(st[0] == 1);
+    LdpcFrame g = ldpc_frame(*b, 0.01, r);
+    run_ldpc_kernel(*b, g, 0, 20, x, st);   // otro codigo sin cargarlo: no decodifica
+    CHECK(st[0] == 0 && st[1] == 0);
+}
+
+TEST(ldpc_kernel_zero_errors_needs_no_iteration_and_respects_shortened_bits) {
+    std::mt19937_64 r(24);
+    auto c = ldpc_code(0.75);
+    LdpcFrame f = ldpc_frame(*c, 0.01, r);
+    f.xb = f.xa;
+    for (uint32_t i = 0; i < c->n; ++i) f.llr[i] = (int8_t)(f.xa[i] ? -127 : 127);   // todo "acortado"
+    Bits x;
+    uint32_t st[2];
+    run_ldpc_kernel(*c, f, 1, 20, x, st);
+    CHECK(st[0] == 1 && st[1] == 0);
+    CHECK(x == f.xa);
 }
 
 int main() { return tf::run_all("AURORA kernels nuevos + PS"); }

@@ -3,9 +3,12 @@
 // =============================================================================
 #include "aurora_ldpc.h"
 #include "aurora_compat.h"
+#include "../hw/aurora_kernels.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <map>
 
 namespace aurora {
@@ -78,6 +81,7 @@ LdpcCode ldpc_build(uint32_t n, uint32_t m, uint64_t seed, const LdpcDegrees &de
                         for (uint32_t o : vchk[v])
                             if (is_nb(o, ch)) { okc = false; break; }
                     if (okc && cdeg[ch] < best_deg) { best_deg = cdeg[ch]; best = ch; }
+                    if (t >= 47 && best >= 0) break;   // 48 muestras bastan casi siempre
                 }
             }
             if (best >= 0) connect(v, (uint32_t)best);
@@ -93,6 +97,9 @@ LdpcCode ldpc_build(uint32_t n, uint32_t m, uint64_t seed, const LdpcDegrees &de
     std::vector<uint32_t> fill(c.chk_ptr.begin(), c.chk_ptr.end() - 1);
     for (uint32_t v = 0; v < n; ++v)
         for (uint32_t ch : vchk[v]) c.chk_var[fill[ch]++] = v;
+    c.chk_var16.assign(c.chk_var.begin(), c.chk_var.end());
+    static uint64_t next_id = 0;
+    c.id = ++next_id;
     c.var_ptr.assign(n + 1, 0);
     for (uint32_t v = 0; v < n; ++v) c.var_ptr[v + 1] = c.var_ptr[v] + (uint32_t)vchk[v].size();
     c.var_chk.reserve(c.var_ptr[n]);
@@ -160,8 +167,34 @@ static inline float phi(float x) {
     return (float)::log((e + 1.0) / (e - 1.0));
 }
 
+// Coma fija: cuantifica las LLR y llama al decodificador del kernel. Cada
+// decodificador (HW o modelo SW) recuerda el ultimo codigo cargado.
+static LdpcDecodeResult decode_fixed(const LdpcCode &c, const Bits &syndrome, const std::vector<float> &llr, Bits &x,
+                                     uint32_t max_iter, LdpcFixedDecoder dec) {
+    LdpcDecodeResult r;
+    x.assign(c.n, 0);
+    if (!dec) dec = aurora_ldpc_dec;
+    if (c.n > AURORA_LDPC_MAX_N || c.m > AURORA_LDPC_MAX_M || c.edges() > AURORA_LDPC_MAX_E) return r;
+    static std::map<LdpcFixedDecoder, uint64_t> loaded;
+    const uint32_t load = loaded[dec] != c.id ? 1u : 0u;
+    std::vector<int8_t> q(c.n);
+    for (uint32_t v = 0; v < c.n; ++v) {
+        const float s = llr[v] * AURORA_LDPC_LLR_SCALE;
+        const float rnd = s >= 0 ? (float)::floor(s + 0.5f) : -(float)::floor(-s + 0.5f);
+        q[v] = (int8_t)(rnd > 127 ? 127 : (rnd < -127 ? -127 : rnd));
+    }
+    uint32_t status[2] = {0, 0};
+    if (max_iter > AURORA_LDPC_MAX_ITER) max_iter = AURORA_LDPC_MAX_ITER;
+    dec(c.chk_ptr.data(), c.chk_var16.data(), c.n, c.m, load, q.data(), syndrome.data(), max_iter, x.data(), status);
+    loaded[dec] = c.id;
+    r.ok = status[0] != 0;
+    r.iterations = status[1];
+    return r;
+}
+
 LdpcDecodeResult ldpc_decode(const LdpcCode &c, const Bits &syndrome, const std::vector<float> &llr, Bits &x,
-                             uint32_t max_iter, LdpcAlgo algo, float alpha) {
+                             uint32_t max_iter, LdpcAlgo algo, float alpha, LdpcFixedDecoder fixed) {
+    if (algo == LdpcAlgo::FIXED_MIN_SUM) return decode_fixed(c, syndrome, llr, x, max_iter, fixed);
     LdpcDecodeResult r;
     std::vector<float> L(llr.begin(), llr.end());
     std::vector<float> R(c.edges(), 0.0f), t;
@@ -358,7 +391,7 @@ LdpcReconcileResult ldpc_reconcile(const Bits &alice, const Bits &bob, const Ldp
             std::vector<float> llr(n, 0.0f);
             for (uint32_t i = rx.p; i < rx.p + rx.s; ++i) llr[bpos[i]] = 30.0f;   // acortados = 0
             for (uint32_t i = 0; i < rx.k; ++i) llr[bpos[rx.p + rx.s + i]] = bob[off + i] ? -l0 : l0;
-            LdpcDecodeResult d = ldpc_decode(*bcode, syn_rx, llr, xb, cfg.max_iter, cfg.algo);
+            LdpcDecodeResult d = ldpc_decode(*bcode, syn_rx, llr, xb, cfg.max_iter, cfg.algo, 0.8f, cfg.fixed_decoder);
             res.max_iter_seen = std::max<double>(res.max_iter_seen, d.iterations);
             bob_ok = d.ok && rx.k > 0;
             if (bob_ok)
@@ -372,6 +405,9 @@ LdpcReconcileResult ldpc_reconcile(const Bits &alice, const Bits &bob, const Ldp
         const uint32_t errors_rx = get32(rwire, 1);
 
         ++res.frames;
+        if (getenv("AURORA_LDPC_DEBUG"))
+            ::printf("[ldpc] trama %u: R=%.2f k=%u p=%u s=%u q_est=%.4f ok=%d errores=%u\n", res.frames, pl.rate, pl.k,
+                     pl.p, pl.s, q_est, (int)bob_ok, errors);
         if (alice_ok && bob_ok) {
             for (uint32_t i = 0; i < pl.k; ++i) {
                 res.alice.push_back(alice[off + i]);

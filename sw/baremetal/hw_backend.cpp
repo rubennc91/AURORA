@@ -1,7 +1,7 @@
 // =============================================================================
 // AURORA - Backend HARDWARE de los kernels para la aplicacion bare-metal
 // =============================================================================
-// Implementa aurora_sync / aurora_sift / aurora_toeplitz con la MISMA firma que
+// Implementa aurora_sync / aurora_sift / aurora_toeplitz / aurora_ldpc_dec con la MISMA firma que
 // los modelos C++ de hw/, pero programando los kernels HLS de la PL. Asi todo
 // el software del PS (estimate_lag, sift_batch, toeplitz_hash, Cascade,
 // autenticacion) se ejecuta en la placa sin cambios usando la FPGA.
@@ -22,6 +22,7 @@
 #include "xaurora_sift_hw.h"
 #include "xaurora_sync_hw.h"
 #include "xaurora_toeplitz_hw.h"
+#include "xaurora_ldpc_dec_hw.h"
 
 namespace aurora {
 bool hw_kernel_timeout = false;
@@ -166,4 +167,39 @@ void aurora_toeplitz(const uint64_t *key_in, uint32_t n_in, const uint64_t *seed
 
     if (!start_and_wait(B, XAURORA_TOEPLITZ_CONTROL_ADDR_AP_CTRL)) return;
     invalidate(key_out, out_bytes);
+}
+
+// -------------------------------------------------------------- ldpc_dec ----
+// El kernel conserva el codigo cargado; solo se limpia la cache del codigo
+// cuando se recarga (load_code != 0).
+void aurora_ldpc_dec(const uint32_t *chk_ptr, const uint16_t *chk_var, uint32_t n, uint32_t m, uint32_t load_code,
+                     const int8_t *llr, const uint8_t *syndrome, uint32_t max_iter, uint8_t *x_out,
+                     uint32_t *status) {
+    const uintptr_t B = aurora::board::LDPC_BASE;
+    status[0] = status[1] = 0;
+    if (n > AURORA_LDPC_MAX_N || m > AURORA_LDPC_MAX_M) return;
+    if (load_code) {
+        flush(chk_ptr, ((size_t)m + 1) * 4);
+        const uint32_t edges = chk_ptr[m] > AURORA_LDPC_MAX_E ? AURORA_LDPC_MAX_E : chk_ptr[m];
+        flush(chk_var, (size_t)edges * 2);
+    }
+    flush(llr, n);
+    flush(syndrome, m);
+    flush(x_out, n);
+    flush(status, 8);
+
+    wr64(B, XAURORA_LDPC_DEC_CONTROL_ADDR_CHK_PTR_DATA, addr(chk_ptr));
+    wr64(B, XAURORA_LDPC_DEC_CONTROL_ADDR_CHK_VAR_DATA, addr(chk_var));
+    wr32(B, XAURORA_LDPC_DEC_CONTROL_ADDR_N_DATA, n);
+    wr32(B, XAURORA_LDPC_DEC_CONTROL_ADDR_M_DATA, m);
+    wr32(B, XAURORA_LDPC_DEC_CONTROL_ADDR_LOAD_CODE_DATA, load_code);
+    wr64(B, XAURORA_LDPC_DEC_CONTROL_ADDR_LLR_DATA, addr(llr));
+    wr64(B, XAURORA_LDPC_DEC_CONTROL_ADDR_SYNDROME_DATA, addr(syndrome));
+    wr32(B, XAURORA_LDPC_DEC_CONTROL_ADDR_MAX_ITER_DATA, max_iter);
+    wr64(B, XAURORA_LDPC_DEC_CONTROL_ADDR_X_OUT_DATA, addr(x_out));
+    wr64(B, XAURORA_LDPC_DEC_CONTROL_ADDR_STATUS_DATA, addr(status));
+
+    if (!start_and_wait(B, XAURORA_LDPC_DEC_CONTROL_ADDR_AP_CTRL)) return;
+    invalidate(x_out, n);
+    invalidate(status, 8);
 }

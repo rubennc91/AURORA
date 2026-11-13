@@ -304,6 +304,25 @@ Hallazgo durante el ajuste: con perforado aleatorio la FER se quedaba en
 compartiendo comprobacion no se recuperan nunca). El perforado *untainted*
 lo corrige y lo comprueba un test.
 
+### Decodificador LDPC en la PL (`hw/aurora_ldpc_dec.cpp`)
+
+Min-sum normalizado por capas en coma fija (LLR y mensajes int8, posteriores
+int16, alfa = 0,6875 = 1/2 + 1/4 - 1/16), codigo en URAM/BRAM que solo se
+recarga al cambiar, interfaz m_axi (gmem0 entradas, gmem1 salidas). El mismo
+fuente es el modelo SW (`LdpcAlgo::FIXED_MIN_SUM`, `aurora_cli pipeline ...
+--ec ldpc-fixed`, `sw/baremetal/ldpc_sw_model.cpp`), asi que la comparacion
+PL/PS de la seccion 6 de la aplicacion bare-metal es bit a bit.
+
+- Alfa ajustado por simulacion (Q = 1,72 %, f = 1,45): FER 4 % con 0,6875,
+  12 % con 0,75, 14 % con 0,8125, 39 % con 0,875, 40 % con 0,625.
+- Necesita f = 1,50 (sum-product: 1,40) y tiene un suelo de error de ~1 %
+  (300 tramas: 1,7 % con 1,50; 0,7 % con 1,55; 1,0 % con 1,60).
+- Estimacion: 1 arista/ciclo, ~30 ms por trama; del orden del A53. Para
+  acelerar de verdad: QC-LDPC y varias filas en paralelo.
+- **Pendiente**: `make hls KERNEL=aurora_ldpc_dec` (C-sim + sintesis), nuevo
+  bitstream y comprobar la direccion del kernel en `address_map.txt`
+  (`aurora_board.h` supone 0xA004_0000).
+
 ## Informe
 
 `docs/report/` (LaTeX, compila en Overleaf; PDF incluido).

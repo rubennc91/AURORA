@@ -224,4 +224,55 @@ TEST(attack_on_ldpc_messages_is_detected) {
     }
 }
 
+// ------------------------------------------------- coma fija (kernel de la PL) --
+static int g_hw_calls = 0;
+static void counting_decoder(const uint32_t *a, const uint16_t *b, uint32_t n, uint32_t m, uint32_t load,
+                             const int8_t *llr, const uint8_t *syn, uint32_t it, uint8_t *x, uint32_t *st) {
+    ++g_hw_calls;
+    aurora_ldpc_dec(a, b, n, m, load, llr, syn, it, x, st);
+}
+
+TEST(reconcile_with_fixed_point_decoder) {
+    std::mt19937_64 r(30);
+    Bits a = random_bits(r, 40755), b = bsc(r, a, 0.0172);
+    LdpcConfig cfg = ldpc_config_fixed(counting_decoder);
+    cfg.qber_hint = 0.0172;
+    g_hw_calls = 0;
+    LdpcReconcileResult res = ldpc_reconcile(a, b, cfg, 5, prng_bits(6));
+    CHECK(g_hw_calls == (int)res.frames);           // todas las tramas pasan por el decodificador
+    CHECK(res.failed == 0 && res.alice == res.bob && res.alice == a);
+    uint32_t e = 0;
+    for (size_t i = 0; i < a.size(); ++i) e += a[i] != b[i];
+    const double f = res.leaked_bits / (a.size() * binary_entropy((double)e / a.size()));
+    CHECK_MSG(f > 1.3 && f < 1.7, "f=" + std::to_string(f));
+}
+
+TEST(fixed_point_decoder_is_deterministic_hw_sw_equivalent) {
+    // El modelo SW y la PL ejecutan el mismo fuente: misma entrada => misma
+    // salida e iteraciones. Aqui: dos instancias (distinto estado de "codigo
+    // cargado") deben coincidir bit a bit.
+    std::mt19937_64 r(31);
+    auto c = ldpc_code(0.80);
+    Bits xa = random_bits(r, c->n), xb = bsc(r, xa, 0.015), x1, x2;
+    std::vector<float> llr = llr_for(xb, 0.015);
+    LdpcDecodeResult d1 = ldpc_decode(*c, ldpc_syndrome(*c, xa), llr, x1, 60, LdpcAlgo::FIXED_MIN_SUM);
+    LdpcDecodeResult d2 = ldpc_decode(*c, ldpc_syndrome(*c, xa), llr, x2, 60, LdpcAlgo::FIXED_MIN_SUM, 0.8f,
+                                      counting_decoder);
+    CHECK(d1.ok == d2.ok && d1.iterations == d2.iterations && x1 == x2);
+    CHECK(d1.ok && x1 == xa);
+}
+
+TEST(authenticated_pipeline_with_fixed_point_ldpc) {
+    std::mt19937_64 r(32);
+    Bits a = random_bits(r, 40000), b = bsc(r, a, 0.017), psk = random_bits(r, 4096);
+    KeyPool pa(psk), pb(psk);
+    AuthenticatedConfig cfg;
+    cfg.reconciliation = Reconciliation::LDPC;
+    cfg.ldpc = ldpc_config_fixed();
+    SimulatedRandomSource rng(77);
+    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, cfg, rng);
+    CHECK_MSG(res.ok, res.abort_reason);
+    CHECK(!res.alice_key.empty() && res.alice_key == res.bob_key);
+}
+
 int main() { return tf::run_all("AURORA reconciliacion LDPC"); }

@@ -10,10 +10,10 @@
 set kernel ""
 set steps {}
 foreach a $argv {
-    if {$a in {aurora_sync aurora_sift aurora_toeplitz}} { set kernel $a }
+    if {$a in {aurora_sync aurora_sift aurora_toeplitz aurora_ldpc_dec}} { set kernel $a }
     if {$a in {csim csynth cosim export}} { lappend steps $a }
 }
-if {$kernel eq ""} { error "Indica el kernel: -tclargs aurora_sync|aurora_sift|aurora_toeplitz \[csim csynth cosim export\]" }
+if {$kernel eq ""} { error "Indica el kernel: -tclargs aurora_sync|aurora_sift|aurora_toeplitz|aurora_ldpc_dec \[csim csynth cosim export\]" }
 if {[llength $steps] == 0} { set steps {csim csynth} }
 puts "AURORA: kernel $kernel, pasos: $steps"
 
@@ -31,8 +31,8 @@ add_files $root/hw/$kernel.cpp -cflags "-I$root/hw"
 add_files $root/hw/aurora_kernels.h
 # Testbench: la bateria de tests en C++ (incluye los modelos de referencia).
 # (los otros kernels se anaden como parte del testbench; el top ya esta en el diseno)
-set tb_files [list $root/sw/aurora_host.cpp $root/tests/cpp/test_kernels.cpp]
-foreach k {aurora_sync aurora_sift aurora_toeplitz} {
+set tb_files [list $root/sw/aurora_host.cpp $root/sw/aurora_ldpc.cpp $root/tests/cpp/test_kernels.cpp]
+foreach k {aurora_sync aurora_sift aurora_toeplitz aurora_ldpc_dec} {
     if {$k ne $kernel} { lappend tb_files $root/hw/$k.cpp }
 }
 add_files -tb $tb_files \

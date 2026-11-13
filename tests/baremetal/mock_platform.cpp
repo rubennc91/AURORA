@@ -20,6 +20,7 @@
 #include "shim/xaurora_sift_hw.h"
 #include "shim/xaurora_sync_hw.h"
 #include "shim/xaurora_toeplitz_hw.h"
+#include "shim/xaurora_ldpc_dec_hw.h"
 
 // Modelos C++ de los kernels (hw/*.cpp compilados con -Daurora_X=sw_aurora_X).
 void sw_aurora_sync(const uint64_t *, uint32_t, const uint64_t *, uint32_t, int64_t, uint32_t, uint32_t,
@@ -96,9 +97,23 @@ void run_toeplitz() {
                        r32(B + XAURORA_TOEPLITZ_CONTROL_ADDR_N_OUT_DATA));
 }
 
+void run_ldpc() {
+    // El modelo es el de sw/baremetal/ldpc_sw_model.cpp (mismo fuente que el kernel).
+    const uintptr_t B = board::LDPC_BASE;
+    sw_aurora_ldpc_dec(ptr<const uint32_t>(B + XAURORA_LDPC_DEC_CONTROL_ADDR_CHK_PTR_DATA),
+                       ptr<const uint16_t>(B + XAURORA_LDPC_DEC_CONTROL_ADDR_CHK_VAR_DATA),
+                       r32(B + XAURORA_LDPC_DEC_CONTROL_ADDR_N_DATA), r32(B + XAURORA_LDPC_DEC_CONTROL_ADDR_M_DATA),
+                       r32(B + XAURORA_LDPC_DEC_CONTROL_ADDR_LOAD_CODE_DATA),
+                       ptr<const int8_t>(B + XAURORA_LDPC_DEC_CONTROL_ADDR_LLR_DATA),
+                       ptr<const uint8_t>(B + XAURORA_LDPC_DEC_CONTROL_ADDR_SYNDROME_DATA),
+                       r32(B + XAURORA_LDPC_DEC_CONTROL_ADDR_MAX_ITER_DATA),
+                       ptr<uint8_t>(B + XAURORA_LDPC_DEC_CONTROL_ADDR_X_OUT_DATA),
+                       ptr<uint32_t>(B + XAURORA_LDPC_DEC_CONTROL_ADDR_STATUS_DATA));
+}
+
 bool in_trng(uintptr_t a) { return a >= board::TRNG_BASE && a < board::TRNG_BASE + 0x1000; }
 bool is_ctrl(uintptr_t a) {
-    return a == board::SYNC_BASE || a == board::SIFT_BASE || a == board::TOEPLITZ_BASE;
+    return a == board::SYNC_BASE || a == board::SIFT_BASE || a == board::TOEPLITZ_BASE || a == board::LDPC_BASE;
 }
 } // namespace
 
@@ -121,6 +136,7 @@ void mock_write32(uintptr_t a, uint32_t v) {
     if (is_ctrl(a) && (v & 1u)) {
         if (a == board::SYNC_BASE) run_sync();
         else if (a == board::SIFT_BASE) run_sift();
+        else if (a == board::LDPC_BASE) run_ldpc();
         else run_toeplitz();
         done_flag[a] = true;
         return;
