@@ -313,7 +313,7 @@ CascadeResult cascade_correct(const Bits &alice, Bits &bob, const CascadeConfig 
             // Cota de trabajo: nunca hacen falta mas de n correcciones. Si se
             // supera, el canal es inconsistente (ataque o fallo) y se aborta.
             if (res.corrected >= n) { res.converged = false; return res; }
-            auto [qi, blk] = queue.front();
+            const uint32_t qi = queue.front().first, blk = queue.front().second;   // C++14 (csim de Vitis HLS 2022.2)
             queue.pop_front();
             const Pass &qp = passes[qi];
             if (qp.alice_par[blk] == parity_range(bob, qp, blk * qp.k, block_end(qp, blk))) continue;

@@ -1,14 +1,21 @@
 # =============================================================================
-# AURORA - Sintesis HLS de un kernel nuevo (Vitis HLS 2023.2)
+# AURORA - Sintesis HLS de un kernel nuevo (Vitis HLS 2022.2 / 2023.x)
 #   vitis_hls -f hw/scripts/run_hls.tcl -tclargs aurora_sync
 #   vitis_hls -f hw/scripts/run_hls.tcl -tclargs aurora_sift  [csim|csynth|cosim|export]
 # Por defecto ejecuta csim + csynth. Se lanza desde la raiz del repositorio.
 # Los proyectos se generan en build/hls/<kernel>/ (fuera de git).
 # =============================================================================
-set kernel [lindex $argv 0]
-if {$kernel eq ""} { set kernel aurora_sync }
-set steps [lrange $argv 1 end]
+# Vitis HLS pasa en $argv tambien sus propios argumentos (-f <script> ...),
+# no solo los de -tclargs: se buscan los nombres conocidos y se ignora el resto.
+set kernel ""
+set steps {}
+foreach a $argv {
+    if {$a in {aurora_sync aurora_sift aurora_toeplitz}} { set kernel $a }
+    if {$a in {csim csynth cosim export}} { lappend steps $a }
+}
+if {$kernel eq ""} { error "Indica el kernel: -tclargs aurora_sync|aurora_sift|aurora_toeplitz \[csim csynth cosim export\]" }
 if {[llength $steps] == 0} { set steps {csim csynth} }
+puts "AURORA: kernel $kernel, pasos: $steps"
 
 set root [pwd]
 open_project -reset build/hls/$kernel
@@ -22,7 +29,7 @@ foreach k {aurora_sync aurora_sift aurora_toeplitz} {
     if {$k ne $kernel} { lappend tb_files hw/$k.cpp }
 }
 add_files -tb $tb_files \
-    -cflags "-I$root/hw -I$root/sw -I$root/tests/cpp -std=c++17 -Wno-unknown-pragmas"
+    -cflags "-I$root/hw -I$root/sw -I$root/tests/cpp -std=c++14 -Wno-unknown-pragmas"
 
 open_solution -reset solution1 -flow_target vivado
 set_part {xczu7ev-ffvc1156-2-e}
