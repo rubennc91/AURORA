@@ -12,6 +12,9 @@
 #   make hls-all     csim + csynth + export de los 3 kernels (requiere Vitis HLS)
 #   make vivado      crea build/vivado/aurora.xpr con el block design
 #   make bitstream   idem + bitstream + build/vivado/aurora.xsa
+#   make test-baremetal  aplicacion bare-metal sobre una plataforma simulada (PC)
+#   make baremetal   aplicacion bare-metal para la placa (requiere XSCT)
+#   make board-run   programa la placa por JTAG y lanza la aplicacion
 # =============================================================================
 CXX      ?= g++
 CXXFLAGS ?= -O2 -std=c++17 -Wall -Wextra -Wno-unknown-pragmas -Wno-unused-label
@@ -33,7 +36,7 @@ HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h sw/aurora_trng
 
 LEGACY_FLAGS := -O2 -std=c++17 -w -Itests/cpp/legacy_stub
 
-.PHONY: all test test-cpp test-python test-legacy test-trng test-all pipeline clean legacy-sim hls hls-all vivado bitstream
+.PHONY: all test test-cpp test-python test-legacy test-trng test-all pipeline clean legacy-sim hls hls-all vivado bitstream baremetal-data test-baremetal baremetal board-run
 
 all: $(CLI)
 
@@ -80,7 +83,7 @@ test-legacy: $(BUILD)/test_legacy_sift$(EXE) $(BUILD)/test_legacy_hashing$(EXE)
 test-trng: $(CLI)
 	AURORA_CLI=$(CLI) $(PYTHON) -m unittest discover -s tests/trng -v
 
-test-all: test test-legacy test-trng
+test-all: test test-legacy test-trng test-baremetal
 
 pipeline: $(CLI)
 	$(CLI) pipeline $(BATCHES) 0 100
@@ -104,6 +107,35 @@ vivado:
 
 bitstream:
 	vivado -mode batch -nojournal -log build/vivado_bit.log -source hw/scripts/create_vivado.tcl -tclargs bitstream $(VIVADO_ARGS)
+
+# ---------------------------------------------------------------- bare-metal --
+BM_SRCS := sw/baremetal/main.cpp sw/baremetal/hw_backend.cpp sw/aurora_host.cpp sw/aurora_auth.cpp \
+           sw/aurora_trng.cpp sw/aurora_trng_driver.cpp
+
+baremetal-data: $(CLI)
+	$(PYTHON) tools/make_baremetal_data.py
+
+# Aplicacion bare-metal en una plataforma SIMULADA en el PC (registros emulados
+# que ejecutan los modelos C++ de los kernels y del TRNG).
+test-baremetal: baremetal-data
+	mkdir -p $(BUILD)/bm_sim
+	for k in sync sift toeplitz; do \
+		$(CXX) $(CXXFLAGS) -c hw/aurora_$$k.cpp -Daurora_$$k=sw_aurora_$$k -o $(BUILD)/bm_sim/sw_$$k.o || exit 1; \
+	done
+	$(CXX) $(CXXFLAGS) -Itests/baremetal/shim -Isw -Ihw -Isw/baremetal $(BM_SRCS) tests/baremetal/mock_platform.cpp \
+		$(BUILD)/baremetal_src/aurora_data.cpp $(BUILD)/bm_sim/sw_*.o -o $(BUILD)/bm_sim/aurora_bm_sim$(EXE)
+	$(BUILD)/bm_sim/aurora_bm_sim$(EXE) > $(BUILD)/bm_sim/log.txt
+	grep -v -E '^[0-9a-f]{8}$$' $(BUILD)/bm_sim/log.txt
+	grep -q "RESULTADO: TODO OK" $(BUILD)/bm_sim/log.txt
+	$(PYTHON) tools/uart_capture.py --from-log $(BUILD)/bm_sim/log.txt --out $(BUILD)/bm_sim/trng_capture.txt
+
+# Placa (requiere Vitis/XSCT en el PATH y build/vivado/aurora.xsa)
+baremetal: baremetal-data
+	cp $(BM_SRCS) $(BUILD)/baremetal_src/
+	xsct hw/scripts/create_vitis.tcl
+
+board-run:
+	xsct hw/scripts/run_board.tcl
 
 clean:
 	rm -rf $(BUILD)

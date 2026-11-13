@@ -68,6 +68,23 @@ make pipeline      # sync -> sifting -> Cascade -> verificacion -> PA
 make hls KERNEL=aurora_sync   # sintesis con Vitis HLS
 ```
 
+## Prueba en placa (ZCU104, bare-metal)
+```bash
+source /tools/Xilinx/Vivado/2022.2/settings64.sh   # y Vitis (xsct)
+make hls-all && make bitstream                    # IPs HLS + bitstream + build/vivado/aurora.xsa
+make test-baremetal                               # la aplicacion sobre una plataforma simulada (PC)
+make baremetal                                    # plataforma + aplicacion en build/vitis_ws
+python3 tools/uart_capture.py --port /dev/ttyUSB1 # en otra terminal, antes de lanzar
+make board-run                                    # JTAG: PS + bitstream + aplicacion
+```
+La aplicacion (`sw/baremetal/`) compara la FPGA con los resultados del PC (lag y
+claves bit a bit en 3 batches reales, Toeplitz), arranca el TRNG con
+autodiagnostico, captura 1 Mbit en bruto para medir la entropia y ejecuta la
+cadena completa autenticada con semillas del TRNG. Termina con
+`RESULTADO: TODO OK`. Analisis de la captura:
+`./build/aurora_cli trng-analyze build/trng_capture.txt` y
+`python3 tools/nist_sts.py build/trng_capture.txt`.
+
 ## Processing chain
 1. **Sync (PL)**: histograma de diferencias de tiempo Alice-Bob (grueso 1 ns, fino 8 ps);
    el PS calcula el lag como centroide con el fondo restado. Se sincroniza cada batch.

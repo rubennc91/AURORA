@@ -24,5 +24,7 @@ jobs:
         run: make test-legacy
       - name: TRNG (simulacion RTL)
         run: make test-trng
+      - name: Aplicacion bare-metal (plataforma simulada)
+        run: make test-baremetal
       - name: Pipeline completo
         run: make pipeline
