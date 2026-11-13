@@ -145,6 +145,23 @@ de la versión anterior (mismos tests de fuerza bruta y mismas claves que el
 modelo Python en los 101 batches). Pendiente: confirmar II = 1 y el timing con
 una nueva síntesis.
 
+## Primera prueba en placa (ZCU104, bare-metal, 13/11/2026)
+
+`make baremetal` + `make board-run`, aplicacion `sw/baremetal/main.cpp`.
+Resultado: **TODO OK (0 fallos)**.
+
+| Prueba | Resultado |
+|---|---|
+| TRNG en bruto | 32.768 palabras (1 Mbit) en 671 ms = 1,56 Mmuestras/s (100 MHz / 64), sin perdidas ni alarmas |
+| TRNG autodiagnostico | Los 3 fallos inyectados disparan alarma; arranque correcto |
+| TRNG extraido | 100.000 bits en 615 ms (162 kbit/s), equilibrados (z = 0,31) |
+| sync + sift (3 batches) | Lag, coincidencias y claves de Alice y Bob **identicos bit a bit** al PC; ~5,1 ms sync + ~2,7 ms sift por batch de 25 ms (incluye el trabajo del ARM) |
+| Toeplitz | Salida identica a la definicion (2000 -> 1300 bits en 0,34 ms) |
+| Cadena completa autenticada (semillas del TRNG) | 40.755 bits cribados -> 29.529 tras PA -> **28.377 netos**, claves iguales, 709 ms |
+
+Pendiente: analizar la captura del TRNG (`aurora_cli trng-analyze`,
+`tools/nist_sts.py`) y repetirla a varias temperaturas para fijar H_min.
+
 ## Origen de las semillas
 
 Todas las semillas públicas las genera **Alice con el TRNG** (`RandomSource`;
