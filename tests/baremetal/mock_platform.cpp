@@ -40,6 +40,8 @@ std::map<uintptr_t, bool> done_flag;
 // AURORA_SIM_RESTART="n skip off_us" simula que XSCT ha escrito el buzon.
 struct MailboxInit {
     MailboxInit() {
+        // Sensores de temperatura: 45 C en el PS; el del PL sin responder (0).
+        regs[board::AMS_PS_TEMP] = 0xA37A;
         const char *e = std::getenv("AURORA_SIM_RESTART");
         unsigned n = 0, skip = 0, off = 0;
         if (e && std::sscanf(e, "%u %u %u", &n, &skip, &off) == 3) {

@@ -216,6 +216,15 @@ continuo, asi que H_min = 0,5 sigue teniendo un margen de ~1,55x.
 Pendiente: el modo `power` (corte de alimentacion real; la placa esta en el
 rele `959BI_1`).
 
+### Temperatura
+
+La aplicacion imprime `TEMP <momento> ps=.. pl=..` (SYSMON del PS y del PL,
+via AMS, solo como termometro) y `uart_capture.py` la copia como comentario al
+principio de la captura. Procedimiento: no hace falta cambiar la temperatura de
+la sala, sino la del chip: captura en frio (placa apagada un buen rato), normal
+(15 min encendida) y caliente (ventilador tapado / caja, 20-30 min, < 100 C);
+`ea_non_iid` en cada una y se toma el minimo.
+
 ## Origen de las semillas
 
 Todas las semillas públicas las genera **Alice con el TRNG** (`RandomSource`;

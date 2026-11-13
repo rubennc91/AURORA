@@ -78,9 +78,11 @@ def read_serial(port: str, baud: int, log: Path, timeout: float) -> None:
 
 def extract(log: Path, out: Path) -> int:
     lines = log.read_text(errors="replace").splitlines()
-    words, inside, expected = [], False, None
+    words, inside, expected, temps = [], False, None, []
     for line in lines:
         line = line.strip()
+        if line.startswith("TEMP "):
+            temps.append(line)
         if line.startswith("TRNG_RAW_BEGIN"):
             inside, words = True, []
             parts = line.split()
@@ -92,7 +94,10 @@ def extract(log: Path, out: Path) -> int:
     if not words:
         print("No hay captura del TRNG en el log.")
         return 1
-    out.write_text("\n".join(words) + "\n")
+    # Las lineas '#' las ignoran trng-analyze, nist_sts.py y load_trng_words.
+    out.write_text("".join(f"# {t}\n" for t in temps) + "\n".join(words) + "\n")
+    for t in temps:
+        print(t)
     print(f"Captura del TRNG: {len(words)} palabras ({32 * len(words)} bits) -> {out}")
     if expected is not None and expected != len(words):
         print(f"AVISO: se esperaban {expected} palabras (se perdieron lineas en la UART)")

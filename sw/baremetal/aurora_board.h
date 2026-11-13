@@ -25,6 +25,12 @@ constexpr uintptr_t TOEPLITZ_BASE = 0xA0030000u;
 constexpr uintptr_t MAILBOX               = 0x7FFF0000u;
 constexpr uint32_t  MAILBOX_MAGIC_RESTART = 0x52535452u;   // "RSTR"
 
+// Sensores de temperatura (AMS de Zynq UltraScale+, base 0xFFA50000):
+// SYSMON del PS en +0x800 y del PL en +0xC00; registro de temperatura en +0x00.
+// Solo como termometro: no se usan como fuente de entropia.
+constexpr uintptr_t AMS_PS_TEMP = 0xFFA50800u;
+constexpr uintptr_t AMS_PL_TEMP = 0xFFA50C00u;
+
 // Espera maxima de un kernel (iteraciones de sondeo del registro de control).
 constexpr uint64_t KERNEL_TIMEOUT_POLLS = 2000000000ull;
 } // namespace board

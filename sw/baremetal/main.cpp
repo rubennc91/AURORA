@@ -67,6 +67,23 @@ private:
     uintptr_t base_;
 };
 
+// Temperatura (grados C) de un SYSMON (formula de UG580 / xsysmonpsu.h para la
+// referencia interna). Devuelve -999 si el sensor no responde.
+double sysmon_temp(uintptr_t addr) {
+    const uint32_t raw = Xil_In32(addr) & 0xFFFFu;
+    if (raw == 0) return -999.0;
+    const double t = raw * 509.3140064 / 65536.0 - 280.23087870;
+    return (t < -60.0 || t > 150.0) ? -999.0 : t;
+}
+
+void print_temp(const char *where) {
+    char ps[16], pl[16];
+    const double tps = sysmon_temp(board::AMS_PS_TEMP), tpl = sysmon_temp(board::AMS_PL_TEMP);
+    if (tps > -999.0) ::snprintf(ps, sizeof ps, "%.1f", tps); else ::snprintf(ps, sizeof ps, "n/d");
+    if (tpl > -999.0) ::snprintf(pl, sizeof pl, "%.1f", tpl); else ::snprintf(pl, sizeof pl, "n/d");
+    std::printf("TEMP %s ps=%s pl=%s\n", where, ps, pl);
+}
+
 Bits to_bits(const uint8_t *p, size_t n) { return Bits(p, p + n); }
 
 // ----------------------------------------------------- test de reinicios -----
@@ -108,6 +125,7 @@ void restart_test(TrngRegs &r, const RestartConfig &c) {
     uint32_t bad = 0;
     r.write(CTRL, CTRL_CLEAR);
     r.write(DECIM, 64);
+    print_temp("inicio");
     std::printf("RESTART_BEGIN %u %u %u %u\n", c.n, RESTART_SAMPLES, c.skip, c.off_us);
     const double t0 = now_ms();
     for (uint32_t i = 0; i < c.n; ++i) {
@@ -138,6 +156,7 @@ void restart_test(TrngRegs &r, const RestartConfig &c) {
         std::printf("R %u %s\n", i, hex.c_str());
     }
     std::printf("RESTART_END\n");
+    print_temp("fin");
     std::printf("  %u reinicios en %.1f s, %u con error\n", c.n, (now_ms() - t0) / 1000.0, bad);
     check(bad == 0, "todos los reinicios capturados sin perdidas");
 }
@@ -147,6 +166,7 @@ void trng_raw_capture(TrngRegs &r) {
     using namespace trng_reg;
     std::printf("\n== 1. TRNG: captura en bruto (bypass, %d palabras) ==\n", AURORA_TRNG_CAPTURE_WORDS);
     if (r.read(ID) != ID_VALUE) { check(false, "registro ID del TRNG"); return; }
+    print_temp("inicio");
     r.write(CTRL, CTRL_CLEAR);
     r.write(DECIM, 64);
     r.write(CTRL, CTRL_ENABLE | CTRL_CLEAR | CTRL_BYPASS);
@@ -164,6 +184,7 @@ void trng_raw_capture(TrngRegs &r) {
                 now_ms() - t0, samples, dropped, (st & ST_RCT) ? 1u : 0u, (st & ST_APT) ? 1u : 0u);
     check(buf.size() == AURORA_TRNG_CAPTURE_WORDS, "captura completa");
     check(dropped == 0, "sin palabras perdidas (captura contigua)");
+    print_temp("captura");
     std::printf("TRNG_RAW_BEGIN %zu\n", buf.size());
     for (uint32_t w : buf) std::printf("%08" PRIx32 "\n", w);
     std::printf("TRNG_RAW_END\n");
