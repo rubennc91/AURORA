@@ -125,6 +125,36 @@ RTL en `rtl/trng/` (ver su README para la integración en Vivado) y software en
   detectan patrones como 0101… (documentado en un test); el estimador de
   Markov sí.
 
+## Origen de las semillas
+
+Todas las semillas públicas las genera **Alice con el TRNG** (`RandomSource`;
+en la placa `TrngRandomSource`, en el PC `SimulatedRandomSource`, que solo
+sirve para pruebas). Se sacan nuevas en cada ronda, justo antes de usarse, y
+viajan a Bob por el canal autenticado:
+
+| Semilla | Bits | Cuándo |
+|---|---|---|
+| Cascade (permutaciones) | 64 | Al empezar la ronda |
+| Verificación | 64 | Después de Cascade |
+| Toeplitz de la PA | n + m − 1 por bloque (~70.000) | Después de la verificación |
+
+La semilla de Toeplitz es **completa** (uniforme), como exige el Leftover Hash
+Lemma; antes se expandía desde 64 bits con un PRNG, lo que dejaba solo 2⁶⁴
+matrices posibles.
+
+Semillas que **no** salen del TRNG en funcionamiento:
+- **Semilla pública del extractor del TRNG** (~98.000 bits para H_min = 0,5):
+  se genera **una vez** en la instalación con
+  `aurora_cli gen-random extractor extractor_seed.txt` (generador del sistema
+  operativo) y se guarda. Es pública: solo elige la función Toeplitz; la
+  aleatoriedad la aporta el jitter de los osciladores.
+- **Clave precompartida de autenticación**: secreta. Se genera una vez
+  (`aurora_cli gen-random 4096 psk.txt`) y se instala de forma segura en
+  ambos equipos; después se repone con clave QKD.
+
+Si la fuente aleatoria falla (alarma del TRNG), la ronda se aborta sin
+entregar clave (test `random_source_failure_aborts_without_key`).
+
 ## Fallo corregido durante el desarrollo del TRNG
 
 `toeplitz_hash` devolvía **una clave de ceros** cuando la entrada superaba el
@@ -140,9 +170,10 @@ regresión (`toeplitz_hash_handles_inputs_larger_than_kernel`).
 - **Seguridad**: la longitud de PA usa la fórmula asintótica de BB84, sin
   correcciones de tamaño finito ni estimación separada del error de fase. No
   es una prueba de seguridad; hay que validarla con el equipo de UPM.
-- **Semillas y clave precompartida**: las semillas de Cascade, de la
-  verificación y de Toeplitz, y la clave precompartida de autenticación, son
-  fijas (simuladas) en el CLI. En el sistema real deben salir de un QRNG y compartirse por
+- **Fuente aleatoria y clave precompartida en el CLI del PC**: el pipeline
+  usa `SimulatedRandomSource` y una clave precompartida simulada (ambas
+  avisadas en la salida). En la placa hay que usar `TrngRandomSource` y la
+  clave instalada. En el sistema real deben salir de un QRNG y compartirse por
   un canal clásico autenticado.
 - **Síntesis**: los kernels nuevos están escritos para HLS (sin memoria
   dinámica, bucles aplanados con II=1, acumulador con reenvío), pero **no se han

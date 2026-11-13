@@ -15,6 +15,7 @@ const char *trng_status_str(TrngStatus s) {
         case TrngStatus::STARTUP_TIMEOUT: return "el test de arranque no termino";
         case TrngStatus::ALARM: return "alarma de los tests de salud";
         case TrngStatus::TIMEOUT: return "tiempo de espera agotado";
+        case TrngStatus::BAD_SEED: return "semilla del extractor ausente o demasiado corta";
     }
     return "?";
 }
@@ -88,13 +89,14 @@ TrngStatus TrngDriver::read_raw(Bits &out, size_t n_bits) {
     return TrngStatus::OK;
 }
 
-TrngStatus TrngDriver::read_random(Bits &out, size_t n_bits, uint64_t extractor_seed) {
-    // n_raw tal que floor(n_raw * h - 128) >= n_bits.
-    const size_t n_raw = (size_t)std::ceil((n_bits + 128.0) / cfg_.h_min) + 1;
+TrngStatus TrngDriver::read_random(Bits &out, size_t n_bits, const Bits &extractor_seed) {
+    out.clear();
+    if (extractor_seed.size() < extractor_seed_length(cfg_.h_min)) return TrngStatus::BAD_SEED;
     Bits raw;
-    TrngStatus s = read_raw(raw, n_raw);
-    if (s != TrngStatus::OK) { out.clear(); return s; }
+    TrngStatus s = read_raw(raw, raw_bits_needed(n_bits, cfg_.h_min));
+    if (s != TrngStatus::OK) return s;
     out = extract_random(raw, cfg_.h_min, extractor_seed);
+    if (out.size() < n_bits) { out.clear(); return TrngStatus::BAD_SEED; }
     out.resize(n_bits);
     return TrngStatus::OK;
 }

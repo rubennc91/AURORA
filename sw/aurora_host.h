@@ -131,6 +131,15 @@ uint32_t pa_output_length(uint32_t n, double qber, uint64_t leak_ec, uint64_t le
 
 // Hash de Toeplitz (PL). Entradas mayores que AURORA_PA_MAX_IN_BITS se
 // procesan por bloques, comprimiendo cada uno en la misma proporcion.
+//
+// toeplitz_hash_seeded: semilla COMPLETA de toeplitz_seed_length(n_in, n_out)
+// bits uniformes (p. ej. del TRNG). Es la que exige el Leftover Hash Lemma y
+// la unica que debe usarse en produccion. Devuelve vacio si la longitud de la
+// semilla no es exacta.
+size_t toeplitz_seed_length(size_t n_in, uint32_t n_out);
+Bits toeplitz_hash_seeded(const Bits &key, uint32_t n_out, const Bits &seed);
+// SOLO PRUEBAS: semilla de 64 bits expandida con un PRNG (solo hay 2^64
+// matrices posibles: la garantia matematica deja de cumplirse formalmente).
 Bits toeplitz_hash(const Bits &key, uint32_t n_out, uint64_t seed);
 
 // --------------------------------------------------------------- pipeline ----

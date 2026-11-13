@@ -2,6 +2,7 @@
 // AURORA - Autenticacion Wegman-Carter: implementacion
 // =============================================================================
 #include "aurora_auth.h"
+#include "aurora_random.h"
 
 #include <algorithm>
 #include <cmath>
@@ -158,7 +159,8 @@ uint64_t dbl_bits(double d) {
 
 AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, const Bits &bob_sifted,
                                                      KeyPool &alice_pool, KeyPool &bob_pool,
-                                                     const AuthenticatedConfig &cfg, ChannelAttacker *attacker) {
+                                                     const AuthenticatedConfig &cfg, RandomSource &alice_rng,
+                                                     ChannelAttacker *attacker) {
     AuthenticatedResult res;
     ChannelAttacker passive;
     ChannelAttacker &eve = attacker ? *attacker : passive;
@@ -204,13 +206,34 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
         return v;
     };
 
+    // Semillas publicas: SIEMPRE de la fuente aleatoria de Alice, nuevas en cada
+    // ronda y extraidas justo antes de usarlas (la de verificacion despues de
+    // Cascade y la de Toeplitz despues de la verificacion).
+    auto draw = [&](size_t n, Bits &out) -> bool {
+        if (alice_rng.random_bits(n, out) && out.size() == n) {
+            res.random_bits_used += n;
+            return true;
+        }
+        res.abort_reason = std::string("fuente aleatoria no disponible: ") + alice_rng.name();
+        return false;
+    };
+    auto draw_u64 = [&](uint64_t &v) -> bool {
+        Bits b;
+        if (!draw(64, b)) return false;
+        v = 0;
+        for (int i = 0; i < 64; ++i) v |= (uint64_t)b[(size_t)i] << i;
+        return true;
+    };
+
     // ---- Fase 0: parametros ------------------------------------------------
+    uint64_t cascade_seed = 0;
+    if (!draw_u64(cascade_seed)) return res;
     {
         Transcript ta, tb, msg;
         msg.u64(alice_sifted.size());
         msg.u64((uint64_t)cfg.lag_ps);
         msg.u32(cfg.half_window);
-        msg.u64(cfg.cascade.seed);
+        msg.u64(cascade_seed);
         msg.u32((uint32_t)cfg.cascade.passes);
         msg.u64(dbl_bits(cfg.cascade.qber_hint));
         send(PHASE_PARAMS, msg.bytes, ta, tb);
@@ -222,6 +245,7 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
     {
         Transcript ta, tb;
         CascadeConfig cc = cfg.cascade;
+        cc.seed = cascade_seed;   // permutaciones: pseudoaleatorias a partir de 64 bits (suficiente: no afectan a la seguridad)
         cc.channel = [&](uint64_t idx, uint8_t p) { return eve.parity(idx, p); };
         cc.on_parity = [&](uint32_t pass, uint32_t lo, uint32_t hi, uint8_t sent, uint8_t recv) {
             // Peticion de Bob (pase, rango) + respuesta de Alice.
@@ -240,9 +264,11 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
 
     // ---- Fase 2: verificacion ----------------------------------------------
     {
+        uint64_t verify_seed = 0;
+        if (!draw_u64(verify_seed)) return res;
         Transcript ta, tb, msg;
-        msg.u64(cfg.verify_seed);
-        msg.u64(verification_hash(alice_sifted, cfg.verify_seed));
+        msg.u64(verify_seed);
+        msg.u64(verification_hash(alice_sifted, verify_seed));
         std::vector<uint8_t> wire = send(PHASE_VERIFY, msg.bytes, ta, tb);
         if (!close_phase(PHASE_VERIFY, ta, tb)) return res;
         uint64_t seed_rx = rd64(wire, 0), hash_rx = rd64(wire, 8);
@@ -256,20 +282,31 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
     const double qber = res.sifted ? (double)res.corrected / res.sifted : 0.0;
     // La autenticacion no filtra informacion de la clave (etiquetas cifradas con OTP).
     uint32_t m = pa_output_length(res.sifted, qber, res.leaked_ec, 64);
+    if (m == 0) { res.abort_reason = "clave demasiado corta para la amplificacion de privacidad"; return res; }
     Bits fa, fb;
     {
+        // Semilla Toeplitz COMPLETA (n + m - 1 bits por bloque), uniforme.
+        Bits seed;
+        if (!draw(toeplitz_seed_length(alice_sifted.size(), m), seed)) return res;
         Transcript ta, tb, msg;
-        msg.u64(cfg.pa_seed);
         msg.u32(m);
+        msg.u64(seed.size());
+        std::vector<uint8_t> sb((seed.size() + 7) / 8, 0);
+        for (size_t i = 0; i < seed.size(); ++i) sb[i >> 3] |= (uint8_t)(seed[i] << (i & 7));
+        msg.bytes.insert(msg.bytes.end(), sb.begin(), sb.end());
         std::vector<uint8_t> wire = send(PHASE_PA, msg.bytes, ta, tb);
         if (!close_phase(PHASE_PA, ta, tb)) return res;
-        // Cada lado usa su vista del mensaje (si el atacante lo altero, la
+        // Bob usa su vista del mensaje (si el atacante lo altero, la
         // autenticacion de esta fase ya habria fallado).
-        const uint64_t seed_rx = rd64(wire, 0);
         uint32_t m_rx = 0;
-        for (size_t i = 8; i < 12 && i < wire.size(); ++i) m_rx = (m_rx << 8) | wire[i];
-        fa = toeplitz_hash(alice_sifted, m, cfg.pa_seed);
-        fb = toeplitz_hash(kb, m_rx, seed_rx);
+        for (size_t i = 0; i < 4 && i < wire.size(); ++i) m_rx = (m_rx << 8) | wire[i];
+        const uint64_t nseed_rx = rd64(wire, 4);
+        Bits seed_rx;
+        for (uint64_t i = 0; i < nseed_rx && 12 + (i >> 3) < wire.size(); ++i)
+            seed_rx.push_back((wire[12 + (i >> 3)] >> (i & 7)) & 1);
+        fa = toeplitz_hash_seeded(alice_sifted, m, seed);
+        fb = toeplitz_hash_seeded(kb, m_rx, seed_rx);
+        if (fa.size() != m || fb.size() != m) { res.abort_reason = "semilla de Toeplitz invalida"; return res; }
     }
 
     res.pa_length = m;

@@ -113,10 +113,16 @@ TEST(entropy_estimates_are_consistent) {
 }
 
 // --------------------------------------------------------------- extractor --
+static Bits seed_bits(size_t n, uint64_t s) {
+    return iid_bits(n, 0.5, s);
+}
+
 TEST(extractor_length_formula) {
     CHECK(extractor_output_length(10000, 0.5) == 10000 / 2 - 128);
     CHECK(extractor_output_length(100, 0.5) == 0);
     CHECK(extractor_output_length(1000, 1.0, -64) == 1000 - 128);
+    // Semilla del extractor: n + m - 1 bits para un bloque completo.
+    CHECK(extractor_seed_length(0.5) == TRNG_EXTRACT_BLOCK + extractor_output_length(TRNG_EXTRACT_BLOCK, 0.5) - 1);
 }
 
 TEST(extractor_removes_bias) {
@@ -125,12 +131,45 @@ TEST(extractor_removes_bias) {
     CHECK(monobit_z(raw) > 100);
     int bad = 0;
     for (uint64_t s = 1; s <= 10; ++s) {
-        Bits out = extract_random(raw, 0.3, s);
-        CHECK(out.size() == extractor_output_length(raw.size(), 0.3));
+        Bits out = extract_random(raw, 0.3, seed_bits(extractor_seed_length(0.3), 100 + s));
+        // 6 bloques completos + 1 parcial
+        size_t full = raw.size() / TRNG_EXTRACT_BLOCK, rem = raw.size() % TRNG_EXTRACT_BLOCK;
+        CHECK(out.size() == full * extractor_output_length(TRNG_EXTRACT_BLOCK, 0.3) + extractor_output_length(rem, 0.3));
         bad += monobit_z(out) > 3.29;    // p < 0.001
     }
     CHECK_MSG(bad <= 1, std::to_string(bad) + " semillas con sesgo");
-    CHECK(extract_random(raw, 0.3, 1) != extract_random(raw, 0.3, 2));
+    Bits s1 = seed_bits(extractor_seed_length(0.3), 1), s2 = seed_bits(extractor_seed_length(0.3), 2);
+    CHECK(extract_random(raw, 0.3, s1) != extract_random(raw, 0.3, s2));
+}
+
+TEST(extractor_rejects_short_seed) {
+    Bits raw = iid_bits(10000, 0.5, 9);
+    CHECK(extract_random(raw, 0.5, seed_bits(1000, 1)).empty());
+}
+
+TEST(raw_bits_needed_is_enough_and_tight) {
+    Bits seed = seed_bits(extractor_seed_length(0.5), 3);
+    for (size_t n : {1ul, 64ul, 1000ul, 32640ul, 32641ul, 70000ul, 200000ul}) {
+        size_t r = raw_bits_needed(n, 0.5);
+        Bits out = extract_random(iid_bits(r, 0.5, n), 0.5, seed);
+        CHECK_MSG(out.size() >= n, "n=" + std::to_string(n) + " r=" + std::to_string(r));
+        CHECK(r <= (n + 128) * 2 + TRNG_EXTRACT_BLOCK);
+    }
+}
+
+TEST(seed_file_roundtrip) {
+    const char *path = "trng_seed_tmp.txt";
+    Bits b = seed_bits(1001, 4), c;
+    std::string err;
+    CHECK(save_bits_hex(path, b, &err));
+    CHECK(load_bits_hex(path, c, &err));
+    CHECK(b == c);
+    {
+        std::ofstream f(path);
+        f << "00000000\n";   // sin cabecera
+    }
+    CHECK(!load_bits_hex(path, c, &err));
+    std::remove(path);
 }
 
 TEST(load_capture_words) {

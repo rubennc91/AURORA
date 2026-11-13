@@ -12,6 +12,9 @@
 //       Tests de salud, min-entropia (SP 800-90B) y extraccion Toeplitz.
 //   aurora_cli trng-health <raw.txt> <rct_cutoff> <apt_cutoff>
 //       Modelo de referencia de los tests de salud del RTL.
+//   aurora_cli gen-random <n_bits | extractor> <salida.txt> [--h H]
+//       Instalacion: bits del generador del sistema operativo (semilla publica
+//       del extractor del TRNG o clave precompartida de autenticacion).
 // =============================================================================
 #include <cinttypes>
 #include <cmath>
@@ -21,6 +24,7 @@
 
 #include "aurora_auth.h"
 #include "aurora_host.h"
+#include "aurora_random.h"
 #include "aurora_trng.h"
 #include <fstream>
 
@@ -84,7 +88,9 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w)
     for (auto &v : psk) v = (uint8_t)(psk_rng.next() & 1);
     KeyPool pool_a(psk), pool_b(psk);
     AuthenticatedConfig cfg;
-    AuthenticatedResult r = run_authenticated_postprocessing(ka, kb, pool_a, pool_b, cfg);
+    // En el PC no hay TRNG: fuente SIMULADA. En la placa: TrngRandomSource.
+    SimulatedRandomSource alice_rng(0x5EED0001ULL);
+    AuthenticatedResult r = run_authenticated_postprocessing(ka, kb, pool_a, pool_b, cfg, alice_rng);
     double qber = r.sifted ? (double)r.corrected / r.sifted : 0.0;
 
     std::printf("\n=== RESUMEN (%d batches) ===\n", used);
@@ -94,6 +100,7 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w)
     std::printf("Cascade              : %u corregidos, %" PRIu64 " bits filtrados (f=%.3f)\n", r.corrected,
                 r.leaked_ec, qber > 0 ? r.leaked_ec / (ka.size() * binary_entropy(qber)) : 0.0);
     std::printf("autenticacion        : %s\n", r.ok ? "OK (4 fases, ambos sentidos)" : r.abort_reason.c_str());
+    std::printf("semillas publicas    : %" PRIu64 " bits de la fuente %s\n", r.random_bits_used, alice_rng.name());
     std::printf("clave final (PA)     : %u bits (%.1f%% de la cribada)\n", r.pa_length,
                 100.0 * r.pa_length / ka.size());
     std::printf("clave de autenticacion: %" PRIu64 " bits (repuestos en la reserva)\n", r.auth_key_bits);
@@ -144,12 +151,14 @@ static int cmd_trng_health(const std::string &path, uint32_t rct, uint32_t apt) 
 static int cmd_trng_analyze(int argc, char **argv) {
     std::string in, out_path;
     double h_assumed = 0.5;
-    uint64_t seed = 0x7A3C5E9F1B2D4C6EULL;   // semilla publica del extractor (fija y guardada)
+    uint64_t seed = 0x7A3C5E9F1B2D4C6EULL;   // solo analisis: semilla del extractor generada con un PRNG
+    std::string seed_file;                   // produccion: semilla publica generada en la instalacion
     for (int i = 2; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--extract" && i + 1 < argc) out_path = argv[++i];
         else if (a == "--h" && i + 1 < argc) h_assumed = std::atof(argv[++i]);
         else if (a == "--seed" && i + 1 < argc) seed = std::strtoull(argv[++i], nullptr, 0);
+        else if (a == "--seed-file" && i + 1 < argc) seed_file = argv[++i];
         else if (a == "--raw-indexed") in = std::string("@") + (i + 1 < argc ? argv[++i] : "");
         else in = a;
     }
@@ -168,7 +177,18 @@ static int cmd_trng_analyze(int argc, char **argv) {
     EntropyEstimate e = estimate_min_entropy(raw);
     // Se usa la entropia asumida solo si la estimacion no la contradice.
     double h_use = std::min(h_assumed, e.min);
-    Bits ext = extract_random(raw, h_use, seed);
+    Bits ext_seed;
+    if (!seed_file.empty()) {
+        if (!load_bits_hex(seed_file, ext_seed, &err)) { std::fprintf(stderr, "%s\n", err.c_str()); return 2; }
+    } else {
+        SimulatedRandomSource(seed).random_bits(extractor_seed_length(h_use), ext_seed);
+    }
+    Bits ext = extract_random(raw, h_use, ext_seed);
+    if (!raw.empty() && ext.empty() && ext_seed.size() < extractor_seed_length(h_use)) {
+        std::fprintf(stderr, "semilla del extractor demasiado corta: %zu bits, se necesitan %zu\n", ext_seed.size(),
+                     extractor_seed_length(h_use));
+        return 2;
+    }
     if (!out_path.empty()) {
         std::ofstream f(out_path);
         for (size_t k = 0; k + 32 <= ext.size(); k += 32) {
@@ -187,6 +207,21 @@ static int cmd_trng_analyze(int argc, char **argv) {
     return hr.healthy() ? 0 : 1;
 }
 
+// Instalacion: bits aleatorios del sistema operativo (semilla publica del
+// extractor del TRNG, clave precompartida de autenticacion).
+static int cmd_gen_random(const std::string &what, const std::string &out_path, double h) {
+    size_t n = (what == "extractor") ? extractor_seed_length(h) : (size_t)std::strtoull(what.c_str(), nullptr, 10);
+    if (n == 0) { std::fprintf(stderr, "numero de bits invalido\n"); return 2; }
+    Bits b;
+    std::string err;
+    if (!os_random_bits(n, b, &err) || !save_bits_hex(out_path, b, &err)) {
+        std::fprintf(stderr, "%s\n", err.c_str());
+        return 2;
+    }
+    std::printf("%zu bits aleatorios (sistema operativo) guardados en %s\n", n, out_path.c_str());
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc >= 3 && std::string(argv[1]) == "batch") {
         uint32_t w = argc >= 4 ? (uint32_t)std::atoi(argv[3]) : 350;
@@ -200,6 +235,11 @@ int main(int argc, char **argv) {
         return cmd_trng_health(argv[2], (uint32_t)std::atoi(argv[3]), (uint32_t)std::atoi(argv[4]));
     }
     if (argc >= 3 && std::string(argv[1]) == "trng-analyze") return cmd_trng_analyze(argc, argv);
+    if (argc >= 4 && std::string(argv[1]) == "gen-random") {
+        double h = 0.5;
+        for (int i = 4; i + 1 < argc; ++i) if (std::string(argv[i]) == "--h") h = std::atof(argv[i + 1]);
+        return cmd_gen_random(argv[2], argv[3], h);
+    }
     if (argc >= 3 && std::string(argv[1]) == "polyhash") {
         return cmd_polyhash(argv[2], argc >= 4 ? argv[3] : "");
     }
@@ -207,9 +247,10 @@ int main(int argc, char **argv) {
                  "uso:\n  %s batch <prefijo> [half_window_ps]\n"
                  "  %s pipeline <dir> <primero> <ultimo> [half_window_ps]\n"
                  "  %s polyhash <clave_hex32> [mensaje_hex]\n"
-                 "  %s trng-analyze <captura_hex> [--h H] [--seed S] [--extract salida.txt]\n"
+                 "  %s trng-analyze <captura_hex> [--h H] [--seed S | --seed-file F] [--extract salida.txt]\n"
                  "  %s trng-analyze --raw-indexed <raw.txt> [--h H] [--extract salida.txt]\n"
-                 "  %s trng-health <raw.txt> <rct_cutoff> <apt_cutoff>\n",
-                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
+                 "  %s trng-health <raw.txt> <rct_cutoff> <apt_cutoff>\n"
+                 "  %s gen-random <n_bits | extractor> <salida.txt> [--h H]\n",
+                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
     return 64;
 }

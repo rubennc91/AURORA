@@ -44,6 +44,15 @@ osciladores (N) --XOR--> sincronizador --decimación--> tests de salud --> empaq
 4. En producción: `gate_bypass` = 0 y la salida siempre pasa por el
    extractor (`extract_random`) antes de usarse.
 
+## Semilla pública del extractor (una vez, en la instalación)
+```bash
+./build/aurora_cli gen-random extractor extractor_seed.txt --h 0.5
+./build/aurora_cli trng-analyze captura.txt --seed-file extractor_seed.txt --extract salida.txt
+```
+Es pública y fija (no hace falta protegerla, solo conservarla). En el
+software del ARM: `TrngRandomSource src(driver, load_bits_hex("extractor_seed.txt"))`
+y `run_authenticated_postprocessing(..., src)`.
+
 Para una evaluación formal conviene pasar las capturas por la herramienta
 oficial de NIST (SP 800-90B EntropyAssessment), que implementa todos los
 estimadores; aquí solo están MCV y Markov.

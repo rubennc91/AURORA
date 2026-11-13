@@ -48,7 +48,7 @@ struct TrngConfig {
     bool self_test = true;
 };
 
-enum class TrngStatus { OK, NOT_FOUND, SELFTEST_FAILED, STARTUP_TIMEOUT, ALARM, TIMEOUT };
+enum class TrngStatus { OK, NOT_FOUND, SELFTEST_FAILED, STARTUP_TIMEOUT, ALARM, TIMEOUT, BAD_SEED };
 const char *trng_status_str(TrngStatus s);
 
 class TrngDriver {
@@ -57,8 +57,9 @@ public:
     TrngStatus init(const TrngConfig &cfg = TrngConfig());
     // Bits brutos (ya filtrados por los tests de salud del hardware).
     TrngStatus read_raw(Bits &out, size_t n_bits);
-    // Bits casi uniformes: bits brutos + extractor Toeplitz.
-    TrngStatus read_random(Bits &out, size_t n_bits, uint64_t extractor_seed);
+    // Bits casi uniformes: bits brutos + extractor Toeplitz con la semilla
+    // publica fija del extractor (ver extract_random).
+    TrngStatus read_random(Bits &out, size_t n_bits, const Bits &extractor_seed);
 private:
     bool wait_status(uint32_t mask, uint32_t &st);
     TrngRegs &r_;

@@ -122,6 +122,7 @@ struct AuthenticatedResult {
     uint32_t pa_length = 0;        // salida de la amplificacion de privacidad
     uint64_t auth_key_bits = 0;    // clave consumida por la autenticacion (cada lado)
     int64_t net_key_bits = 0;      // pa_length - auth_key_bits
+    uint64_t random_bits_used = 0; // bits pedidos a la fuente aleatoria de Alice (semillas publicas)
     Bits alice_key, bob_key;       // clave neta entregada (vacia si !ok)
 };
 
@@ -129,16 +130,18 @@ struct AuthenticatedConfig {
     CascadeConfig cascade;
     int64_t lag_ps = 0;
     uint32_t half_window = 350;
-    uint64_t verify_seed = 0x5EED5EED12345678ULL;   // en el sistema real: QRNG/TRNG
-    uint64_t pa_seed = 0xC0FFEE0123456789ULL;       // en el sistema real: QRNG/TRNG
     bool refill_pools = true;      // reponer la reserva con clave nueva
 };
 
+struct RandomSource;
+
 // Ejecuta Cascade -> verificacion -> PA con autenticacion de cada fase en ambos
-// sentidos. Las reservas de Alice y Bob deben empezar identicas.
+// sentidos. Las reservas de Alice y Bob deben empezar identicas. Las semillas
+// publicas (Cascade, verificacion, Toeplitz) las genera Alice con alice_rng
+// (el TRNG en la placa), nuevas en cada ronda, y viajan autenticadas.
 AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, const Bits &bob_sifted,
                                                      KeyPool &alice_pool, KeyPool &bob_pool,
-                                                     const AuthenticatedConfig &cfg,
+                                                     const AuthenticatedConfig &cfg, RandomSource &alice_rng,
                                                      ChannelAttacker *attacker = nullptr);
 
 } // namespace aurora

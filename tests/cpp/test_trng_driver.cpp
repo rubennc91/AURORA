@@ -9,6 +9,7 @@
 #include <random>
 #include <string>
 
+#include "../../sw/aurora_random.h"
 #include "../../sw/aurora_trng_driver.h"
 #include "test_framework.h"
 
@@ -119,7 +120,11 @@ TEST(driver_reads_random_bits) {
     CHECK(drv.init() == TrngStatus::OK);
     Bits raw, rnd;
     CHECK(drv.read_raw(raw, 5000) == TrngStatus::OK && raw.size() == 5000);
-    CHECK(drv.read_random(rnd, 4096, 77) == TrngStatus::OK && rnd.size() == 4096);
+    SimulatedRandomSource gen(5);
+    Bits seed;
+    gen.random_bits(extractor_seed_length(0.5), seed);
+    CHECK(drv.read_random(rnd, 4096, Bits(100, 0)) == TrngStatus::BAD_SEED);
+    CHECK(drv.read_random(rnd, 4096, seed) == TrngStatus::OK && rnd.size() == 4096);
     size_t ones = 0;
     for (auto v : rnd) ones += v;
     CHECK_MSG(ones > 1800 && ones < 2300, std::to_string(ones));
@@ -155,6 +160,25 @@ TEST(driver_stops_delivering_bits_when_source_fails) {
     CHECK_MSG(s == TrngStatus::ALARM, trng_status_str(s));
     CHECK(b.empty());
     CHECK(drv.read_raw(b, 32) == TrngStatus::ALARM);   // hasta reinicializar
+}
+
+TEST(trng_random_source_feeds_the_protocol) {
+    MockTrng hw;
+    TrngDriver drv(hw);
+    CHECK(drv.init() == TrngStatus::OK);
+    SimulatedRandomSource gen(6);
+    Bits seed;
+    gen.random_bits(extractor_seed_length(0.5), seed);
+    TrngRandomSource src(drv, seed);
+    CHECK(!src.simulated());
+    Bits a, b;
+    CHECK(src.random_bits(70000, a) && a.size() == 70000);   // tamano tipico de una semilla Toeplitz
+    CHECK(src.random_bits(64, b) && b.size() == 64);
+    hw.die_after_samples = 0;
+    Bits c;
+    bool ok = true;
+    for (int i = 0; i < 10 && ok; ++i) ok = src.random_bits(4096, c);   // vacia la FIFO y llega la alarma
+    CHECK(!ok && src.last_status() == TrngStatus::ALARM);
 }
 
 int main() { return tf::run_all("AURORA driver del TRNG"); }

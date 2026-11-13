@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <fstream>
 
 namespace aurora {
@@ -115,10 +116,68 @@ uint32_t extractor_output_length(size_t n, double h_min, double eps_log2) {
     return (uint32_t)std::min<double>(std::floor(m), (double)n);
 }
 
-Bits extract_random(const Bits &raw, double h_min, uint64_t public_seed, double eps_log2) {
-    uint32_t m = extractor_output_length(raw.size(), h_min, eps_log2);
-    if (m == 0) return Bits();
-    return toeplitz_hash(raw, m, public_seed);
+size_t extractor_seed_length(double h_min, double eps_log2) {
+    uint32_t m = extractor_output_length(TRNG_EXTRACT_BLOCK, h_min, eps_log2);
+    return m ? (size_t)TRNG_EXTRACT_BLOCK + m - 1 : 0;
+}
+
+Bits extract_random(const Bits &raw, double h_min, const Bits &public_seed, double eps_log2) {
+    Bits out;
+    if (public_seed.size() < extractor_seed_length(h_min, eps_log2)) return out;
+    for (size_t off = 0; off < raw.size(); off += TRNG_EXTRACT_BLOCK) {
+        size_t n = std::min<size_t>(TRNG_EXTRACT_BLOCK, raw.size() - off);
+        uint32_t m = extractor_output_length(n, h_min, eps_log2);
+        if (m == 0) continue;
+        Bits block(raw.begin() + (std::ptrdiff_t)off, raw.begin() + (std::ptrdiff_t)(off + n));
+        Bits seed(public_seed.begin(), public_seed.begin() + (std::ptrdiff_t)toeplitz_seed_length(n, m));
+        Bits part = toeplitz_hash_seeded(block, m, seed);
+        out.insert(out.end(), part.begin(), part.end());
+    }
+    return out;
+}
+
+size_t raw_bits_needed(size_t n, double h_min, double eps_log2) {
+    const uint32_t m_full = extractor_output_length(TRNG_EXTRACT_BLOCK, h_min, eps_log2);
+    if (m_full == 0) return 0;
+    size_t full = n / m_full, rem = n - full * m_full;
+    size_t raw = full * TRNG_EXTRACT_BLOCK;
+    if (rem) {
+        size_t r = (size_t)std::ceil((rem - eps_log2 * 2.0) / h_min) + 1;
+        while (r < TRNG_EXTRACT_BLOCK && extractor_output_length(r, h_min, eps_log2) < rem) ++r;
+        raw += std::min<size_t>(r, TRNG_EXTRACT_BLOCK);
+    }
+    return raw;
+}
+
+bool save_bits_hex(const std::string &path, const Bits &bits, std::string *err) {
+    std::ofstream f(path);
+    if (!f) { if (err) *err = "no se puede escribir " + path; return false; }
+    f << "# bits " << bits.size() << "\n";
+    for (size_t k = 0; k < bits.size(); k += 32) {
+        uint32_t w = 0;
+        for (size_t b = 0; b < 32; ++b) w = (w << 1) | (k + b < bits.size() ? bits[k + b] : 0);
+        char buf[16];
+        std::snprintf(buf, sizeof buf, "%08x\n", w);
+        f << buf;
+    }
+    return (bool)f;
+}
+
+bool load_bits_hex(const std::string &path, Bits &bits, std::string *err) {
+    std::ifstream f(path);
+    if (!f) { if (err) *err = "no se puede abrir " + path; return false; }
+    std::string first;
+    std::getline(f, first);
+    size_t n = 0;
+    if (std::sscanf(first.c_str(), "# bits %zu", &n) != 1) {
+        if (err) *err = "falta la cabecera '# bits N' en " + path;
+        return false;
+    }
+    f.close();
+    if (!load_trng_words(path, bits, err)) return false;
+    if (bits.size() < n) { if (err) *err = "fichero truncado: " + path; return false; }
+    bits.resize(n);
+    return true;
 }
 
 bool load_trng_words(const std::string &path, Bits &out, std::string *err) {

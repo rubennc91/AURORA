@@ -69,9 +69,22 @@ EntropyEstimate estimate_min_entropy(const Bits &raw);
 // Longitud segura de salida del extractor: floor(n*h - 2*log2(1/eps)).
 uint32_t extractor_output_length(size_t n, double h_min, double eps_log2 = -64.0);
 
-// Extraccion con Toeplitz. La semilla es publica, debe ser uniforme e
-// independiente de la fuente (se fija una vez y se guarda).
-Bits extract_random(const Bits &raw, double h_min, uint64_t public_seed, double eps_log2 = -64.0);
+// Extraccion con Toeplitz por bloques de TRNG_EXTRACT_BLOCK bits brutos (el
+// ultimo puede ser parcial). Todos los bloques usan la misma semilla PUBLICA
+// y FIJA, que debe ser uniforme e independiente de la fuente: se genera una
+// vez en la instalacion (aurora_cli gen-random) y se guarda. Necesita al menos
+// extractor_seed_length(h_min) bits (se usa un prefijo). Devuelve vacio si la
+// semilla es demasiado corta.
+constexpr uint32_t TRNG_EXTRACT_BLOCK = 65536;
+size_t extractor_seed_length(double h_min, double eps_log2 = -64.0);
+Bits extract_random(const Bits &raw, double h_min, const Bits &public_seed, double eps_log2 = -64.0);
+// Bits brutos necesarios para obtener al menos n bits extraidos.
+size_t raw_bits_needed(size_t n, double h_min, double eps_log2 = -64.0);
+
+// Ficheros de bits (semilla del extractor, clave precompartida): palabras hex
+// de 32 bits por linea, MSB primero, con una cabecera "# bits N".
+bool save_bits_hex(const std::string &path, const Bits &bits, std::string *err = nullptr);
+bool load_bits_hex(const std::string &path, Bits &bits, std::string *err = nullptr);
 
 // Lectura de capturas: una palabra hexadecimal de 32 bits por linea (formato
 // del testbench y del volcado del driver). Bits en orden MSB primero (el

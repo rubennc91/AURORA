@@ -5,6 +5,7 @@
 #include <string>
 
 #include "../../sw/aurora_auth.h"
+#include "../../sw/aurora_random.h"
 #include "test_framework.h"
 
 using namespace aurora;
@@ -175,6 +176,12 @@ TEST(mac_fails_without_key) {
 }
 
 // ---------------------------------------------- post-procesado autenticado ---
+// Fuente aleatoria de Alice para los tests (en la placa: el TRNG).
+static SimulatedRandomSource &test_rng() {
+    static SimulatedRandomSource r(0xA11CE);
+    return r;
+}
+
 static AuthenticatedConfig default_cfg() {
     AuthenticatedConfig c;
     c.cascade.qber_hint = 0.02;
@@ -187,7 +194,7 @@ TEST(authenticated_pipeline_honest_run) {
     sifted_pair(r, 40000, 0.017, a, b);
     Bits psk = random_bits(r, 4096);
     KeyPool pa(psk), pb(psk);
-    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, default_cfg());
+    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, default_cfg(), test_rng());
     CHECK_MSG(res.ok, res.abort_reason);
     CHECK(res.alice_key == res.bob_key);
     CHECK(!res.alice_key.empty());
@@ -209,9 +216,7 @@ TEST(authenticated_pipeline_sustains_itself) {
         Bits a, b;
         sifted_pair(r, 20000, 0.02, a, b);
         AuthenticatedConfig c = default_cfg();
-        c.pa_seed += (uint64_t)round;
-        c.verify_seed += (uint64_t)round;
-        AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, c);
+        AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, c, test_rng());
         CHECK_MSG(res.ok, "ronda " + std::to_string(round) + ": " + res.abort_reason);
         CHECK(res.alice_key == res.bob_key && res.net_key_bits > 0);
     }
@@ -246,7 +251,7 @@ static void expect_abort(ChannelAttacker &eve, const std::string &what) {
     sifted_pair(r, 20000, 0.02, a, b);
     Bits psk = random_bits(r, 4096);
     KeyPool pa(psk), pb(psk);
-    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, default_cfg(), &eve);
+    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, default_cfg(), test_rng(), &eve);
     CHECK_MSG(!res.ok, what + ": el ataque no se detecto");
     CHECK_MSG(res.alice_key.empty() && res.bob_key.empty(), what + ": se entrego clave");
     CHECK_MSG(!res.abort_reason.empty(), what);
@@ -280,7 +285,7 @@ TEST(pipeline_aborts_without_preshared_key) {
     Bits a, b;
     sifted_pair(r, 10000, 0.02, a, b);
     KeyPool pa(Bits(500, 0)), pb(Bits(500, 0));
-    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, default_cfg());
+    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, default_cfg(), test_rng());
     CHECK(!res.ok && res.alice_key.empty());
 }
 
@@ -293,9 +298,80 @@ TEST(pipeline_aborts_if_errors_remain) {
     KeyPool pa(psk), pb(psk);
     AuthenticatedConfig c = default_cfg();
     c.cascade.passes = 1;
-    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, c);
+    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, c, test_rng());
     CHECK(!res.ok && res.alice_key.empty());
     CHECK_MSG(res.abort_reason.find("verificacion") != std::string::npos, res.abort_reason);
+}
+
+// ------------------------------------------------------ semillas publicas ---
+// Fuente que registra cuantos bits se piden y puede fallar en la llamada N.
+struct RecordingSource : RandomSource {
+    std::vector<size_t> requests;
+    int fail_at = -1;
+    SimulatedRandomSource inner{7};
+    bool random_bits(size_t n, Bits &out) override {
+        requests.push_back(n);
+        if ((int)requests.size() - 1 == fail_at) return false;
+        return inner.random_bits(n, out);
+    }
+    const char *name() const override { return "registro"; }
+};
+
+TEST(seeds_are_drawn_fresh_in_protocol_order) {
+    std::mt19937_64 r(20);
+    Bits a, b;
+    sifted_pair(r, 30000, 0.02, a, b);
+    Bits psk = random_bits(r, 4096);
+    KeyPool pa(psk), pb(psk);
+    RecordingSource src;
+    AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, default_cfg(), src);
+    CHECK_MSG(res.ok, res.abort_reason);
+    // Cascade (64), verificacion (64, tras Cascade), Toeplitz completa (tras verificar).
+    CHECK(src.requests.size() == 3);
+    if (src.requests.size() == 3) {
+        CHECK(src.requests[0] == 64 && src.requests[1] == 64);
+        CHECK_MSG(src.requests[2] == toeplitz_seed_length(a.size(), res.pa_length),
+                  std::to_string(src.requests[2]));
+        CHECK(src.requests[2] == a.size() + res.pa_length - 1);   // un solo bloque: n + m - 1
+    }
+    CHECK(res.random_bits_used == 128 + src.requests.back());
+}
+
+TEST(each_round_uses_new_seeds) {
+    // Mismas claves cribadas en dos rondas: las semillas cambian, la clave final tambien.
+    std::mt19937_64 r(21);
+    Bits a, b;
+    sifted_pair(r, 20000, 0.02, a, b);
+    Bits psk = random_bits(r, 4096);
+    KeyPool pa(psk), pb(psk);
+    SimulatedRandomSource src(99);
+    AuthenticatedResult r1 = run_authenticated_postprocessing(a, b, pa, pb, default_cfg(), src);
+    AuthenticatedResult r2 = run_authenticated_postprocessing(a, b, pa, pb, default_cfg(), src);
+    CHECK(r1.ok && r2.ok);
+    CHECK(r1.alice_key != r2.alice_key);
+}
+
+TEST(random_source_failure_aborts_without_key) {
+    for (int fail_at : {0, 1, 2}) {
+        std::mt19937_64 r(22);
+        Bits a, b;
+        sifted_pair(r, 20000, 0.02, a, b);
+        Bits psk = random_bits(r, 4096);
+        KeyPool pa(psk), pb(psk);
+        RecordingSource src;
+        src.fail_at = fail_at;
+        AuthenticatedResult res = run_authenticated_postprocessing(a, b, pa, pb, default_cfg(), src);
+        CHECK_MSG(!res.ok && res.alice_key.empty(), "fallo en la peticion " + std::to_string(fail_at));
+        CHECK(res.abort_reason.find("fuente aleatoria") != std::string::npos);
+    }
+}
+
+TEST(tampered_toeplitz_seed_is_detected) {
+    // El atacante cambia un bit de la semilla Toeplitz (dentro del mensaje de PA).
+    struct FlipSeedBit : ChannelAttacker {
+        void message(int ph, std::vector<uint8_t> &m) override { if (ph == PHASE_PA && m.size() > 20) m[20] ^= 4; }
+    } eve;
+    expect_abort(eve, "semilla Toeplitz alterada");
 }
 
 int main() { return tf::run_all("AURORA autenticacion Wegman-Carter"); }

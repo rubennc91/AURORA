@@ -361,44 +361,63 @@ uint32_t pa_output_length(uint32_t n, double qber, uint64_t leak_ec, uint64_t le
     return (uint32_t)std::min<double>(std::floor(m), n);
 }
 
-// Un bloque dentro de los limites del kernel.
-static Bits toeplitz_block(const Bits &key, size_t off, uint32_t n_in, uint32_t n_out, uint64_t seed) {
-    SplitMix64 rng(seed);
-    std::vector<uint64_t> s((n_in + n_out - 1 + 63) / 64 + 1);
-    for (auto &w : s) w = rng.next();
-    Bits part(key.begin() + (std::ptrdiff_t)off, key.begin() + (std::ptrdiff_t)(off + n_in));
-    std::vector<uint64_t> in = pack_bits(part);
-    std::vector<uint64_t> out((n_out + 63) / 64 + 1, 0);
-    aurora_toeplitz(in.data(), n_in, s.data(), out.data(), n_out);
-    return unpack_bits(out.data(), n_out);
-}
-
-Bits toeplitz_hash(const Bits &key, uint32_t n_out, uint64_t seed) {
-    const size_t n_in = key.size();
-    if (n_out == 0 || n_out > n_in) return Bits();
-    // El kernel no procesa entradas mayores que AURORA_PA_MAX_IN_BITS (y no
-    // puede avisar). Las entradas grandes se dividen en bloques que se
-    // comprimen en la misma proporcion, cada uno con una semilla distinta.
+// Reparto en bloques que caben en el kernel (que ignora entradas mayores que
+// AURORA_PA_MAX_IN_BITS sin poder avisar): cada bloque se comprime en la
+// misma proporcion, sin perder bits por redondeo.
+struct ToeplitzBlock { size_t in_off, n_in, n_out; };
+static std::vector<ToeplitzBlock> toeplitz_plan(size_t n_in, size_t n_out) {
+    std::vector<ToeplitzBlock> plan;
+    if (n_out == 0 || n_out > n_in) return plan;
     const size_t max_in = AURORA_PA_MAX_IN_BITS;
     const size_t n_blocks = (n_in + max_in - 1) / max_in;
-    Bits out;
-    out.reserve(n_out);
-    SplitMix64 seeds(seed);
     size_t in_done = 0, out_done = 0;
     for (size_t b = 0; b < n_blocks; ++b) {
         size_t bin = (b + 1 == n_blocks) ? n_in - in_done : max_in;
-        // Salida acumulada proporcional (sin perder bits por redondeo).
         size_t target = (size_t)((unsigned __int128)n_out * (in_done + bin) / n_in);
-        size_t bout = target - out_done;
-        uint64_t bseed = (n_blocks == 1) ? seed : seeds.next();
-        if (bout > 0) {
-            Bits part = toeplitz_block(key, in_done, (uint32_t)bin, (uint32_t)bout, bseed);
-            out.insert(out.end(), part.begin(), part.end());
-        }
+        plan.push_back({in_done, bin, target - out_done});
         in_done += bin;
         out_done = target;
     }
+    return plan;
+}
+
+size_t toeplitz_seed_length(size_t n_in, uint32_t n_out) {
+    size_t total = 0;
+    for (const auto &b : toeplitz_plan(n_in, n_out))
+        if (b.n_out) total += b.n_in + b.n_out - 1;
+    return total;
+}
+
+Bits toeplitz_hash_seeded(const Bits &key, uint32_t n_out, const Bits &seed) {
+    const auto plan = toeplitz_plan(key.size(), n_out);
+    if (plan.empty() || seed.size() != toeplitz_seed_length(key.size(), n_out)) return Bits();
+    Bits out;
+    out.reserve(n_out);
+    size_t seed_off = 0;
+    for (const auto &b : plan) {
+        if (b.n_out == 0) continue;
+        const size_t ns = b.n_in + b.n_out - 1;
+        Bits part_in(key.begin() + (std::ptrdiff_t)b.in_off, key.begin() + (std::ptrdiff_t)(b.in_off + b.n_in));
+        Bits part_seed(seed.begin() + (std::ptrdiff_t)seed_off, seed.begin() + (std::ptrdiff_t)(seed_off + ns));
+        seed_off += ns;
+        std::vector<uint64_t> in = pack_bits(part_in), sd = pack_bits(part_seed);
+        std::vector<uint64_t> o((b.n_out + 63) / 64 + 1, 0);
+        aurora_toeplitz(in.data(), (uint32_t)b.n_in, sd.data(), o.data(), (uint32_t)b.n_out);
+        Bits ob = unpack_bits(o.data(), (uint32_t)b.n_out);
+        out.insert(out.end(), ob.begin(), ob.end());
+    }
     return out;
+}
+
+Bits toeplitz_hash(const Bits &key, uint32_t n_out, uint64_t seed) {
+    // SOLO PRUEBAS: semilla expandida con un PRNG a partir de 64 bits.
+    SplitMix64 rng(seed);
+    Bits s(toeplitz_seed_length(key.size(), n_out));
+    for (size_t i = 0; i < s.size(); i += 64) {
+        uint64_t w = rng.next();
+        for (size_t j = 0; j < 64 && i + j < s.size(); ++j) s[i + j] = (w >> j) & 1;
+    }
+    return toeplitz_hash_seeded(key, n_out, s);
 }
 
 } // namespace aurora
