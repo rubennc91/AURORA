@@ -28,7 +28,10 @@
 \newcommand{\PL}{\textcolor{pl}{\textbf{PL}}}
 \newcommand{\code}[1]{\texttt{#1}}
 
-\input{datos}
+% datos.tex esta junto a main.tex. Overleaf compila desde la raiz del proyecto
+% si el repositorio se importa entero: se prueban las dos rutas.
+\InputIfFileExists{datos}{}{\InputIfFileExists{docs/report/datos}{}{%
+  \PackageError{aurora}{No se encuentra datos.tex}{}}}
 
 \title{\textbf{AURORA}\\[2pt]\large Post-procesado QKD (BB84) en un SoC Zynq UltraScale+:\\
 codiseño hardware/software, implementación y resultados en placa}
