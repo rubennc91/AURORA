@@ -40,7 +40,9 @@ add_files -tb $tb_files \
 
 open_solution -reset solution1 -flow_target vivado
 set_part {xczu7ev-ffvc1156-2-e}
-create_clock -period 5 -name default
+# 100 MHz: el reloj con el que se conectan en el block design (pl_clk0).
+# Con 5 ns la estimacion de sync/sift salia en ~10 ns (no cumplia).
+create_clock -period 10 -name default
 
 foreach s $steps {
     switch $s {

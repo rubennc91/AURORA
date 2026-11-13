@@ -106,24 +106,40 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config [list \
     Master {/zynq_ps/M_AXI_HPM0_FPD} Slave {/trng_0/s_axi} ddr_seg {Auto} \
     intc_ip {New AXI SmartConnect} master_apm {0}] [get_bd_intf_pins trng_0/s_axi]
 
-# Kernels HLS
+# Kernels HLS: control por AXI4-Lite desde el PS (la automatizacion conecta
+# tambien el reloj y el reset de cada kernel)
+set hls_masters {}
 foreach k $hls_kernels {
     set vlnv [lindex [get_ipdefs -filter "NAME == $k"] 0]
     if {$vlnv eq ""} { puts "AURORA: AVISO - $k no aparece en el catalogo de IP"; continue }
     set cell [create_bd_cell -type ip -vlnv $vlnv ${k}_0]
-    # Control (AXI4-Lite) desde el PS
     apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config [list \
         Clk_master {/zynq_ps/pl_clk0 (100 MHz)} Clk_slave {Auto} Clk_xbar {Auto} \
         Master {/zynq_ps/M_AXI_HPM0_FPD} Slave "/${k}_0/s_axi_control" ddr_seg {Auto} \
         intc_ip {Auto} master_apm {0}] [get_bd_intf_pins ${k}_0/s_axi_control]
-    # Cada puerto m_axi hacia la DDR por S_AXI_HP0_FPD
-    foreach m [get_bd_intf_pins -of_objects $cell -filter {MODE == Master}] {
-        set mname [get_property NAME $m]
-        apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config [list \
-            Clk_master {Auto} Clk_slave {/zynq_ps/pl_clk0 (100 MHz)} Clk_xbar {Auto} \
-            Master "/${k}_0/$mname" Slave {/zynq_ps/S_AXI_HP0_FPD} ddr_seg {Auto} \
-            intc_ip {Auto} master_apm {0}] [get_bd_intf_pins zynq_ps/S_AXI_HP0_FPD]
+    foreach m [get_bd_intf_pins -of_objects $cell -filter {MODE == Master}] { lappend hls_masters $m }
+}
+
+# Acceso a DDR: TODOS los puertos m_axi de los kernels entran en UNA SmartConnect
+# conectada a S_AXI_HP0_FPD. (La automatizacion creaba una SmartConnect por
+# puerto y solo conectaba la primera a la DDR.)
+if {[llength $hls_masters] > 0} {
+    if {[llength $hls_masters] > 16} { error "Demasiados puertos m_axi para una SmartConnect (max 16)" }
+    set smc_vlnv [lindex [lsort [get_ipdefs -all xilinx.com:ip:smartconnect:*]] end]
+    set smc [create_bd_cell -type ip -vlnv $smc_vlnv smc_ddr]
+    set_property -dict [list CONFIG.NUM_SI [llength $hls_masters] CONFIG.NUM_MI {1}] $smc
+    set i 0
+    foreach m $hls_masters {
+        connect_bd_intf_net $m [get_bd_intf_pins smc_ddr/[format "S%02d_AXI" $i]]
+        incr i
     }
+    connect_bd_intf_net [get_bd_intf_pins smc_ddr/M00_AXI] [get_bd_intf_pins zynq_ps/S_AXI_HP0_FPD]
+    # Reloj y reset: los mismos que usan los kernels (pl_clk0 y el reset de perifericos)
+    connect_bd_net [get_bd_pins zynq_ps/pl_clk0] [get_bd_pins smc_ddr/aclk]
+    connect_bd_net [get_bd_pins zynq_ps/pl_clk0] [get_bd_pins zynq_ps/saxihp0_fpd_aclk]
+    set rst [lindex [get_bd_cells -filter {VLNV =~ "*proc_sys_reset*"}] 0]
+    if {$rst eq ""} { error "No se encuentra el proc_sys_reset creado por la automatizacion" }
+    connect_bd_net [get_bd_pins $rst/peripheral_aresetn] [get_bd_pins smc_ddr/aresetn]
 }
 
 assign_bd_address
@@ -141,8 +157,12 @@ puts "AURORA: mapa de direcciones en build/vivado/address_map.txt"
 
 # Wrapper HDL y top
 set bd_file [get_files aurora_bd.bd]
-make_wrapper -files $bd_file -top
-add_files -norecurse [file join [file dirname [get_property FILE_NAME $bd_file]] hdl aurora_bd_wrapper.v]
+set wrapper [make_wrapper -files $bd_file -top]
+if {$wrapper eq "" || ![file exists $wrapper]} {
+    set wrapper [lindex [glob -nocomplain $root/build/vivado/aurora.gen/sources_1/bd/aurora_bd/hdl/aurora_bd_wrapper.v] 0]
+}
+if {$wrapper eq ""} { error "No se encuentra aurora_bd_wrapper.v" }
+add_files -norecurse $wrapper
 set_property top aurora_bd_wrapper [current_fileset]
 update_compile_order -fileset sources_1
 
