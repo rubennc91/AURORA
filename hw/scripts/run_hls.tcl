@@ -18,15 +18,22 @@ if {[llength $steps] == 0} { set steps {csim csynth} }
 puts "AURORA: kernel $kernel, pasos: $steps"
 
 set root [pwd]
-open_project -reset build/hls/$kernel
+if {![file exists $root/hw/$kernel.cpp]} { error "Lanza el script desde la raiz del repositorio AURORA" }
+
+# Vitis HLS 2022.2 no admite rutas en open_project (solo un nombre): se crea
+# build/hls, se entra en ella y se abre el proyecto por nombre. Por eso todas
+# las rutas a las fuentes son absolutas.
+file mkdir $root/build/hls
+cd $root/build/hls
+open_project -reset $kernel
 set_top $kernel
-add_files hw/$kernel.cpp -cflags "-I$root/hw"
-add_files hw/aurora_kernels.h
+add_files $root/hw/$kernel.cpp -cflags "-I$root/hw"
+add_files $root/hw/aurora_kernels.h
 # Testbench: la bateria de tests en C++ (incluye los modelos de referencia).
 # (los otros kernels se anaden como parte del testbench; el top ya esta en el diseno)
-set tb_files {sw/aurora_host.cpp tests/cpp/test_kernels.cpp}
+set tb_files [list $root/sw/aurora_host.cpp $root/tests/cpp/test_kernels.cpp]
 foreach k {aurora_sync aurora_sift aurora_toeplitz} {
-    if {$k ne $kernel} { lappend tb_files hw/$k.cpp }
+    if {$k ne $kernel} { lappend tb_files $root/hw/$k.cpp }
 }
 add_files -tb $tb_files \
     -cflags "-I$root/hw -I$root/sw -I$root/tests/cpp -std=c++14 -Wno-unknown-pragmas"
