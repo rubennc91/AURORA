@@ -202,6 +202,20 @@ Salida: `matrix.bin` para `ea_restart` de NIST y la prueba de cordura de
 valor critico de Binomial(1000, 2^-H_I), alpha = 0.01/4000), que ademas indica
 cuantas muestras hay que descartar si el arranque es predecible.
 
+Resultados en placa (modo `soft`, 1000 x 1000, H_I = 0,785228; `ea_restart -n`):
+
+| Descarte | Cordura (X_max / umbral) | H_r | H_c | min(H_r, H_c, H_I) | Validacion |
+|---|---|---|---|---|---|
+| 0 | 564 / 648 | 0,779 | 0,803 | **0,779** | superada |
+| 1024 | 567 / 648 | 0,781 | 0,778 | **0,778** | superada |
+
+No hay transitorio de arranque: ya en la primera muestra tras habilitar los
+osciladores el valor mas comun aparece con frecuencia 0,50-0,55 entre
+reinicios. La entropia tras reinicio coincide con la de funcionamiento
+continuo, asi que H_min = 0,5 sigue teniendo un margen de ~1,55x.
+Pendiente: el modo `power` (corte de alimentacion real; la placa esta en el
+rele `959BI_1`).
+
 ## Origen de las semillas
 
 Todas las semillas públicas las genera **Alice con el TRNG** (`RandomSource`;
