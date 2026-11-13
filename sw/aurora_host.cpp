@@ -2,6 +2,7 @@
 // AURORA - Software del PS: implementacion
 // =============================================================================
 #include "aurora_host.h"
+#include "aurora_compat.h"
 
 #include <algorithm>
 #include <cmath>
@@ -32,7 +33,7 @@ bool load_detections(const std::string &path, Detections &out, std::string *err)
         bool any = false;
         while (i < n && s[i] >= '0' && s[i] <= '9') { t = t * 10 + (uint64_t)(s[i] - '0'); ++i; any = true; }
         if (!any || i >= n || s[i] != ',') {
-            if (err) *err = "formato invalido en " + path + " (offset " + std::to_string(i) + ")";
+            if (err) *err = "formato invalido en " + path + " (offset " + compat::to_string(i) + ")";
             return false;
         }
         ++i;
@@ -40,7 +41,7 @@ bool load_detections(const std::string &path, Detections &out, std::string *err)
         any = false;
         while (i < n && s[i] >= '0' && s[i] <= '9') { st = st * 10 + (uint64_t)(s[i] - '0'); ++i; any = true; }
         if (!any || i >= n || s[i] != ')') {
-            if (err) *err = "formato invalido en " + path + " (offset " + std::to_string(i) + ")";
+            if (err) *err = "formato invalido en " + path + " (offset " + compat::to_string(i) + ")";
             return false;
         }
         ++i;
@@ -58,9 +59,9 @@ bool load_batch(const std::string &prefix, Detections &alice, Detections &bob, s
 bool validate_detections(const Detections &d, std::string *err) {
     if (d.tags.size() != d.states.size()) { if (err) *err = "tags/estados de distinto tamano"; return false; }
     for (size_t i = 0; i < d.size(); ++i) {
-        if (d.states[i] > 3) { if (err) *err = "estado invalido en " + std::to_string(i); return false; }
-        if (d.tags[i] >= (1ULL << 62)) { if (err) *err = "tag >= 2^62 en " + std::to_string(i); return false; }
-        if (i && d.tags[i] < d.tags[i - 1]) { if (err) *err = "tags no ordenados en " + std::to_string(i); return false; }
+        if (d.states[i] > 3) { if (err) *err = "estado invalido en " + compat::to_string(i); return false; }
+        if (d.tags[i] >= (1ULL << 62)) { if (err) *err = "tag >= 2^62 en " + compat::to_string(i); return false; }
+        if (i && d.tags[i] < d.tags[i - 1]) { if (err) *err = "tags no ordenados en " + compat::to_string(i); return false; }
     }
     return true;
 }
@@ -252,7 +253,7 @@ CascadeResult cascade_correct(const Bits &alice, Bits &bob, const CascadeConfig 
     if (n == 0 || bob.size() != alice.size()) return res;
 
     double q = std::max(cfg.qber_hint, 1e-4);
-    uint32_t k1 = (uint32_t)std::max(4.0, std::round(0.73 / q));
+    uint32_t k1 = (uint32_t)std::max(4.0, compat::round(0.73 / q));
     k1 = std::min(k1, n);
     res.first_block = k1;
 
@@ -351,12 +352,12 @@ uint64_t verification_hash(const Bits &key, uint64_t seed) {
 // ------------------------------------------------------------ privacidad ----
 double binary_entropy(double p) {
     if (p <= 0.0 || p >= 1.0) return 0.0;
-    return -p * std::log2(p) - (1 - p) * std::log2(1 - p);
+    return -p * compat::log2(p) - (1 - p) * compat::log2(1 - p);
 }
 
 uint32_t pa_output_length(uint32_t n, double qber, uint64_t leak_ec, uint64_t leak_verify, double eps_pa) {
     double m = (double)n * (1.0 - binary_entropy(qber)) - (double)leak_ec - (double)leak_verify -
-               2.0 * std::log2(1.0 / eps_pa);
+               2.0 * compat::log2(1.0 / eps_pa);
     if (m <= 0) return 0;
     return (uint32_t)std::min<double>(std::floor(m), n);
 }

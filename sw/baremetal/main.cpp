@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "aurora_auth.h"
+#include "aurora_compat.h"
 #include "aurora_board.h"
 #include "aurora_data.h"
 #include "aurora_host.h"
@@ -126,7 +127,7 @@ void kernels_vs_pc() {
         double t0 = now_ms();
         LagEstimate e = estimate_lag(A, B);
         double t1 = now_ms();
-        const int64_t lag = (int64_t)std::llround(e.lag);
+        const int64_t lag = (int64_t)compat::llround(e.lag);
         SiftOutput s = sift_batch(A, B, lag, 350);
         double t2 = now_ms();
 

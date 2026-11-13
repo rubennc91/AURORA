@@ -2,6 +2,7 @@
 // AURORA - Autenticacion Wegman-Carter: implementacion
 // =============================================================================
 #include "aurora_auth.h"
+#include "aurora_compat.h"
 #include "aurora_random.h"
 
 #include <algorithm>
@@ -180,13 +181,13 @@ AuthenticatedResult run_authenticated_postprocessing(const Bits &alice_sifted, c
         if (!auth_a.tag(ALICE_TO_BOB, seq_a, alice_view.bytes, t)) { res.abort_reason = "sin clave (Alice)"; return false; }
         eve.tag(phase, t);
         if (!auth_b.verify(ALICE_TO_BOB, seq_a++, bob_view.bytes, t)) {
-            res.abort_reason = "autenticacion fallida (Bob rechaza a Alice) en la fase " + std::to_string(phase);
+            res.abort_reason = "autenticacion fallida (Bob rechaza a Alice) en la fase " + compat::to_string(phase);
             return false;
         }
         if (!auth_b.tag(BOB_TO_ALICE, seq_b, bob_view.bytes, t)) { res.abort_reason = "sin clave (Bob)"; return false; }
         eve.tag(phase, t);
         if (!auth_a.verify(BOB_TO_ALICE, seq_b++, alice_view.bytes, t)) {
-            res.abort_reason = "autenticacion fallida (Alice rechaza a Bob) en la fase " + std::to_string(phase);
+            res.abort_reason = "autenticacion fallida (Alice rechaza a Bob) en la fase " + compat::to_string(phase);
             return false;
         }
         return true;

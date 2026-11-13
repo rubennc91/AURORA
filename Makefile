@@ -118,6 +118,7 @@ baremetal-data: $(CLI)
 # Aplicacion bare-metal en una plataforma SIMULADA en el PC (registros emulados
 # que ejecutan los modelos C++ de los kernels y del TRNG).
 test-baremetal: baremetal-data
+	sh tools/check_baremetal_std.sh
 	mkdir -p $(BUILD)/bm_sim
 	for k in sync sift toeplitz; do \
 		$(CXX) $(CXXFLAGS) -c hw/aurora_$$k.cpp -Daurora_$$k=sw_aurora_$$k -o $(BUILD)/bm_sim/sw_$$k.o || exit 1; \
@@ -131,6 +132,7 @@ test-baremetal: baremetal-data
 
 # Placa (requiere Vitis/XSCT en el PATH y build/vivado/aurora.xsa)
 baremetal: baremetal-data
+	sh tools/check_baremetal_std.sh
 	cp $(BM_SRCS) $(BUILD)/baremetal_src/
 	xsct hw/scripts/create_vitis.tcl
 

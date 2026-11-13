@@ -2,6 +2,7 @@
 // AURORA - TRNG (PS): implementacion
 // =============================================================================
 #include "aurora_trng.h"
+#include "aurora_compat.h"
 
 #include <algorithm>
 #include <cmath>
@@ -17,8 +18,8 @@ uint32_t rct_cutoff(double h, double alpha_log2) {
 
 // log de la probabilidad binomial P(X = k), X ~ Bin(n, p)
 static double log_binom_pmf(uint32_t n, uint32_t k, double p) {
-    return std::lgamma(n + 1.0) - std::lgamma(k + 1.0) - std::lgamma(n - k + 1.0) + k * std::log(p) +
-           (n - k) * std::log1p(-p);
+    return compat::lgamma(n + 1.0) - compat::lgamma(k + 1.0) - compat::lgamma(n - k + 1.0) + k * std::log(p) +
+           (n - k) * compat::log1p(-p);
 }
 
 uint32_t apt_cutoff(double h, double alpha_log2, uint32_t window) {
@@ -81,7 +82,7 @@ EntropyEstimate estimate_min_entropy(const Bits &raw) {
     for (auto b : raw) ones += b;
     double p_hat = (double)std::max(ones, L - ones) / L;
     double p_u = std::min(1.0, p_hat + 2.576 * std::sqrt(p_hat * (1 - p_hat) / (L - 1)));
-    e.mcv = -std::log2(p_u);
+    e.mcv = -compat::log2(p_u);
 
     // --- Markov (6.3.3), datos binarios ---
     double c[2][2] = {{0, 0}, {0, 0}};
@@ -92,7 +93,7 @@ EntropyEstimate estimate_min_entropy(const Bits &raw) {
         return s > 0 ? c[a][b] / s : 0.0;
     };
     const double P00 = tr(0, 0), P01 = tr(0, 1), P10 = tr(1, 0), P11 = tr(1, 1);
-    auto lg = [](double x) { return x > 0 ? std::log2(x) : -INFINITY; };
+    auto lg = [](double x) { return x > 0 ? compat::log2(x) : -INFINITY; };
     // log2 de la probabilidad de las 6 secuencias candidatas de 128 bits.
     const double cand[6] = {
         lg(P0) + 127 * lg(P00),
@@ -157,7 +158,7 @@ bool save_bits_hex(const std::string &path, const Bits &bits, std::string *err) 
         uint32_t w = 0;
         for (size_t b = 0; b < 32; ++b) w = (w << 1) | (k + b < bits.size() ? bits[k + b] : 0);
         char buf[16];
-        std::snprintf(buf, sizeof buf, "%08x\n", w);
+        ::snprintf(buf, sizeof buf, "%08x\n", w);
         f << buf;
     }
     return (bool)f;
@@ -169,7 +170,7 @@ bool load_bits_hex(const std::string &path, Bits &bits, std::string *err) {
     std::string first;
     std::getline(f, first);
     size_t n = 0;
-    if (std::sscanf(first.c_str(), "# bits %zu", &n) != 1) {
+    if (::sscanf(first.c_str(), "# bits %zu", &n) != 1) {
         if (err) *err = "falta la cabecera '# bits N' en " + path;
         return false;
     }
@@ -194,13 +195,10 @@ bool load_trng_words(const std::string &path, Bits &out, std::string *err) {
         while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
         if (line.empty() || line[0] == '#') continue;
         if (line.rfind("0x", 0) == 0) line = line.substr(2);
-        uint32_t w = 0;
-        try {
-            size_t used = 0;
-            w = (uint32_t)std::stoul(line, &used, 16);
-            if (used != line.size()) throw 1;
-        } catch (...) {
-            if (err) *err = "linea " + std::to_string(lineno) + " invalida en " + path;
+        char *end = nullptr;
+        const uint32_t w = (uint32_t)::strtoul(line.c_str(), &end, 16);
+        if (line.empty() || end == nullptr || *end != '\0') {
+            if (err) *err = "linea " + compat::to_string(lineno) + " invalida en " + path;
             return false;
         }
         for (int b = 31; b >= 0; --b) out.push_back((w >> b) & 1);
