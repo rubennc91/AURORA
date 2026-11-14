@@ -1,18 +1,16 @@
 % Generado por tools/report_data.py: no editar a mano.
-% (14/11/2026: valores de la placa; URAM de diseno y por modulo pendientes de
-%  regenerar con la version corregida de report_data.py)
 \newcommand{\TablaRecursos}{%
 LUT & 30{.}140 & 230{.}400 & 13{,}08\% \\
 Registros (FF) & 42{.}764 & 460{.}800 & 9{,}28\% \\
 BRAM (36 Kb) & 64 & 312 & 20{,}51\% \\
-URAM & \pend{} & 96 & \\
+URAM & 26 & 96 & 27{,}08\% \\
 DSP & 0 & 1{.}728 & 0{,}00\% \\
 }
 \newcommand{\TablaModulos}{%
-Kernel sync (HLS) & 5{.}307 & 7{.}208 & 5/1 & \pend{} & 0 \\
-Kernel sift (HLS) & 5{.}693 & 9{.}068 & 8/0 & \pend{} & 0 \\
-Kernel Toeplitz (HLS) & 3{.}281 & 3{.}970 & 7/0 & \pend{} & 0 \\
-Kernel LDPC (HLS) & 3{.}227 & 4{.}046 & 41/5 & \pend{} & 0 \\
+Kernel sync (HLS) & 5{.}307 & 7{.}208 & 5/1 & 0 & 0 \\
+Kernel sift (HLS) & 5{.}693 & 9{.}068 & 8/0 & 0 & 0 \\
+Kernel Toeplitz (HLS) & 3{.}281 & 3{.}970 & 7/0 & 2 & 0 \\
+Kernel LDPC (HLS) & 3{.}227 & 4{.}046 & 41/5 & 24 & 0 \\
 TRNG (RTL) & 496 & 336 & 0/0 & 0 & 0 \\
 Interconexion AXI & 486 & 568 & 0/0 & 0 & 0 \\
 }
@@ -22,8 +20,8 @@ Interconexion AXI & 486 & 568 & 0/0 & 0 & 0 \\
 \newcommand{\TimingWNS}{3{,}241}
 \newcommand{\TimingWHS}{0{,}009}
 \newcommand{\TablaHLS}{%
-sync & 7{,}300 & 13{.}258 & 7{.}462 & 14 & \pend{} & 0 \\
-sift & 7{,}300 & 17{.}586 & 9{.}244 & 25 & \pend{} & 0 \\
-toeplitz & 7{,}300 & 8{.}392 & 3{.}940 & 8 & \pend{} & 0 \\
+sync & 7{,}300 & 13{.}258 & 7{.}462 & 14 & 0 & 0 \\
+sift & 7{,}300 & 17{.}586 & 9{.}244 & 25 & 0 & 0 \\
+toeplitz & 7{,}300 & 8{.}392 & 3{.}940 & 8 & 2 & 0 \\
 ldpc\_dec & 7{,}300 & 7{.}670 & 4{.}805 & 89 & 24 & 0 \\
 }
