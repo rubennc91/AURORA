@@ -121,11 +121,12 @@ def parse_hls(kernel: str) -> dict[str, str]:
     if not rpt.exists():
         return out
     for line in rpt.read_text(errors="replace").splitlines():
-        c = cells(line) if line.startswith("|") else []
-        if len(c) >= 3 and c[0] == "ap_clk" and "est" not in out:
-            out["est"] = c[2].replace("ns", "").strip()
+        c = cells(line) if line.strip().startswith("|") else []
+        # Fila de timing (|ap_clk | 10.00 ns| 7.300 ns|), no la de puertos RTL.
+        if len(c) >= 3 and c[0] == "ap_clk" and c[1].endswith("ns") and "est" not in out:
+            out["est"] = c[2].replace("ns", "").strip().replace(".", "{,}")
         if len(c) >= 6 and c[0] == "Total" and "lut" not in out and c[1].isdigit():
-            out.update(bram=c[1], dsp=c[2], ff=c[3], lut=c[4])
+            out.update(bram=c[1], dsp=c[2], ff=c[3], lut=c[4], uram=c[5] if len(c) > 5 else "0")
     return out
 
 
@@ -140,12 +141,12 @@ def main() -> int:
     def row(name, key):
         if key in tot:
             u, a, p = tot[key]
-            return f"{name} & {tex_int(u)} & {tex_int(a)} & {p}\\% \\\\"
+            return f"{name} & {tex_int(u)} & {tex_int(a)} & {p.replace('.', '{,}')}\\% \\\\"
         return f"{name} & {P} & & \\\\"
 
     L.append(r"\newcommand{\TablaRecursos}{%")
     L += [row("LUT", "CLB LUTs"), row("Registros (FF)", "CLB Registers"), row("BRAM (36 Kb)", "Block RAM Tile"),
-          row("DSP", "DSPs")]
+          row("URAM", "URAM"), row("DSP", "DSPs")]
     L.append("}")
 
     L.append(r"\newcommand{\TablaModulos}{%")
@@ -156,26 +157,28 @@ def main() -> int:
                 continue
             g = lambda k: tex_int(r.get(k, "-"))
             bram = r.get("RAMB36", "0"), r.get("RAMB18", "0")
-            L.append(f"{name} & {g('Total LUTs')} & {g('FFs')} & {bram[0]}/{bram[1]} & {r.get('DSP Blocks', '-')} \\\\")
+            L.append(f"{name} & {g('Total LUTs')} & {g('FFs')} & {bram[0]}/{bram[1]} & {r.get('URAM', '0')} & "
+                     f"{r.get('DSP Blocks', '-')} \\\\")
     else:
-        L.append(f"\\multicolumn{{5}}{{l}}{{{P} (ejecutar hw/scripts/vivado\\_reports.tcl)}} \\\\")
+        L.append(f"\\multicolumn{{6}}{{l}}{{{P} (ejecutar hw/scripts/vivado\\_reports.tcl)}} \\\\")
     L.append("}")
 
-    L.append(r"\newcommand{\PotenciaTotal}{" + (pw.get("total", P) + (" W" if "total" in pw else "")) + "}")
-    L.append(r"\newcommand{\PotenciaDinamica}{" + (pw.get("dynamic", P) + (" W" if "dynamic" in pw else "")) + "}")
-    L.append(r"\newcommand{\PotenciaEstatica}{" + (pw.get("static", P) + (" W" if "static" in pw else "")) + "}")
-    L.append(r"\newcommand{\TimingWNS}{" + tm.get("wns", "3.340") + "}")
-    L.append(r"\newcommand{\TimingWHS}{" + tm.get("whs", "0.009") + "}")
+    comma = lambda v: v.replace(".", "{,}")
+    for macro, key in (("PotenciaTotal", "total"), ("PotenciaDinamica", "dynamic"), ("PotenciaEstatica", "static")):
+        L.append("\\newcommand{\\" + macro + "}{" + (comma(pw[key]) + "\\,W" if key in pw else P) + "}")
+    L.append(r"\newcommand{\TimingWNS}{" + comma(tm.get("wns", "3.340")) + "}")
+    L.append(r"\newcommand{\TimingWHS}{" + comma(tm.get("whs", "0.009")) + "}")
 
     L.append(r"\newcommand{\TablaHLS}{%")
     for k, name in (("aurora_sync", "sync"), ("aurora_sift", "sift"), ("aurora_toeplitz", "toeplitz"),
                     ("aurora_ldpc_dec", "ldpc\\_dec")):
         h = parse_hls(k)
-        if h:
-            L.append(f"{name} & {h['est']} & {tex_int(h['lut'])} & {tex_int(h['ff'])} & {h['bram']} & {h['dsp']} \\\\")
+        if h and "est" in h and "lut" in h:
+            L.append(f"{name} & {h['est']} & {tex_int(h['lut'])} & {tex_int(h['ff'])} & {h['bram']} & {h['uram']} & "
+                     f"{h['dsp']} \\\\")
         else:
             est = "7{,}300" if "ldpc" not in k else P
-            L.append(f"{name} & {est} & {P} & & & \\\\")
+            L.append(f"{name} & {est} & {P} & & & & \\\\")
     L.append("}")
     OUT.write_text("\n".join(L) + "\n")
     print(f"escrito {OUT}")

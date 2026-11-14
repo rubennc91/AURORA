@@ -25,6 +25,19 @@ platform generate
 set dom [domain active]
 puts "AURORA: dominio $dom"
 
+# Kernels que trae el .xsa (el BSP genera un driver por kernel). Si falta
+# aurora_ldpc_dec, la aplicacion usa el modelo SW del LDPC (y lo avisa).
+proc find_all {dir pattern} {
+    set out [glob -nocomplain -directory $dir $pattern]
+    foreach d [glob -nocomplain -type d -directory $dir *] { set out [concat $out [find_all $d $pattern]] }
+    return $out
+}
+foreach k {aurora_sync aurora_sift aurora_toeplitz aurora_ldpc_dec} {
+    set h [find_all [file join $ws aurora_pf] "x${k}_hw.h"]
+    puts [format "AURORA: kernel %-16s %s" $k [expr {[llength $h] ? "presente" : "NO presente en el .xsa"}]]
+}
+puts "AURORA: .xsa usado: $xsa ([clock format [file mtime $xsa] -format {%Y-%m-%d %H:%M}])"
+
 # Aplicacion C++ vacia + nuestras fuentes. El nombre de la plantilla cambia
 # entre versiones de Vitis: se prueban las variantes conocidas.
 set candidates {

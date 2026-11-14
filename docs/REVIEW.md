@@ -230,7 +230,7 @@ la sala, sino la del chip: captura en frio (placa apagada un buen rato), normal
 |---|---|---|---|---|---|---|---|
 | Ambiente (13/11, sin sensor) | - | 0,937 | 0,910 | 0,940 | 0,785 | 0,912 | 0,785 |
 | Frio (14/11, recien encendida) | 28,8 / 29,9 | 0,938 | 1,000 | 0,966 | 0,764 | 0,901 | **0,764** |
-| Normal | pendiente | | | | | | |
+| Normal (14/11, >15 min, ventilador) | 29,8 / 31,8 | 0,939 | 1,000 | 0,971 | 0,786 | 0,910 | **0,786** |
 | Caliente | pendiente | | | | | | |
 
 ## Origen de las semillas
@@ -333,9 +333,13 @@ PL/PS de la seccion 6 de la aplicacion bare-metal es bit a bit.
   construccion de codigos 3,2 s una vez. Se generan en ~2,5 s: el PS ya va
   ~4 veces sobrado (la estimacion previa de 2-3 s era pesimista). Con las
   tasas actuales el kernel en la PL no es necesario para el LDPC.
-- **Pendiente**: `make hls KERNEL=aurora_ldpc_dec` (C-sim + sintesis), nuevo
-  bitstream y comprobar la direccion del kernel en `address_map.txt`
-  (`aurora_board.h` supone 0xA004_0000).
+- **Sintetizado** (14/11/2026): 7,3 ns estimados, WNS del diseno +3,241 ns,
+  direccion 0xA004_0000 (la supuesta). HLS: 7.670 LUT, 4.805 FF, 89 BRAM18,
+  24 URAM; implementado: 3.227 LUT, 4.046 FF, 41/5 BRAM36/18. Por iteracion,
+  ~(d+7) ciclos/fila en la comprobacion y ~(2d+13) en la actualizacion: ~3,1 ms
+  por iteracion con R = 0,80 a 100 MHz (el A53 tarda ~3,9 ms).
+- Pendiente: la medida en placa (la primera ejecucion uso aun la aplicacion
+  sin el driver del kernel).
 
 ## Algoritmo de correlacion recibido (`nuevo_algoritmo.cpp`, 13/11/2026)
 

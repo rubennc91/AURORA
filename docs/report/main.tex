@@ -191,10 +191,11 @@ histograma; si la ventana se desborda, el \emph{kernel} lo indica (\code{complet
 
 \begin{table}[htbp]
 \centering
-\caption{Síntesis HLS (objetivo 10\,ns; todos los bucles principales con II = 1).}
-\begin{tabular}{lrrrrr}
+\caption{Síntesis HLS (estimación; objetivo 10\,ns; todos los bucles internos con II = 1).
+Los recursos tras la implementación son menores (tabla~\ref{tab:modulos}).}
+\begin{tabular}{lrrrrrr}
 \toprule
-Kernel & Estimado (ns) & LUT & FF & BRAM18 & DSP \\
+Kernel & Estimado (ns) & LUT & FF & BRAM18 & URAM & DSP \\
 \midrule
 \TablaHLS
 \bottomrule
@@ -213,7 +214,10 @@ bloques de 65\,536 bits) se ejecuta en el \emph{kernel} Toeplitz.
 \begin{itemize}
   \item Timing: \textbf{WNS = +\TimingWNS\,ns}, WHS = +\TimingWHS\,ns, sin \emph{endpoints} que fallen.
   \item DRC: 4 avisos LUTLP-2 (bucles combinacionales permitidos), uno por oscilador en anillo, como se espera.
-  \item Potencia estimada: total \PotenciaTotal{} (dinámica \PotenciaDinamica{}, estática \PotenciaEstatica{}).
+  \item Potencia estimada: total \PotenciaTotal{} (dinámica \PotenciaDinamica{}, estática \PotenciaEstatica{}), PS incluido.
+  \item Kernel LDPC: por iteración, $\sim$($d$+7) ciclos por fila en la comprobación del síndrome y
+        $\sim$(2$d$+13) en la actualización ($d$: grado de la fila). Con el código de tasa 0,80
+        ($m = 3277$, $d \approx 25$) son $\sim$3,1\,ms por iteración a 100\,MHz.
 \end{itemize}
 
 \begin{table}[htbp]
@@ -233,11 +237,11 @@ Recurso & Usado & Disp. & \% \\
 \end{minipage}\hfill
 \begin{minipage}[t]{0.58\textwidth}
 \centering
-\captionof{table}{Recursos por módulo.}
+\captionof{table}{Recursos por módulo (implementado).}\label{tab:modulos}
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrrrr}
 \toprule
-Módulo & LUT & FF & BRAM36/18 & DSP \\
+Módulo & LUT & FF & BRAM36/18 & URAM & DSP \\
 \midrule
 \TablaModulos
 \bottomrule
@@ -330,7 +334,7 @@ Captura & $T$ PL (°C) & Compression & $H_{\text{original}}$ \\
 \midrule
 Ambiente (sin sensor) & -- & 0,785 & 0,785 \\
 Frío (recién encendida) & 28,8 & 0,764 & 0,764 \\
-Normal & \pend & \pend & \pend \\
+Normal (ventilador, $>$15\,min) & 29,8--30,1 & 0,786 & 0,786 \\
 Caliente & \pend & \pend & \pend \\
 \bottomrule
 \end{tabular}
