@@ -15,6 +15,9 @@
 #   make test-baremetal  aplicacion bare-metal sobre una plataforma simulada (PC)
 #   make baremetal   aplicacion bare-metal para la placa (requiere XSCT)
 #   make board-run   programa la placa por JTAG y lanza la aplicacion
+#   make board-session  enciende el rele, captura la UART, board-run y apaga el rele
+#                    (RELAY=959BI_1 | none, BOARD_PORT=/dev/... si no es la de by-id)
+#   make release VERSION=v0.1.0   paquete listo para la placa en ~/aurora_<VERSION>.zip
 #   make board-restart PORT=/dev/ttyUSB1   test de reinicios del TRNG (SP 800-90B)
 # =============================================================================
 CXX      ?= g++
@@ -37,7 +40,7 @@ HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h sw/aurora_ldpc
 
 LEGACY_FLAGS := -O2 -std=c++17 -w -Itests/cpp/legacy_stub
 
-.PHONY: all test test-cpp test-python test-legacy test-trng test-heater test-all pipeline clean legacy-sim hls hls-all vivado bitstream baremetal-data test-baremetal baremetal board-run board-restart board-heat
+.PHONY: all test test-cpp test-python test-legacy test-trng test-heater test-all pipeline clean legacy-sim hls hls-all vivado bitstream baremetal-data test-baremetal baremetal board-run board-session release board-restart board-heat
 
 all: $(CLI)
 
@@ -157,6 +160,18 @@ baremetal: baremetal-data
 
 board-run:
 	xsct hw/scripts/run_board.tcl
+
+# Todo en uno: enciende el rele de la placa, captura la UART, lanza board-run y
+# APAGA EL RELE al terminar (tambien si falla). RELAY=none si no hay rele.
+RELAY ?= 959BI_1
+board-session:
+	RELAY="$(RELAY)" PORT="$(BOARD_PORT)" tools/board_session.sh --log $(BUILD)/board_log.txt \
+		--out $(BUILD)/trng_capture.txt -- xsct hw/scripts/run_board.tcl
+
+# Paquete de la release (bitstream SIN calefactor ya compilado): ~/aurora_<VERSION>.zip
+VERSION ?= dev
+release:
+	tools/make_release.sh $(VERSION)
 
 # Prueba en caliente con el calefactor de la PL (bitstream con VIVADO_ARGS=heater).
 # Antes, en otra terminal: python3 tools/uart_capture.py --port ... --log build/caliente_log.txt
