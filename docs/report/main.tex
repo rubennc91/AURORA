@@ -321,6 +321,21 @@ Corte de alimentación & 0 & 564 / 648 & 0,810 & 0,795 & \textbf{0,785} \\
 \end{tabular}
 \end{table}
 
+\begin{table}[htbp]
+\centering
+\caption{Entropía mínima ($H_{\text{original}}$, \code{ea\_non\_iid}) frente a la temperatura del chip.}
+\begin{tabular}{lccc}
+\toprule
+Captura & $T$ PL (°C) & Compression & $H_{\text{original}}$ \\
+\midrule
+Ambiente (sin sensor) & -- & 0,785 & 0,785 \\
+Frío (recién encendida) & 28,8 & 0,764 & 0,764 \\
+Normal & \pend & \pend & \pend \\
+Caliente & \pend & \pend & \pend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \noindent
 No hay transitorio de arranque: desde la primera muestra tras habilitar los osciladores, el valor más común
 entre reinicios aparece con frecuencia 0,50--0,56, también tras un corte de alimentación real (1000 ciclos

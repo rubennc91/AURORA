@@ -226,6 +226,13 @@ la sala, sino la del chip: captura en frio (placa apagada un buen rato), normal
 (15 min encendida) y caliente (ventilador tapado / caja, 20-30 min, < 100 C);
 `ea_non_iid` en cada una y se toma el minimo.
 
+| Captura | T PL / PS (C) | MCV | Collision | Markov | Compression | t-Tuple | H_original |
+|---|---|---|---|---|---|---|---|
+| Ambiente (13/11, sin sensor) | - | 0,937 | 0,910 | 0,940 | 0,785 | 0,912 | 0,785 |
+| Frio (14/11, recien encendida) | 28,8 / 29,9 | 0,938 | 1,000 | 0,966 | 0,764 | 0,901 | **0,764** |
+| Normal | pendiente | | | | | | |
+| Caliente | pendiente | | | | | | |
+
 ## Origen de las semillas
 
 Todas las semillas públicas las genera **Alice con el TRNG** (`RandomSource`;
