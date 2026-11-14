@@ -74,6 +74,44 @@ struct LagEstimate {
 
 LagEstimate estimate_lag(const Detections &alice, const Detections &bob, const SyncConfig &cfg = SyncConfig());
 
+// ------------------------------------------- retardos de cada detector -------
+// Cada detector (estado 0..3 = H, V, D, A) de Alice y de Bob tiene su propio
+// retardo. Si no se compensa, la diferencia de tiempos de un par depende del
+// bit (fuga por tiempo, ver docs/REVIEW.md) y el pico se ensancha.
+// Calibracion SOLO con tiempos (publicos): para los pares de las 16
+// combinaciones de estados (tambien las de base distinta),
+//   media(t_a - t_b - lag) = dA[a] - dB[b]
+// se ajusta por minimos cuadrados ponderados con media de dB = 0.
+struct DetectorDelays {
+    double alice[4] = {0, 0, 0, 0}, bob[4] = {0, 0, 0, 0};   // ps
+    bool valid = false;
+    double max_residual = 0;          // ps, peor combinacion con >= 500 pares
+    uint64_t pairs = 0;
+};
+// Acumulador por batch (para calibrar con muchos batches sin guardarlos).
+struct DelayCalibrator {
+    double sum[4][4] = {}, cnt[4][4] = {};
+    uint32_t pair_window_ps = 300;
+    // Anade los pares de un batch (estimate_lag incluido). false si no sincroniza.
+    bool add(const Detections &alice, const Detections &bob);
+    DetectorDelays solve() const;
+};
+// Calibracion iterativa: la ventana de pares (+-300 ps) recorta el pico, y con
+// las colas anchas de los detectores reales la media de cada combinacion solo
+// responde ~55 % a un desplazamiento (medido). Se compensa, se mide el residuo
+// y se acumula hasta que todas las combinaciones quedan centradas (el residuo
+// cae a la mitad en cada pasada con los datos reales: 8 pasadas, < 1 ps). 'for_each_batch' recorre los batches
+// llamando a la funcion que recibe (Alice, Bob) - p. ej. cargandolos de disco.
+DetectorDelays calibrate_detector_delays(
+    const std::function<void(const std::function<void(Detections &, Detections &)> &)> &for_each_batch,
+    int passes = 8);
+
+// Resta a cada tag el retardo de su detector (y suma un margen fijo para no
+// quedar negativo) y reordena. Aplicar a los dos lados antes de sincronizar.
+void apply_detector_delays(Detections &d, const double delay_ps[4]);
+bool save_detector_delays(const std::string &path, const DetectorDelays &d, std::string *err = nullptr);
+bool load_detector_delays(const std::string &path, DetectorDelays &d, std::string *err = nullptr);
+
 // ------------------------------------------------- ventana adaptativa --------
 // Elige el semiancho de la ventana de coincidencia de un batch SOLO con datos
 // de tiempo (publicos): el histograma fino de la sincronizacion da, para cada

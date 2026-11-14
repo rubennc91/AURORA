@@ -453,6 +453,25 @@ Consecuencias:
 4. **Explica el perfil de errores**: los pares de las colas del pico tienen
    mas errores (0,5 % en el centro, 2 % a 350-400 ps, 5 % a 400-450 ps).
 
+### Compensacion implementada (provisional hasta que lo haga el etiquetador)
+
+`aurora_cli calibrate-delays batches 0 100 retardos.txt` y `--delays
+retardos.txt` en `pipeline` y `stream` (sw/aurora_host: `DelayCalibrator`,
+`calibrate_detector_delays`, `apply_detector_delays`). Solo usa tiempos.
+La ventana de pares (+-300 ps) recorta las colas anchas de los detectores
+reales y la media de cada combinacion solo responde ~55 % a un desplazamiento
+(medido desplazando un detector 50 ps), asi que la calibracion es iterativa
+(8 pasadas; el residuo cae a la mitad en cada una). Retardos convergidos con
+los 101 batches (ps, H V D A): Alice +59,7 -41,2 -116,6 +108,8; Bob -54,4
++35,9 -90,6 +109,1 (los de la tabla de arriba son los de una sola pasada).
+
+Resultado: la informacion que da el tiempo sobre el bit en H/V baja de 0,162
+a **0,025 bits** (D/A: 0,008). Coste: ~1 % de clave (28.333 bits netos con
++-350 ps, que pasa a ser el optimo con compensacion, frente a 28.686 sin
+compensar con +-400 ps). 3 tests nuevos (retardos inyectados en datos
+sinteticos: todas las combinaciones quedan centradas; orden y eventos
+conservados; fichero). La aplicacion bare-metal aun no la aplica.
+
 Recomendaciones: (a) calibrar y compensar el retardo de cada canal, mejor en
 el propio etiquetador de tiempos (preguntar al proveedor); (b) igualar las
 eficiencias o incluir el desajuste y el sesgo en el analisis de seguridad

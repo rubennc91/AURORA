@@ -12,6 +12,9 @@
 //       completo; acumula clave cribada y, cada N bits, ejecuta la cadena
 //       autenticada y anade la clave final a claves.txt. El cliente de la API
 //       del receptor solo tiene que escribir ahi los ficheros.
+//   aurora_cli calibrate-delays <dir> <primero> <ultimo> <retardos.txt>
+//       Calibra el retardo de cada detector (solo con tiempos) y lo guarda;
+//       pipeline/stream lo aplican con --delays retardos.txt.
 //   aurora_cli polyhash <clave_hex32> [mensaje_hex]
 //       Hash polinomico GF(2^128) usado por la autenticacion.
 //   aurora_cli trng-analyze <captura> [--h H] [--extract salida.txt]
@@ -65,6 +68,38 @@ static int cmd_batch(const std::string &prefix, uint32_t w) {
     return lag.ok ? 0 : 1;
 }
 
+static int cmd_calibrate_delays(const std::string &dir, int first, int last, const std::string &out) {
+    int used = 0;
+    // Se cargan una vez (los 101 batches ocupan ~60 MB en memoria).
+    std::vector<std::pair<Detections, Detections>> data;
+    for (int i = first; i <= last; ++i) {
+        Detections a, b;
+        if (!load_batch(dir + "/batch" + std::to_string(i), a, b)) continue;
+        data.emplace_back(std::move(a), std::move(b));
+        ++used;
+    }
+    DetectorDelays d = calibrate_detector_delays([&](const std::function<void(Detections &, Detections &)> &f) {
+        for (auto &ab : data) f(ab.first, ab.second);
+    });
+    if (!d.valid) { std::fprintf(stderr, "datos insuficientes para calibrar (%d batches)\n", used); return 1; }
+    std::printf("batches %d, pares %llu, residuo max tras compensar %.1f ps\n", used, (unsigned long long)d.pairs,
+                d.max_residual);
+    std::printf("Alice H V D A: %+7.1f %+7.1f %+7.1f %+7.1f ps\n", d.alice[0], d.alice[1], d.alice[2], d.alice[3]);
+    std::printf("Bob   H V D A: %+7.1f %+7.1f %+7.1f %+7.1f ps\n", d.bob[0], d.bob[1], d.bob[2], d.bob[3]);
+    std::string err;
+    if (!save_detector_delays(out, d, &err)) { std::fprintf(stderr, "%s\n", err.c_str()); return 2; }
+    std::printf("guardado en %s\n", out.c_str());
+    return 0;
+}
+
+static DetectorDelays g_delays;   // --delays: compensacion de retardos por detector
+
+static void maybe_compensate(Detections &a, Detections &b) {
+    if (!g_delays.valid) return;
+    apply_detector_delays(a, g_delays.alice);
+    apply_detector_delays(b, g_delays.bob);
+}
+
 static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w, int ldpc, double hint) {
     Bits ka, kb;
     uint64_t coinc = 0;
@@ -77,6 +112,7 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w,
         Detections a, b;
         std::string prefix = dir + "/batch" + std::to_string(i);
         if (!load_batch(prefix, a, b)) continue;
+        maybe_compensate(a, b);
         LagEstimate lag = estimate_lag(a, b);
         // Cada batch tiene su propio desfase (~77 ps rms en las capturas reales):
         // si la sincronizacion falla, el batch se descarta (no se reutiliza un lag).
@@ -291,6 +327,10 @@ static int cmd_stream(int argc, char **argv) {
         else if (a == "--poll") poll_s = std::stod(next());
         else if (a == "--qber-hint") hint = std::stod(next());
         else if (a == "--ec") { std::string e = next(); ldpc = e == "ldpc" ? 1 : (e == "ldpc-fixed" ? 2 : 0); }
+        else if (a == "--delays") {
+            std::string err;
+            if (!load_detector_delays(next(), g_delays, &err)) { std::fprintf(stderr, "%s\n", err.c_str()); return 2; }
+        }
         else { std::fprintf(stderr, "opcion desconocida: %s\n", a.c_str()); return 64; }
     }
     if (!fs::is_directory(dir)) { std::fprintf(stderr, "no existe el directorio %s\n", dir.c_str()); return 2; }
@@ -342,6 +382,7 @@ static int cmd_stream(int argc, char **argv) {
                 ++discarded;
                 continue;
             }
+            maybe_compensate(a, b);
             LagEstimate lag = estimate_lag(a, b);
             if (!lag.ok) {
                 std::printf("%s: sync fallido (snr %.1f), descartado\n", name.c_str(), lag.snr);
@@ -385,6 +426,8 @@ static int cmd_stream(int argc, char **argv) {
 
 int main(int argc, char **argv) {
     if (argc >= 3 && std::string(argv[1]) == "stream") return cmd_stream(argc, argv);
+    if (argc >= 6 && std::string(argv[1]) == "calibrate-delays")
+        return cmd_calibrate_delays(argv[2], std::atoi(argv[3]), std::atoi(argv[4]), argv[5]);
     if (argc >= 3 && std::string(argv[1]) == "batch") {
         uint32_t w = argc >= 4 ? (uint32_t)std::atoi(argv[3]) : DEFAULT_HALF_WINDOW_PS;
         return cmd_batch(argv[2], w);
@@ -400,6 +443,10 @@ int main(int argc, char **argv) {
                 ldpc = ec == "ldpc" ? 1 : (ec == "ldpc-fixed" ? 2 : 0);
             }
             else if (a == "--qber-hint" && i + 1 < argc) hint = std::atof(argv[++i]);
+            else if (a == "--delays" && i + 1 < argc) {
+                std::string err;
+                if (!load_detector_delays(argv[++i], g_delays, &err)) { std::fprintf(stderr, "%s\n", err.c_str()); return 2; }
+            }
             else if (a == "--window" && i + 1 < argc) { std::string v = argv[++i]; w = v == "auto" ? 0 : (uint32_t)std::stoul(v); }
             else w = a == "auto" ? 0 : (uint32_t)std::atoi(argv[i]);
         }
@@ -419,13 +466,14 @@ int main(int argc, char **argv) {
     }
     std::fprintf(stderr,
                  "uso:\n  %s batch <prefijo> [half_window_ps]\n"
-                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps|auto] [--ec cascade|ldpc|ldpc-fixed] [--qber-hint Q]\n"
-                 "  %s stream <dir> [--block-bits N] [--out claves.txt] [--once] [--window ps|auto] [--ec cascade|ldpc|ldpc-fixed]\n"
+                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps|auto] [--ec cascade|ldpc|ldpc-fixed] [--qber-hint Q] [--delays f]\n"
+                 "  %s stream <dir> [--block-bits N] [--out claves.txt] [--once] [--window ps|auto] [--delays f] [--ec cascade|ldpc|ldpc-fixed]\n"
+                 "  %s calibrate-delays <dir> <primero> <ultimo> <retardos.txt>\n"
                  "  %s polyhash <clave_hex32> [mensaje_hex]\n"
                  "  %s trng-analyze <captura_hex> [--h H] [--seed S | --seed-file F] [--extract salida.txt]\n"
                  "  %s trng-analyze --raw-indexed <raw.txt> [--h H] [--extract salida.txt]\n"
                  "  %s trng-health <raw.txt> <rct_cutoff> <apt_cutoff>\n"
                  "  %s gen-random <n_bits | extractor> <salida.txt> [--h H]\n",
-                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
+                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
     return 64;
 }

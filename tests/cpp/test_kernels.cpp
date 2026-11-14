@@ -392,6 +392,124 @@ TEST(end_to_end_synthetic_pipeline) {
     CHECK(toeplitz_hash(ka, m, 1) == toeplitz_hash(kb, m, 1));
 }
 
+// ------------------------------------------------ retardos de cada detector --
+// Desplaza cada tag segun el retardo de su detector (como haria el hardware).
+static void inject_delays(Detections &d, const double delay[4]) {
+    const double neg[4] = {-delay[0], -delay[1], -delay[2], -delay[3]};
+    apply_detector_delays(d, neg);   // apply resta: con el signo cambiado, suma
+}
+
+static double mean_pair_offset(const Detections &a, const Detections &b, uint8_t sa, uint8_t sb) {
+    LagEstimate e = estimate_lag(a, b);
+    double s = 0, n = 0;
+    size_t ia = 0;
+    for (size_t ib = 0; ib < b.size(); ++ib) {
+        const double tb = (double)b.tags[ib] + e.lag;
+        while (ia < a.size() && (double)a.tags[ia] < tb - 300) ++ia;
+        if (ia < a.size() && std::fabs((double)a.tags[ia] - tb) <= 300 && a.states[ia] == sa && b.states[ib] == sb) {
+            s += (double)a.tags[ia] - tb;
+            n += 1;
+        }
+    }
+    return n ? s / n : 0;
+}
+
+TEST(detector_delays_are_recovered_and_removed) {
+    const double dA[4] = {40, -20, -60, 55}, dB[4] = {-30, 20, -45, 55};   // media de Bob = 0
+    std::vector<std::pair<Detections, Detections>> data;
+    for (uint64_t seed = 1; seed <= 6; ++seed) {
+        synth::Params p;
+        p.seed = 100 + seed;
+        p.jitter = 140;
+        p.pair_rate = 200e-9;
+        Detections a, b;
+        synth::generate(p, a, b);
+        inject_delays(a, dA);
+        inject_delays(b, dB);
+        data.emplace_back(a, b);
+    }
+    // Una sola pasada: sesgada hacia 0 (la ventana de pares recorta el pico).
+    DelayCalibrator one;
+    for (auto &ab : data) CHECK(one.add(ab.first, ab.second));
+    const DetectorDelays d1 = one.solve();
+    CHECK_MSG(std::fabs(d1.alice[3] - d1.bob[2]) < std::fabs(dA[3] - dB[2]) - 3,
+              std::to_string(d1.alice[3] - d1.bob[2]));
+    // Iterativa: recupera los retardos.
+    DetectorDelays d = calibrate_detector_delays([&](const std::function<void(Detections &, Detections &)> &f) {
+        for (auto &ab : data) f(ab.first, ab.second);
+    });
+    CHECK(d.valid);
+    // Objetivo: tras compensar, todas las combinaciones quedan centradas (es lo
+    // que elimina la dependencia del tiempo con el bit). Lo identificable son
+    // las diferencias dA[a] - dB[b]: una constante comun la absorbe el lag.
+    DelayCalibrator after_cal;
+    for (auto &ab : data) {
+        Detections a = ab.first, b = ab.second;
+        apply_detector_delays(a, d.alice);
+        apply_detector_delays(b, d.bob);
+        after_cal.add(a, b);
+    }
+    for (int a = 0; a < 4; ++a)
+        for (int b = 0; b < 4; ++b) {
+            const double m = after_cal.sum[a][b] / after_cal.cnt[a][b];
+            const double tol = 4.0 * 140.0 / std::sqrt(after_cal.cnt[a][b]) + 3.0;   // 4 errores tipicos
+            CHECK_MSG(std::fabs(m) < tol, std::to_string(a) + "," + std::to_string(b) + ": " + std::to_string(m) +
+                                              " (n = " + std::to_string((int)after_cal.cnt[a][b]) + ")");
+            const double est = d.alice[a] - d.bob[b], tru = dA[a] - dB[b];
+            CHECK_MSG(std::fabs(est - tru) < 0.2 * std::fabs(tru) + tol,
+                      std::to_string(a) + "," + std::to_string(b) + ": " + std::to_string(est) + " vs " + std::to_string(tru));
+        }
+    CHECK_MSG(d.max_residual < 8.0, std::to_string(d.max_residual));
+    // Antes: los pares H-H y V-V llegan con ~110 ps de diferencia (fuga por
+    // tiempo). Despues de compensar, la diferencia desaparece.
+    Detections a = data[0].first, b = data[0].second;
+    const double before = mean_pair_offset(a, b, 0, 0) - mean_pair_offset(a, b, 1, 1);
+    apply_detector_delays(a, d.alice);
+    apply_detector_delays(b, d.bob);
+    const double after = mean_pair_offset(a, b, 0, 0) - mean_pair_offset(a, b, 1, 1);
+    CHECK_MSG(std::fabs(before) > 80, std::to_string(before));
+    CHECK_MSG(std::fabs(after) < 15, std::to_string(after));
+    std::string err;
+    CHECK_MSG(validate_detections(a, &err) && validate_detections(b, &err), err);   // sigue ordenado
+}
+
+TEST(apply_detector_delays_keeps_events_and_order) {
+    synth::Params p;
+    p.seed = 7;
+    Detections a, b;
+    synth::generate(p, a, b);
+    const double delay[4] = {120, -80, 33, 0};
+    Detections c = a;
+    apply_detector_delays(c, delay);
+    CHECK(c.size() == a.size());
+    std::string err;
+    CHECK_MSG(validate_detections(c, &err), err);
+    int cnt_a[4] = {0}, cnt_c[4] = {0};
+    for (auto s : a.states) ++cnt_a[s];
+    for (auto s : c.states) ++cnt_c[s];
+    for (int k = 0; k < 4; ++k) CHECK(cnt_a[k] == cnt_c[k]);
+    // Deshacer devuelve los tiempos originales (salvo el margen fijo comun).
+    const double undo[4] = {-120, 80, -33, 0};
+    apply_detector_delays(c, undo);
+    const int64_t margin = (int64_t)c.tags[0] - (int64_t)a.tags[0];
+    bool same = true;
+    for (size_t i = 0; i < a.size(); ++i) same = same && ((int64_t)c.tags[i] - (int64_t)a.tags[i] == margin);
+    CHECK(same && margin == 2 * (1 << 20));
+}
+
+TEST(detector_delays_file_roundtrip_and_insufficient_data) {
+    DetectorDelays d;
+    for (int k = 0; k < 4; ++k) { d.alice[k] = 10.25 * k - 7; d.bob[k] = -3.5 * k; }
+    d.valid = true;
+    const std::string path = "build/test_delays.txt";
+    CHECK(save_detector_delays(path, d));
+    DetectorDelays e;
+    CHECK(load_detector_delays(path, e));
+    for (int k = 0; k < 4; ++k) CHECK(std::fabs(e.alice[k] - d.alice[k]) < 0.01 && std::fabs(e.bob[k] - d.bob[k]) < 0.01);
+    DelayCalibrator empty;
+    CHECK(!empty.solve().valid);
+}
+
 // ------------------------------------------------------- ventana adaptativa --
 static WindowChoice window_for(synth::Params p) {
     Detections a, b;

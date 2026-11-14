@@ -174,6 +174,145 @@ LagEstimate estimate_lag(const Detections &alice, const Detections &bob, const S
     return est;
 }
 
+// --------------------------------------------- retardos de cada detector ---
+bool DelayCalibrator::add(const Detections &a, const Detections &b) {
+    LagEstimate e = estimate_lag(a, b);
+    if (!e.ok) return false;
+    const double w = (double)pair_window_ps;
+    size_t ia = 0;
+    for (size_t ib = 0; ib < b.size(); ++ib) {
+        const double tb = (double)b.tags[ib] + e.lag;
+        while (ia < a.size() && (double)a.tags[ia] < tb - w) ++ia;
+        if (ia >= a.size()) break;
+        // Vecino mas cercano de Alice (ia o ia+1).
+        size_t best = ia;
+        if (ia + 1 < a.size() && std::fabs((double)a.tags[ia + 1] - tb) < std::fabs((double)a.tags[ia] - tb)) best = ia + 1;
+        const double d = (double)a.tags[best] - tb;
+        if (std::fabs(d) > w) continue;
+        const uint8_t sa = a.states[best], sb = b.states[ib];
+        if (sa > 3 || sb > 3) continue;
+        sum[sa][sb] += d;
+        cnt[sa][sb] += 1;
+    }
+    return true;
+}
+
+DetectorDelays DelayCalibrator::solve() const {
+    DetectorDelays r;
+    double m[4][4];
+    uint64_t total = 0;
+    for (int a = 0; a < 4; ++a)
+        for (int b = 0; b < 4; ++b) {
+            m[a][b] = cnt[a][b] > 0 ? sum[a][b] / cnt[a][b] : 0.0;
+            total += (uint64_t)cnt[a][b];
+        }
+    r.pairs = total;
+    // Faltan datos: cada detector necesita pares.
+    for (int k = 0; k < 4; ++k) {
+        double ra = 0, rb = 0;
+        for (int j = 0; j < 4; ++j) { ra += cnt[k][j]; rb += cnt[j][k]; }
+        if (ra < 100 || rb < 100) return r;
+    }
+    // Minimos cuadrados ponderados por alternancia (grafo bipartito: converge).
+    double dA[4] = {0, 0, 0, 0}, dB[4] = {0, 0, 0, 0};
+    for (int it = 0; it < 500; ++it) {
+        for (int a = 0; a < 4; ++a) {
+            double num = 0, den = 0;
+            for (int b = 0; b < 4; ++b) { num += cnt[a][b] * (m[a][b] + dB[b]); den += cnt[a][b]; }
+            dA[a] = num / den;
+        }
+        for (int b = 0; b < 4; ++b) {
+            double num = 0, den = 0;
+            for (int a = 0; a < 4; ++a) { num += cnt[a][b] * (dA[a] - m[a][b]); den += cnt[a][b]; }
+            dB[b] = num / den;
+        }
+        const double mb = (dB[0] + dB[1] + dB[2] + dB[3]) / 4;   // convenio: media de Bob = 0
+        for (int k = 0; k < 4; ++k) { dB[k] -= mb; dA[k] -= mb; }
+    }
+    for (int k = 0; k < 4; ++k) { r.alice[k] = dA[k]; r.bob[k] = dB[k]; }
+    for (int a = 0; a < 4; ++a)
+        for (int b = 0; b < 4; ++b)
+            if (cnt[a][b] >= 500) r.max_residual = std::max(r.max_residual, std::fabs(m[a][b] - (dA[a] - dB[b])));
+    r.valid = true;
+    return r;
+}
+
+DetectorDelays calibrate_detector_delays(
+    const std::function<void(const std::function<void(Detections &, Detections &)> &)> &for_each_batch, int passes) {
+    DetectorDelays total;
+    for (int p = 0; p < passes; ++p) {
+        DelayCalibrator cal;
+        for_each_batch([&](Detections &a, Detections &b) {
+            Detections ca = a, cb = b;
+            if (total.valid) {
+                apply_detector_delays(ca, total.alice);
+                apply_detector_delays(cb, total.bob);
+            }
+            cal.add(ca, cb);
+        });
+        DetectorDelays r = cal.solve();
+        if (!r.valid) return total.valid ? total : r;
+        for (int k = 0; k < 4; ++k) { total.alice[k] += r.alice[k]; total.bob[k] += r.bob[k]; }
+        total.valid = true;
+        total.pairs = r.pairs;
+        total.max_residual = r.max_residual;   // residuo de la ultima pasada (sobre datos ya compensados)
+    }
+    return total;
+}
+
+void apply_detector_delays(Detections &d, const double delay[4]) {
+    // Margen fijo (el mismo en Alice y Bob): mantiene los tags >= 0 y no cambia
+    // las diferencias. Los retardos reales son de decenas a cientos de ps.
+    const int64_t MARGIN = 1 << 20;   // ~1 us
+    std::vector<std::pair<uint64_t, uint8_t>> v(d.size());
+    for (size_t i = 0; i < d.size(); ++i) {
+        const uint8_t s = d.states[i] & 3;
+        const int64_t t = (int64_t)d.tags[i] + MARGIN - (int64_t)compat::llround(delay[s]);
+        v[i] = {(uint64_t)(t < 0 ? 0 : t), d.states[i]};
+    }
+    // Casi ordenado (solo se mueven vecinos a < ~200 ps): insercion es O(n).
+    for (size_t i = 1; i < v.size(); ++i) {
+        auto x = v[i];
+        size_t j = i;
+        while (j > 0 && v[j - 1].first > x.first) { v[j] = v[j - 1]; --j; }
+        v[j] = x;
+    }
+    for (size_t i = 0; i < v.size(); ++i) { d.tags[i] = v[i].first; d.states[i] = v[i].second; }
+}
+
+bool save_detector_delays(const std::string &path, const DetectorDelays &d, std::string *err) {
+    std::ofstream f(path);
+    if (!f) { if (err) *err = "no se puede escribir " + path; return false; }
+    char buf[256];
+    f << "# AURORA: retardos de cada detector (ps), estados H V D A\n";
+    ::snprintf(buf, sizeof buf, "alice %.2f %.2f %.2f %.2f\nbob %.2f %.2f %.2f %.2f\n", d.alice[0], d.alice[1],
+               d.alice[2], d.alice[3], d.bob[0], d.bob[1], d.bob[2], d.bob[3]);
+    f << buf;
+    ::snprintf(buf, sizeof buf, "# pares %llu, residuo max %.1f ps\n", (unsigned long long)d.pairs, d.max_residual);
+    f << buf;
+    return (bool)f;
+}
+
+bool load_detector_delays(const std::string &path, DetectorDelays &d, std::string *err) {
+    std::ifstream f(path);
+    if (!f) { if (err) *err = "no se puede abrir " + path; return false; }
+    std::string line;
+    int got = 0;
+    while (std::getline(f, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        double v[4];
+        char who[16] = {0};
+        if (::sscanf(line.c_str(), "%15s %lf %lf %lf %lf", who, &v[0], &v[1], &v[2], &v[3]) != 5) continue;
+        double *dst = std::string(who) == "alice" ? d.alice : (std::string(who) == "bob" ? d.bob : nullptr);
+        if (!dst) continue;
+        for (int k = 0; k < 4; ++k) dst[k] = v[k];
+        ++got;
+    }
+    d.valid = got == 2;
+    if (!d.valid && err) *err = "faltan las lineas 'alice' y 'bob' en " + path;
+    return d.valid;
+}
+
 // ----------------------------------------------------- ventana adaptativa ---
 void window_expectation(const LagEstimate &e, uint32_t w, double &signal, double &accidentals,
                         const WindowConfig *cfg, double *true_errors) {
