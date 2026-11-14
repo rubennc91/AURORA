@@ -231,7 +231,9 @@ la sala, sino la del chip: captura en frio (placa apagada un buen rato), normal
 | Ambiente (13/11, sin sensor) | - | 0,937 | 0,910 | 0,940 | 0,785 | 0,912 | 0,785 |
 | Frio (14/11, recien encendida) | 28,8 / 29,9 | 0,938 | 1,000 | 0,966 | 0,764 | 0,901 | **0,764** |
 | Normal (14/11, >15 min, ventilador) | 29,8 / 31,8 | 0,939 | 1,000 | 0,971 | 0,786 | 0,910 | **0,786** |
-| Caliente | no realizada (acceso remoto) | | | | | | |
+| *Bitstream con calefactor:* referencia, calefactor apagado | 24,3 / 25,6 | | | | 0,829 | | **0,805** |
+| Caliente, recien apagado el calefactor | 60,5 -> 52,8 / 55,9 | | | | 0,788 | | **0,788** |
+| Caliente, calefactor encendido (25/32 bancos) | 60,4 / 56,5 | | | | 0,791 | | **0,791** |
 
 Rango evaluado: 29-30 C en la PL (funcionamiento con ventilador). Sin
 evaluacion en caliente: la cubren el margen de 1,5x sobre H = 0,5 y los tests
@@ -251,8 +253,11 @@ con el calefactor encendido (`caliente_on`) y justo despues de apagarlo
 Si con todos los bancos no llega en 5 minutos, captura a la temperatura
 maxima alcanzada. Simulacion RTL (3 tests: actividad por banco, watchdog) y
 del modo completo en la plataforma simulada con un modelo termico.
-La potencia real (y por tanto cuanto sube la temperatura con el ventilador)
-solo se sabe en la placa.
+Medido (14/11/2026): de 27,5 a 60 C en ~80 s, estable con 25/32 bancos y
+el ventilador funcionando; con 32 bancos seguia subiendo (~70 C alcanzable).
+Al apagarlo la PL baja de 60,5 a 52,8 C en 0,7 s. Entre 24 y 60 C la
+entropia queda en 0,76-0,81 sin tendencia, y el ruido del calefactor no la
+afecta.
 
 ## Origen de las semillas
 

@@ -357,7 +357,11 @@ Captura & $T$ PL (°C) & Compression & $H_{\text{original}}$ \\
 Ambiente (sin sensor) & -- & 0,785 & 0,785 \\
 Frío (recién encendida) & 28,8 & 0,764 & 0,764 \\
 Normal (ventilador, $>$15\,min) & 29,8--30,1 & 0,786 & 0,786 \\
-Caliente & \multicolumn{3}{c}{no realizada (acceso remoto)} \\
+\midrule
+\multicolumn{4}{l}{\emph{Bitstream con calefactor (ubicación distinta del TRNG):}} \\
+Referencia, calefactor apagado & 24,3 & 0,829 & 0,805 \\
+Caliente, recién apagado el calefactor & 60,5 $\rightarrow$ 52,8 & 0,788 & 0,788 \\
+Caliente, calefactor encendido & 60,4 & 0,791 & 0,791 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -366,12 +370,13 @@ Caliente & \multicolumn{3}{c}{no realizada (acceso remoto)} \\
 No hay transitorio de arranque: desde la primera muestra tras habilitar los osciladores, el valor más común
 entre reinicios aparece con frecuencia 0,50--0,56, también tras un corte de alimentación real (1000 ciclos
 con un relé USB, $\sim$11\,h). La entropía tras reinicio es igual o mayor que la de funcionamiento continuo:
-el TRNG queda validado frente a reinicios. Rango de temperatura evaluado: 29--30\,°C en la PL, que es el de funcionamiento con el ventilador de la
-placa. No se ha evaluado en caliente (requiere tapar el ventilador o una cámara climática en el
-laboratorio). Si en el despliegue la temperatura fuese mayor, el diseño lo cubre de dos formas: el margen
-de 1,5 veces entre la entropía medida y la de diseño, y los tests de salud continuos en hardware, que
-detienen la salida si la fuente se degrada. La aplicación registra la temperatura en cada captura para
-completar la evaluación cuando sea posible.
+el TRNG queda validado frente a reinicios. Para la prueba en caliente sin acceso físico a la placa se añadió un calefactor en la propia PL
+(32 bancos de 512 osciladores en anillo, con \emph{watchdog} en hardware y regulación por software con
+límite de temperatura). Llevó la PL de 27,5 a 60\,°C en $\sim$80\,s y la mantuvo estable con 25 de 32
+bancos. Se capturó con el calefactor encendido y justo después de apagarlo (el chip se enfría
+rápidamente: de 60,5 a 52,8\,°C durante los 0,7\,s de la captura). Entre 24 y 60\,°C la entropía se
+mantiene en 0,76--0,81 sin tendencia con la temperatura, y el ruido de alimentación del calefactor no la
+afecta. El margen respecto a $H_{\min}=0{,}5$ de diseño es de 1,5 veces o más en todos los casos.
 
 % =============================================================================
 \section{Reconciliación: Cascade frente a LDPC}
