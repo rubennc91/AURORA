@@ -76,6 +76,8 @@ make test-baremetal                               # la aplicacion sobre una plat
 make baremetal                                    # plataforma + aplicacion en build/vitis_ws
 python3 tools/uart_capture.py --port /dev/ttyUSB1 # en otra terminal, antes de lanzar
 make board-run                                    # JTAG: PS + bitstream + aplicacion
+make board-session                                # igual, con el rele: enciende, captura la UART y apaga
+make release VERSION=v0.1.0                       # zip listo para la placa (make run, sin compilar)
 ```
 La aplicacion (`sw/baremetal/`) compara la FPGA con los resultados del PC (lag y
 claves bit a bit en 3 batches reales, Toeplitz), arranca el TRNG con

@@ -344,6 +344,14 @@ bool trng_start(TrngDriver &drv) {
 // -------------------------------------------------------------- kernels -----
 void kernels_vs_pc() {
     std::printf("\n== 3. Kernels sync + sift (FPGA) frente a los resultados del PC ==\n");
+    if (bm_delays_valid) {
+        const double *a = bm_delays_alice, *b = bm_delays_bob;
+        std::printf("  compensacion de retardos por detector (ps, H V D A): Alice %+.1f %+.1f %+.1f %+.1f, "
+                    "Bob %+.1f %+.1f %+.1f %+.1f; ventana +-%u ps\n",
+                    a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3], bm_half_window_ps);
+    } else {
+        std::printf("  sin compensacion de retardos; ventana +-%u ps\n", bm_half_window_ps);
+    }
     for (uint32_t i = 0; i < bm_n_batches; ++i) {
         const BmBatch &b = bm_batches[i];
         Detections A, B;
@@ -354,16 +362,23 @@ void kernels_vs_pc() {
 
         hw_kernel_timeout = false;
         double t0 = now_ms();
+        // Retardo de cada detector restado en los dos lados ANTES de sincronizar
+        // (los tiempos que se publicarian ya no dependen del bit).
+        if (bm_delays_valid) {
+            apply_detector_delays(A, bm_delays_alice);
+            apply_detector_delays(B, bm_delays_bob);
+        }
+        double tc = now_ms();
         LagEstimate e = estimate_lag(A, B);
         double t1 = now_ms();
         const int64_t lag = (int64_t)compat::llround(e.lag);
-        SiftOutput s = sift_batch(A, B, lag, DEFAULT_HALF_WINDOW_PS);
+        SiftOutput s = sift_batch(A, B, lag, bm_half_window_ps);
         double t2 = now_ms();
 
         std::printf("  %s: lag %" PRId64 " ps (PC %" PRId64 "), coincidencias %u (PC %u), cribados %zu (PC %u); "
-                    "sync %.2f ms, sift %.2f ms\n",
+                    "compensacion %.2f ms, sync %.2f ms, sift %.2f ms\n",
                     b.name, lag, b.exp_lag_ps, s.n_coincidences, b.exp_coincidences, s.alice_key.size(),
-                    b.exp_sifted, t1 - t0, t2 - t1);
+                    b.exp_sifted, tc - t0, t1 - tc, t2 - t1);
         std::string what = std::string(b.name) + ": ";
         check(!hw_kernel_timeout, (what + "los kernels terminan").c_str());
         check(e.ok && lag == b.exp_lag_ps, (what + "lag identico al del PC").c_str());

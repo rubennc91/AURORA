@@ -24,6 +24,16 @@ struct BmBatch {
 extern const BmBatch bm_batches[];
 extern const uint32_t bm_n_batches;
 
+// Compensacion de retardos por detector (ps, estados H V D A), calibrada en el
+// PC con todos los batches (aurora_cli calibrate-delays). Si bm_delays_valid,
+// la aplicacion la aplica a Alice y Bob antes de sincronizar y los resultados
+// esperados de bm_batches y las claves cribadas ya la incluyen; ventana de
+// coincidencia bm_half_window_ps (+-350 ps con compensacion, +-400 sin ella).
+extern const bool bm_delays_valid;
+extern const double bm_delays_alice[4];
+extern const double bm_delays_bob[4];
+extern const uint32_t bm_half_window_ps;
+
 // Caso de Toeplitz con su resultado calculado con un modelo Python independiente.
 extern const uint32_t bm_toep_n_in, bm_toep_n_out;
 extern const uint8_t bm_toep_in[];      // bits (0/1)

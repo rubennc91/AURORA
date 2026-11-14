@@ -20,6 +20,9 @@ namespace aurora {
 // 101 batches reales (clave neta con Cascade, PA asintotica): 250 ps -> 24.945,
 // 350 -> 28.381, 400 -> 28.686 (maximo), 450 -> 28.339. Ver docs/REVIEW.md.
 constexpr uint32_t DEFAULT_HALF_WINDOW_PS = 400;
+// Con la compensacion de retardos por detector (apply_detector_delays) el pico
+// se estrecha y el optimo pasa a +-350 ps (28.333 bits netos).
+constexpr uint32_t COMPENSATED_HALF_WINDOW_PS = 350;
 
 struct Detections {
     std::vector<uint64_t> tags;    // ps, ordenados

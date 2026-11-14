@@ -1,7 +1,7 @@
 // =============================================================================
 // AURORA - Herramienta de linea de comandos (PC / PS)
 //
-//   aurora_cli batch    <prefijo> [half_window_ps]
+//   aurora_cli batch    <prefijo> [half_window_ps] [--delays retardos.txt]
 //       Procesa un batch y emite una linea JSON (usada por los tests Python).
 //   aurora_cli pipeline <dir_batches> <primero> <ultimo> [half_window_ps]
 //       Cadena completa: sync -> sifting -> Cascade -> verificacion -> PA,
@@ -46,6 +46,14 @@
 
 using namespace aurora;
 
+static DetectorDelays g_delays;   // --delays: compensacion de retardos por detector
+
+static void maybe_compensate(Detections &a, Detections &b) {
+    if (!g_delays.valid) return;
+    apply_detector_delays(a, g_delays.alice);
+    apply_detector_delays(b, g_delays.bob);
+}
+
 static int cmd_batch(const std::string &prefix, uint32_t w) {
     Detections a, b;
     std::string err;
@@ -53,6 +61,7 @@ static int cmd_batch(const std::string &prefix, uint32_t w) {
         std::printf("{\"ok\":false,\"error\":\"%s\"}\n", err.c_str());
         return 2;
     }
+    maybe_compensate(a, b);
     LagEstimate lag = estimate_lag(a, b);
     int64_t lag_ps = (int64_t)std::llround(lag.lag);
     SiftOutput s = sift_batch(a, b, lag_ps, w);
@@ -90,14 +99,6 @@ static int cmd_calibrate_delays(const std::string &dir, int first, int last, con
     if (!save_detector_delays(out, d, &err)) { std::fprintf(stderr, "%s\n", err.c_str()); return 2; }
     std::printf("guardado en %s\n", out.c_str());
     return 0;
-}
-
-static DetectorDelays g_delays;   // --delays: compensacion de retardos por detector
-
-static void maybe_compensate(Detections &a, Detections &b) {
-    if (!g_delays.valid) return;
-    apply_detector_delays(a, g_delays.alice);
-    apply_detector_delays(b, g_delays.bob);
 }
 
 static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w, int ldpc, double hint) {
@@ -429,7 +430,15 @@ int main(int argc, char **argv) {
     if (argc >= 6 && std::string(argv[1]) == "calibrate-delays")
         return cmd_calibrate_delays(argv[2], std::atoi(argv[3]), std::atoi(argv[4]), argv[5]);
     if (argc >= 3 && std::string(argv[1]) == "batch") {
-        uint32_t w = argc >= 4 ? (uint32_t)std::atoi(argv[3]) : DEFAULT_HALF_WINDOW_PS;
+        uint32_t w = DEFAULT_HALF_WINDOW_PS;
+        for (int i = 3; i < argc; ++i) {
+            std::string a = argv[i];
+            if (a == "--delays" && i + 1 < argc) {
+                std::string err;
+                if (!load_detector_delays(argv[++i], g_delays, &err)) { std::fprintf(stderr, "%s\n", err.c_str()); return 2; }
+            }
+            else w = (uint32_t)std::atoi(argv[i]);
+        }
         return cmd_batch(argv[2], w);
     }
     if (argc >= 5 && std::string(argv[1]) == "pipeline") {

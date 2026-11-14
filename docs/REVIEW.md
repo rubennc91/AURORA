@@ -470,7 +470,9 @@ a **0,025 bits** (D/A: 0,008). Coste: ~1 % de clave (28.333 bits netos con
 +-350 ps, que pasa a ser el optimo con compensacion, frente a 28.686 sin
 compensar con +-400 ps). 3 tests nuevos (retardos inyectados en datos
 sinteticos: todas las combinaciones quedan centradas; orden y eventos
-conservados; fichero). La aplicacion bare-metal aun no la aplica.
+conservados; fichero).
+
+**En la placa (14/11/2026):** la aplicacion bare-metal tambien la aplica. `tools/make_baremetal_data.py` calibra en el PC (`build/retardos.txt`), embebe los retardos y la ventana de +-350 ps (`COMPENSATED_HALF_WINDOW_PS`) y calcula los resultados esperados con la misma compensacion (`aurora_cli batch <prefijo> 350 --delays retardos.txt`); `sw/baremetal/main.cpp` llama a `apply_detector_delays` en Alice y Bob antes de sincronizar. Resultado en la ZCU104: lag, coincidencias y claves identicos bit a bit al PC en los 3 batches, cadena completa autenticada con 28.330 bits netos (41.790 cribados) y TODO OK. La compensacion cuesta ~2,4 ms por batch de 25 ms en el A53 (sync 5,1 ms, sift 2,7 ms). `--no-delays` en el generador vuelve al comportamiento anterior (+-400 ps sin compensar).
 
 Recomendaciones: (a) calibrar y compensar el retardo de cada canal, mejor en
 el propio etiquetador de tiempos (preguntar al proveedor); (b) igualar las

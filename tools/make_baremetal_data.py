@@ -21,6 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 # Ventana de coincidencia: la misma constante que usa el software (aurora_host.h).
 HALF_WINDOW = int(re.search(r"DEFAULT_HALF_WINDOW_PS\s*=\s*(\d+)", (ROOT / "sw" / "aurora_host.h").read_text()).group(1))
+COMP_WINDOW = int(re.search(r"COMPENSATED_HALF_WINDOW_PS\s*=\s*(\d+)", (ROOT / "sw" / "aurora_host.h").read_text()).group(1))
 sys.path.insert(0, str(ROOT / "tests" / "python"))
 import aurora_ref as ref  # noqa: E402
 
@@ -54,6 +55,18 @@ def bits_from_hex_file(path: Path) -> list[int]:
     return bits[:n]
 
 
+def parse_delays(path: Path) -> tuple[list[float], list[float]]:
+    """Lee el fichero de save_detector_delays: lineas 'alice d0 d1 d2 d3' y 'bob ...'."""
+    vals = {}
+    for line in path.read_text().splitlines():
+        f = line.split()
+        if len(f) == 5 and f[0] in ("alice", "bob"):
+            vals[f[0]] = [float(x) for x in f[1:]]
+    if set(vals) != {"alice", "bob"}:
+        sys.exit(f"{path}: faltan las lineas 'alice' o 'bob'")
+    return vals["alice"], vals["bob"]
+
+
 def toeplitz_reference(x: list[int], seed: list[int], m: int) -> list[int]:
     n = len(x)
     out = []
@@ -71,17 +84,49 @@ def main() -> int:
     ap.add_argument("--batches", default="0,1,2")
     ap.add_argument("--out", default=str(ROOT / "build" / "baremetal_src"))
     ap.add_argument("--batches-dir", default=str(ROOT / "batches"))
+    ap.add_argument("--delays", default="", help="retardos calibrados (por defecto build/retardos.txt; se calibra si no existe)")
+    ap.add_argument("--no-delays", action="store_true", help="sin compensacion de retardos (ventana por defecto)")
     args = ap.parse_args()
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     cli = cli_path()
 
     parts = ['// GENERADO por tools/make_baremetal_data.py: no editar.\n#include "aurora_data.h"\n\n']
+
+    # Retardos de cada detector: calibrados en el PC con todos los batches (solo
+    # tiempos). La placa los aplica a Alice y Bob antes de sincronizar, y los
+    # resultados esperados se calculan aqui con la misma compensacion.
+    window = HALF_WINDOW
+    delay_args: list[str] = []
+    da, db = [0.0] * 4, [0.0] * 4
+    if args.no_delays:
+        print("sin compensacion de retardos (--no-delays)")
+    else:
+        delays_file = Path(args.delays) if args.delays else ROOT / "build" / "retardos.txt"
+        if not delays_file.exists():
+            if args.delays:
+                sys.exit(f"no existe {delays_file}")
+            print(f"calibrando los retardos de los detectores -> {delays_file}")
+            subprocess.run([str(cli), "calibrate-delays", args.batches_dir, "0", "100", str(delays_file)], check=True)
+        da, db = parse_delays(delays_file)
+        window = COMP_WINDOW
+        delay_args = ["--delays", str(delays_file)]
+        print(f"retardos ({delays_file}): Alice {da}, Bob {db}; ventana +-{window} ps")
+    parts.append(f"const bool bm_delays_valid = {'true' if delay_args else 'false'};\n")
+    parts.append("const double bm_delays_alice[4] = {" + ", ".join(repr(float(v)) for v in da) + "};\n")
+    parts.append("const double bm_delays_bob[4] = {" + ", ".join(repr(float(v)) for v in db) + "};\n")
+    parts.append(f"const uint32_t bm_half_window_ps = {window};\n\n")
+
+    def run_batch(prefix: Path) -> dict:
+        out = subprocess.run([str(cli), "batch", str(prefix), str(window)] + delay_args,
+                             capture_output=True, text=True).stdout
+        return json.loads(out)
+
     entries = []
     for i in [int(x) for x in args.batches.split(",") if x != ""]:
         prefix = Path(args.batches_dir) / f"batch{i}"
         ta, sa, tb, sb = ref.load_batch(prefix)
-        r = json.loads(subprocess.run([str(cli), "batch", str(prefix), str(HALF_WINDOW)], capture_output=True, text=True).stdout)
+        r = run_batch(prefix)
         if not r.get("ok"):
             sys.exit(f"batch{i}: la cadena del PC no da resultado valido: {r}")
         parts.append(carray("uint64_t", f"b{i}_at", ta, 8))
@@ -104,8 +149,7 @@ def main() -> int:
     ka, kb = [], []
     all_ids = sorted(int(p.name[5:-len("_alice.detections")]) for p in Path(args.batches_dir).glob("batch*_alice.detections"))
     for i in all_ids:
-        r = json.loads(subprocess.run([str(cli), "batch", str(Path(args.batches_dir) / f"batch{i}"), str(HALF_WINDOW)],
-                                      capture_output=True, text=True).stdout)
+        r = run_batch(Path(args.batches_dir) / f"batch{i}")
         if not r.get("ok"):
             continue
         ka += hex_to_bits(r["alice_key"], r["sifted"])
