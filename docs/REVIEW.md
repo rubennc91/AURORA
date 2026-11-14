@@ -231,7 +231,14 @@ la sala, sino la del chip: captura en frio (placa apagada un buen rato), normal
 | Ambiente (13/11, sin sensor) | - | 0,937 | 0,910 | 0,940 | 0,785 | 0,912 | 0,785 |
 | Frio (14/11, recien encendida) | 28,8 / 29,9 | 0,938 | 1,000 | 0,966 | 0,764 | 0,901 | **0,764** |
 | Normal (14/11, >15 min, ventilador) | 29,8 / 31,8 | 0,939 | 1,000 | 0,971 | 0,786 | 0,910 | **0,786** |
-| Caliente | pendiente | | | | | | |
+| Caliente | no realizada (acceso remoto) | | | | | | |
+
+Rango evaluado: 29-30 C en la PL (funcionamiento con ventilador). Sin
+evaluacion en caliente: la cubren el margen de 1,5x sobre H = 0,5 y los tests
+de salud continuos (detienen la salida si la fuente se degrada). Pendiente
+para cuando haya acceso al laboratorio (tapar el ventilador o camara
+climatica); alternativa remota posible: un bloque calefactor en la PL con
+limite de temperatura por software.
 
 ## Origen de las semillas
 

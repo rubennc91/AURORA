@@ -335,7 +335,7 @@ Captura & $T$ PL (°C) & Compression & $H_{\text{original}}$ \\
 Ambiente (sin sensor) & -- & 0,785 & 0,785 \\
 Frío (recién encendida) & 28,8 & 0,764 & 0,764 \\
 Normal (ventilador, $>$15\,min) & 29,8--30,1 & 0,786 & 0,786 \\
-Caliente & \pend & \pend & \pend \\
+Caliente & \multicolumn{3}{c}{no realizada (acceso remoto)} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -344,8 +344,12 @@ Caliente & \pend & \pend & \pend \\
 No hay transitorio de arranque: desde la primera muestra tras habilitar los osciladores, el valor más común
 entre reinicios aparece con frecuencia 0,50--0,56, también tras un corte de alimentación real (1000 ciclos
 con un relé USB, $\sim$11\,h). La entropía tras reinicio es igual o mayor que la de funcionamiento continuo:
-el TRNG queda validado frente a reinicios. Pendiente: capturas en frío y en caliente (la aplicación
-registra la temperatura del chip en cada captura).
+el TRNG queda validado frente a reinicios. Rango de temperatura evaluado: 29--30\,°C en la PL, que es el de funcionamiento con el ventilador de la
+placa. No se ha evaluado en caliente (requiere tapar el ventilador o una cámara climática en el
+laboratorio). Si en el despliegue la temperatura fuese mayor, el diseño lo cubre de dos formas: el margen
+de 1,5 veces entre la entropía medida y la de diseño, y los tests de salud continuos en hardware, que
+detienen la salida si la fuente se degrada. La aplicación registra la temperatura en cada captura para
+completar la evaluación cuando sea posible.
 
 % =============================================================================
 \section{Reconciliación: Cascade frente a LDPC}
@@ -475,6 +479,7 @@ optimizadas por evolución de densidad.
         representar las claves empaquetadas (64 bits por palabra) y usar NEON (\code{PMULL} para $\mathrm{GF}(2^{128})$).
   \item \textbf{QRNG del receptor}: si la API lo expone, combinarlo con el TRNG (XOR).
   \item \textbf{LDPC}: tramas mayores, distribuciones optimizadas; en la PL, códigos QC-LDPC para decodificar varias filas en paralelo.
+  \item \textbf{TRNG}: evaluación en caliente (tapando el ventilador o en cámara climática) cuando haya acceso al laboratorio.
 \end{itemize}
 
 \end{document}
