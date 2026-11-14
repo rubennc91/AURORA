@@ -500,6 +500,12 @@ optimizadas por evolución de densidad.
 \begin{itemize}
   \item \textbf{Seguridad}: la longitud de la amplificación de privacidad usa la fórmula asintótica de BB84, sin
         correcciones de tamaño finito; debe validarse con el equipo de UPM.
+  \item \textbf{Detectores desajustados (hallazgo en los datos reales)}: los retardos de los detectores difieren
+        hasta $\sim$120\,ps y sus eficiencias hasta un 40\%. En la base H/V, la diferencia de tiempos de cada par
+        da 0,16 bits de información sobre el bit (0,03 compensando los retardos de cada canal), y la clave cribada
+        está sesgada ($P(0) = 0{,}38$--$0{,}40$). Si las marcas de tiempo se intercambian por un canal público,
+        hay que compensar los retardos (idealmente en el etiquetador de tiempos) e incluir la fuga, el sesgo y el
+        desajuste de eficiencia en el análisis de seguridad.
   \item \textbf{Integración con la API del receptor} y paso a Linux (PetaLinux) con \emph{buffers} contiguos.
   \item \textbf{Alice y Bob en procesos separados}, con los anuncios del \emph{sifting} dentro de la transcripción autenticada.
   \item \textbf{Rendimiento en el PS}: medir el reparto de tiempos por etapa; generar las semillas en segundo plano;
