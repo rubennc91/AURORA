@@ -208,13 +208,14 @@ Resultados en placa (modo `soft`, 1000 x 1000, H_I = 0,785228; `ea_restart -n`):
 |---|---|---|---|---|---|
 | 0 | 564 / 648 | 0,779 | 0,803 | **0,779** | superada |
 | 1024 | 567 / 648 | 0,781 | 0,778 | **0,778** | superada |
+| 0 (corte de alimentacion real, 1000 ciclos con rele, ~11 h) | 564 / 648 | 0,810 | 0,795 | **0,785** | superada |
 
 No hay transitorio de arranque: ya en la primera muestra tras habilitar los
 osciladores el valor mas comun aparece con frecuencia 0,50-0,55 entre
 reinicios. La entropia tras reinicio coincide con la de funcionamiento
 continuo, asi que H_min = 0,5 sigue teniendo un margen de ~1,55x.
-Pendiente: el modo `power` (corte de alimentacion real; la placa esta en el
-rele `959BI_1`).
+El modo `power` (corte de alimentacion real con el rele `959BI_1`) da el
+mismo resultado: el TRNG queda validado frente a reinicios.
 
 ### Temperatura
 

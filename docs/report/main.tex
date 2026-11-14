@@ -316,14 +316,16 @@ Modo & Descarte & Cordura & $H_r$ & $H_c$ & $\min(H_r, H_c, H_I)$ \\
 \midrule
 Parada/arranque & 0 & 564 / 648 & 0,779 & 0,803 & \textbf{0,779} \\
 Parada/arranque & 1024 & 567 / 648 & 0,781 & 0,778 & \textbf{0,778} \\
-Corte de alimentación & 0 & \pend & \pend & \pend & \pend \\
+Corte de alimentación & 0 & 564 / 648 & 0,810 & 0,795 & \textbf{0,785} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \noindent
 No hay transitorio de arranque: desde la primera muestra tras habilitar los osciladores, el valor más común
-entre reinicios aparece con frecuencia 0,50--0,55. Pendiente: capturas en frío y en caliente (la aplicación
+entre reinicios aparece con frecuencia 0,50--0,56, también tras un corte de alimentación real (1000 ciclos
+con un relé USB, $\sim$11\,h). La entropía tras reinicio es igual o mayor que la de funcionamiento continuo:
+el TRNG queda validado frente a reinicios. Pendiente: capturas en frío y en caliente (la aplicación
 registra la temperatura del chip en cada captura).
 
 % =============================================================================
