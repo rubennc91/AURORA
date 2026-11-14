@@ -23,7 +23,7 @@ jobs:
       - name: Fallos documentados del codigo anterior (XFAIL)
         run: make test-legacy
       - name: TRNG (simulacion RTL)
-        run: make test-trng
+        run: make test-trng test-heater
       - name: Aplicacion bare-metal (plataforma simulada)
         run: make test-baremetal
       - name: Pipeline completo

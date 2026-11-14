@@ -7,6 +7,8 @@
 #   board=<board_part>   p. ej. board=xilinx.com:zcu104:part0:1.1 (por defecto:
 #                        se busca una ZCU104 instalada; si no hay, solo el part)
 #   part=<part>          por defecto xczu7ev-ffvc1156-2-e
+#   heater               incluye el calefactor de la PL (rtl/heater) en 0xA00F_0000,
+#                        para las pruebas de temperatura del TRNG a distancia
 #   bitstream            ademas lanza sintesis + implementacion + bitstream y
 #                        exporta build/vivado/aurora.xsa (para Vitis/PetaLinux)
 #   jobs=<n>             trabajos en paralelo (por defecto 4)
@@ -26,12 +28,14 @@
 set part  xczu7ev-ffvc1156-2-e
 set board ""
 set do_bit 0
+set heater 0
 set jobs 4
 foreach a $argv {
     if {[regexp {^board=(.*)$} $a -> v]} { set board $v }
     if {[regexp {^part=(.*)$}  $a -> v]} { set part $v }
     if {[regexp {^jobs=(.*)$}  $a -> v]} { set jobs $v }
     if {$a eq "bitstream"} { set do_bit 1 }
+    if {$a eq "heater"} { set heater 1 }
 }
 
 set root [pwd]
@@ -61,6 +65,11 @@ add_files -norecurse [list \
     $root/rtl/trng/trng_health.v \
     $root/rtl/trng/trng_axi.v ]
 add_files -fileset constrs_1 -norecurse $root/rtl/trng/trng.xdc
+if {$heater} {
+    add_files -norecurse $root/rtl/heater/heater_axi.v
+    add_files -fileset constrs_1 -norecurse $root/rtl/heater/heater.xdc
+    puts "AURORA: se incluye el calefactor de la PL"
+}
 update_compile_order -fileset sources_1
 
 # IPs de los kernels HLS exportados
@@ -106,6 +115,15 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config [list \
     Master {/zynq_ps/M_AXI_HPM0_FPD} Slave {/trng_0/s_axi} ddr_seg {Auto} \
     intc_ip {New AXI SmartConnect} master_apm {0}] [get_bd_intf_pins trng_0/s_axi]
 
+# Calefactor (opcional)
+if {$heater} {
+    create_bd_cell -type module -reference heater_axi heater_0
+    apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config [list \
+        Clk_master {/zynq_ps/pl_clk0 (100 MHz)} Clk_slave {Auto} Clk_xbar {Auto} \
+        Master {/zynq_ps/M_AXI_HPM0_FPD} Slave {/heater_0/s_axi} ddr_seg {Auto} \
+        intc_ip {Auto} master_apm {0}] [get_bd_intf_pins heater_0/s_axi]
+}
+
 # Kernels HLS: control por AXI4-Lite desde el PS (la automatizacion conecta
 # tambien el reloj y el reset de cada kernel)
 set hls_masters {}
@@ -143,6 +161,11 @@ if {[llength $hls_masters] > 0} {
 }
 
 assign_bd_address
+# El calefactor en una direccion fija (sw/baremetal/aurora_board.h: HEATER_BASE).
+foreach seg [get_bd_addr_segs -of_objects [get_bd_addr_spaces zynq_ps/Data] -filter {NAME =~ "*heater*"}] {
+    set_property OFFSET 0xA00F0000 $seg
+    set_property RANGE 64K $seg
+}
 regenerate_bd_layout
 validate_bd_design
 save_bd_design

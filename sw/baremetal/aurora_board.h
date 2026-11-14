@@ -26,6 +26,16 @@ constexpr uintptr_t LDPC_BASE     = 0xA0040000u;
 // Cualquier otro valor -> prueba completa. La aplicacion lo borra al leerlo.
 constexpr uintptr_t MAILBOX               = 0x7FFF0000u;
 constexpr uint32_t  MAILBOX_MAGIC_RESTART = 0x52535452u;   // "RSTR"
+// Modo calefactor: +4 objetivo (decimas de C), +8 segundos estable, +12 limite
+// (decimas de C), +16 ms entre cambios de banco (0 = 2000).
+constexpr uint32_t  MAILBOX_MAGIC_HEAT    = 0x48454154u;   // "HEAT"
+
+// Calefactor de la PL (solo en bitstreams con VIVADO_ARGS=heater).
+constexpr uintptr_t HEATER_BASE = 0xA00F0000u;
+namespace heater_reg {
+constexpr uint32_t CTRL = 0x00, STATUS = 0x04, WDOG = 0x08, ID = 0x0C, CONFIG = 0x10, ACTIVITY = 0x14;
+constexpr uint32_t ID_VALUE = 0x48454154u;
+}
 
 // Sensores de temperatura (AMS de Zynq UltraScale+, base 0xFFA50000):
 // SYSMON del PS en +0x800 y del PL en +0xC00; registro de temperatura en +0x00.

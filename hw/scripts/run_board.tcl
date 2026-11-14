@@ -7,6 +7,8 @@
 #
 # Test de reinicios del TRNG (lo lanza tools/restart_test.py):
 #   xsct hw/scripts/run_board.tcl restart <n_reinicios> <descarte> <apagado_us>
+# Calefactor (bitstream con VIVADO_ARGS=heater):
+#   xsct hw/scripts/run_board.tcl heat <objetivo_C> <estable_s> <limite_C>
 # =============================================================================
 set mode "full"
 if {[llength $argv] >= 1 && [lindex $argv 0] eq "restart"} {
@@ -15,6 +17,20 @@ if {[llength $argv] >= 1 && [lindex $argv 0] eq "restart"} {
     foreach {r_n r_skip r_off} [lrange $argv 1 3] {}
     foreach v [list $r_n $r_skip $r_off] {
         if {![string is integer -strict $v] || $v < 0} { error "parametro no valido: $v" }
+    }
+}
+if {[llength $argv] >= 1 && [lindex $argv 0] eq "heat"} {
+    if {[llength $argv] != 4} { error "uso: run_board.tcl heat <objetivo_C> <estable_s> <limite_C>" }
+    set mode "heat"
+    foreach {h_target h_hold h_limit} [lrange $argv 1 3] {}
+    foreach v [list $h_target $h_hold $h_limit] {
+        if {![string is double -strict $v] || $v < 0} { error "parametro no valido: $v" }
+    }
+    if {$h_limit > 95 || $h_target >= $h_limit} { error "limite <= 95 C y objetivo < limite" }
+    # Solo si el bitstream lleva el calefactor (si no, el acceso a su direccion falla).
+    set amap [file join [pwd] build vivado address_map.txt]
+    if {![file exists $amap] || [catch {exec grep -qi heater $amap}]} {
+        error "El bitstream no incluye el calefactor: make bitstream VIVADO_ARGS=heater && make baremetal"
     }
 }
 # Buzon en DDR (sw/baremetal/aurora_board.h: board::MAILBOX)
@@ -62,6 +78,13 @@ if {$mode eq "restart"} {
     mwr [expr {$mailbox + 8}] $r_skip
     mwr [expr {$mailbox + 12}] $r_off
     puts "AURORA: modo test de reinicios ($r_n reinicios, descarte $r_skip, apagado $r_off us)"
+} elseif {$mode eq "heat"} {
+    mwr $mailbox 0x48454154
+    mwr [expr {$mailbox + 4}] [expr {int(round($h_target * 10))}]
+    mwr [expr {$mailbox + 8}] [expr {int($h_hold)}]
+    mwr [expr {$mailbox + 12}] [expr {int(round($h_limit * 10))}]
+    mwr [expr {$mailbox + 16}] 0
+    puts "AURORA: modo calefactor (objetivo $h_target C, estable $h_hold s, limite $h_limit C)"
 } else {
     mwr $mailbox 0
 }

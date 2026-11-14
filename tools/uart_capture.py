@@ -76,29 +76,37 @@ def read_serial(port: str, baud: int, log: Path, timeout: float) -> None:
         os.close(fd)
 
 
-def extract(log: Path, out: Path) -> int:
+def extract(log: Path, out: Path, label: str | None = None) -> int:
+    """Extrae la captura del log. Si hay varias (modo calefactor), 'label'
+    elige cual (TRNG_RAW_BEGIN <n> <etiqueta>); sin etiqueta, la ultima."""
     lines = log.read_text(errors="replace").splitlines()
     words, inside, expected, temps = [], False, None, []
+    found = None
     for line in lines:
         line = line.strip()
         if line.startswith("TEMP "):
             temps.append(line)
         if line.startswith("TRNG_RAW_BEGIN"):
-            inside, words = True, []
             parts = line.split()
+            this_label = parts[2] if len(parts) > 2 else None
+            if label is not None and this_label != label:
+                inside = False
+                continue
+            inside, words = True, []
+            found = this_label
             expected = int(parts[1]) if len(parts) > 1 else None
         elif line.startswith("TRNG_RAW_END"):
             inside = False
         elif inside and HEX.match(line):
             words.append(line)
     if not words:
-        print("No hay captura del TRNG en el log.")
+        print("No hay captura del TRNG en el log" + (f" con la etiqueta '{label}'." if label else "."))
         return 1
     # Las lineas '#' las ignoran trng-analyze, nist_sts.py y load_trng_words.
     out.write_text("".join(f"# {t}\n" for t in temps) + "\n".join(words) + "\n")
     for t in temps:
         print(t)
-    print(f"Captura del TRNG: {len(words)} palabras ({32 * len(words)} bits) -> {out}")
+    print(f"Captura del TRNG{' ' + found if found else ''}: {len(words)} palabras ({32 * len(words)} bits) -> {out}")
     if expected is not None and expected != len(words):
         print(f"AVISO: se esperaban {expected} palabras (se perdieron lineas en la UART)")
         return 1
@@ -113,6 +121,7 @@ def main() -> int:
     ap.add_argument("--log", default=str(ROOT / "build" / "board_log.txt"))
     ap.add_argument("--out", default=str(ROOT / "build" / "trng_capture.txt"))
     ap.add_argument("--timeout", type=float, default=120.0)
+    ap.add_argument("--label", help="captura a extraer si hay varias (p. ej. caliente_off)")
     args = ap.parse_args()
     if not args.port and not args.from_log:
         ap.error("indica --port o --from-log")
@@ -120,7 +129,7 @@ def main() -> int:
     log.parent.mkdir(parents=True, exist_ok=True)
     if args.port:
         read_serial(args.port, args.baud, log, args.timeout)
-    return extract(log, Path(args.out))
+    return extract(log, Path(args.out), args.label)
 
 
 if __name__ == "__main__":

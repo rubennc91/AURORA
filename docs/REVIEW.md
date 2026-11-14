@@ -235,10 +235,24 @@ la sala, sino la del chip: captura en frio (placa apagada un buen rato), normal
 
 Rango evaluado: 29-30 C en la PL (funcionamiento con ventilador). Sin
 evaluacion en caliente: la cubren el margen de 1,5x sobre H = 0,5 y los tests
-de salud continuos (detienen la salida si la fuente se degrada). Pendiente
-para cuando haya acceso al laboratorio (tapar el ventilador o camara
-climatica); alternativa remota posible: un bloque calefactor en la PL con
-limite de temperatura por software.
+de salud continuos (detienen la salida si la fuente se degrada).
+
+### Calefactor de la PL (prueba en caliente a distancia)
+
+`rtl/heater/heater_axi.v`: 32 bancos x 512 osciladores en anillo de 3 etapas
+(~49.000 LUT) que se encienden por software; watchdog en hardware (1 s sin
+refresco => se apaga y lo marca). Solo entra en el bitstream con
+`make bitstream VIVADO_ARGS=heater`, en 0xA00F_0000. Modo "heat" de la
+aplicacion bare-metal (`make board-heat TARGET=70 HOLD=60 LIMIT=85`): enciende
+bancos de uno en uno cada 2 s, regula a +-1 C del objetivo, corta si se supera
+el limite (<= 95 C) y, con el objetivo estable HOLD segundos, captura el TRNG
+con el calefactor encendido (`caliente_on`) y justo despues de apagarlo
+(`caliente_off`, la referencia: sin el ruido de alimentacion del calefactor).
+Si con todos los bancos no llega en 5 minutos, captura a la temperatura
+maxima alcanzada. Simulacion RTL (3 tests: actividad por banco, watchdog) y
+del modo completo en la plataforma simulada con un modelo termico.
+La potencia real (y por tanto cuanto sube la temperatura con el ventilador)
+solo se sabe en la placa.
 
 ## Origen de las semillas
 

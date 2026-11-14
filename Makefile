@@ -37,7 +37,7 @@ HDRS     := hw/aurora_kernels.h sw/aurora_host.h sw/aurora_auth.h sw/aurora_ldpc
 
 LEGACY_FLAGS := -O2 -std=c++17 -w -Itests/cpp/legacy_stub
 
-.PHONY: all test test-cpp test-python test-legacy test-trng test-all pipeline clean legacy-sim hls hls-all vivado bitstream baremetal-data test-baremetal baremetal board-run board-restart
+.PHONY: all test test-cpp test-python test-legacy test-trng test-heater test-all pipeline clean legacy-sim hls hls-all vivado bitstream baremetal-data test-baremetal baremetal board-run board-restart board-heat
 
 all: $(CLI)
 
@@ -88,7 +88,11 @@ test-legacy: $(BUILD)/test_legacy_sift$(EXE) $(BUILD)/test_legacy_hashing$(EXE)
 test-trng: $(CLI)
 	AURORA_CLI=$(CLI) $(PYTHON) -m unittest discover -s tests/trng -v
 
-test-all: test test-legacy test-trng test-baremetal
+# Calefactor de la PL (simulacion RTL con Icarus Verilog)
+test-heater:
+	$(PYTHON) -m unittest discover -s tests/heater -v
+
+test-all: test test-legacy test-trng test-heater test-baremetal
 
 pipeline: $(CLI)
 	$(CLI) pipeline $(BATCHES) 0 100
@@ -139,6 +143,11 @@ test-baremetal: baremetal-data
 	grep -q "RESTART_END" $(BUILD)/bm_sim/restart_log.txt
 	grep -q "RESULTADO: TODO OK" $(BUILD)/bm_sim/restart_log.txt
 	$(PYTHON) tools/restart_test.py analyze $(BUILD)/bm_sim/restart_log.txt --out $(BUILD)/bm_sim/restart
+	AURORA_SIM_HEAT="45 2 60 150" $(BUILD)/bm_sim/aurora_bm_sim$(EXE) > $(BUILD)/bm_sim/heat_log.txt
+	grep -E "^HEAT|objetivo|\[" $(BUILD)/bm_sim/heat_log.txt
+	grep -q "RESULTADO: TODO OK" $(BUILD)/bm_sim/heat_log.txt
+	$(PYTHON) tools/uart_capture.py --from-log $(BUILD)/bm_sim/heat_log.txt --label caliente_off --out $(BUILD)/bm_sim/trng_caliente_off.txt
+	$(PYTHON) tools/uart_capture.py --from-log $(BUILD)/bm_sim/heat_log.txt --label caliente_on --out $(BUILD)/bm_sim/trng_caliente_on.txt
 
 # Placa (requiere Vitis/XSCT en el PATH y build/vivado/aurora.xsa)
 baremetal: baremetal-data
@@ -148,6 +157,14 @@ baremetal: baremetal-data
 
 board-run:
 	xsct hw/scripts/run_board.tcl
+
+# Prueba en caliente con el calefactor de la PL (bitstream con VIVADO_ARGS=heater).
+# Antes, en otra terminal: python3 tools/uart_capture.py --port ... --log build/caliente_log.txt
+TARGET ?= 70
+HOLD ?= 60
+LIMIT ?= 85
+board-heat:
+	xsct hw/scripts/run_board.tcl heat $(TARGET) $(HOLD) $(LIMIT)
 
 # Test de reinicios del TRNG (soft: sin cortar la alimentacion). SKIP=1024 evalua
 # la salida tal como la usa produccion (tras el test de arranque).

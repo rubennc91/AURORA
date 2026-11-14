@@ -12,6 +12,10 @@
 //    el PS (comparacion bit a bit y de tiempos), frente a sum-product en coma
 //    flotante, y cadena autenticada completa con LDPC en la PL.
 //
+// Modo calefactor (buzon, "HEAT"): calienta la PL con los osciladores del
+// calefactor hasta la temperatura pedida y captura el TRNG en bruto con el
+// calefactor encendido y justo despues de apagarlo (heat_test()).
+//
 // Modo test de reinicios (buzon board::MAILBOX escrito por XSCT): solo se
 // ejecuta restart_test() y cada arranque del TRNG se imprime como una linea
 // "R <i> <hex>" (tools/restart_test.py construye la matriz de SP 800-90B).
@@ -96,10 +100,30 @@ struct RestartConfig {
     uint32_t n = 1000, skip = 0, off_us = 1000;
 };
 
+struct HeatConfig {
+    bool active = false;
+    double target = 70.0, limit = 85.0;
+    uint32_t hold_s = 60, step_ms = 2000;
+};
+
+HeatConfig g_heat;   // lo rellena read_mailbox() si el buzon pide el modo calefactor
+
 RestartConfig read_mailbox() {
     RestartConfig c;
     Xil_DCacheInvalidateRange((INTPTR)board::MAILBOX, 64);
-    if (Xil_In32(board::MAILBOX) != board::MAILBOX_MAGIC_RESTART) return c;
+    const uint32_t magic = Xil_In32(board::MAILBOX);
+    if (magic == board::MAILBOX_MAGIC_HEAT) {
+        g_heat.active = true;
+        g_heat.target = Xil_In32(board::MAILBOX + 4) / 10.0;
+        g_heat.hold_s = Xil_In32(board::MAILBOX + 8);
+        g_heat.limit = Xil_In32(board::MAILBOX + 12) / 10.0;
+        const uint32_t step = Xil_In32(board::MAILBOX + 16);
+        g_heat.step_ms = step ? step : 2000;
+        Xil_Out32(board::MAILBOX, 0);
+        Xil_DCacheFlushRange((INTPTR)board::MAILBOX, 64);
+        return c;
+    }
+    if (magic != board::MAILBOX_MAGIC_RESTART) return c;
     c.active = true;
     c.n = Xil_In32(board::MAILBOX + 4);
     c.skip = Xil_In32(board::MAILBOX + 8);
@@ -163,6 +187,108 @@ void restart_test(TrngRegs &r, const RestartConfig &c) {
     print_temp("fin");
     std::printf("  %u reinicios en %.1f s, %u con error\n", c.n, (now_ms() - t0) / 1000.0, bad);
     check(bad == 0, "todos los reinicios capturados sin perdidas");
+}
+
+// ------------------------------------------------------------ calefactor -----
+// Temperatura de la PL (la de la fuente del TRNG); si no responde, la del PS.
+double chip_temp() {
+    const double t = sysmon_temp(board::AMS_PL_TEMP);
+    return t > -999.0 ? t : sysmon_temp(board::AMS_PS_TEMP);
+}
+
+// Captura en bruto a memoria (bypass, sin huecos). Devuelve las palabras perdidas.
+uint32_t raw_capture_to(TrngRegs &r, std::vector<uint32_t> &buf, uint32_t words) {
+    using namespace trng_reg;
+    buf.clear();
+    buf.reserve(words);
+    r.write(CTRL, CTRL_CLEAR);
+    r.write(DECIM, 64);
+    r.write(CTRL, CTRL_ENABLE | CTRL_CLEAR | CTRL_BYPASS);
+    const double t0 = now_ms();
+    while (buf.size() < words && now_ms() - t0 < 10000)
+        if (!(r.read(STATUS) & ST_EMPTY)) buf.push_back(r.read(DATA));
+    const uint32_t dropped = r.read(DROPPED);
+    r.write(CTRL, CTRL_CLEAR);
+    return dropped;
+}
+
+void print_capture(const char *label, const std::vector<uint32_t> &buf) {
+    std::printf("TRNG_RAW_BEGIN %zu %s\n", buf.size(), label);
+    for (uint32_t w : buf) std::printf("%08" PRIx32 "\n", w);
+    std::printf("TRNG_RAW_END\n");
+}
+
+void heat_test(TrngRegs &trng, const HeatConfig &c) {
+    using namespace board::heater_reg;
+    const uintptr_t H = board::HEATER_BASE;
+    std::printf("\n== Calefactor: objetivo %.1f C, estable %u s, limite %.1f C ==\n", c.target, c.hold_s, c.limit);
+    if (Xil_In32(H + ID) != ID_VALUE) { check(false, "registro ID del calefactor"); return; }
+    const uint32_t cfg = Xil_In32(H + CONFIG);
+    const uint32_t n_banks = (cfg >> 8) & 0xFF, per_bank = cfg >> 16;
+    std::printf("  %u bancos x %u osciladores\n", n_banks, per_bank);
+    if (c.limit > 95.0 || c.target >= c.limit || n_banks == 0 || n_banks > 32) {
+        check(false, "parametros del calefactor validos (limite <= 95 C, objetivo < limite)");
+        return;
+    }
+    Xil_Out32(H + WDOG, 100000000u);   // 1 s sin refresco => se apaga solo
+    print_temp("inicio");
+
+    auto mask_of = [](uint32_t n) { return n >= 32 ? 0xFFFFFFFFu : ((1u << n) - 1u); };
+    uint32_t n_on = 0;
+    bool reached = false, abort = false;
+    const double t_start = now_ms();
+    double last_step = t_start, last_print = 0, stable_since = -1;
+    double t_max = -1e9, all_on_since = -1;
+    while (true) {
+        const double now = now_ms(), T = chip_temp();
+        if (T <= -999.0 || T >= c.limit) {
+            Xil_Out32(H + CTRL, 0);
+            std::printf("  CORTE: temperatura %.1f C (limite %.1f C): calefactor apagado\n", T, c.limit);
+            abort = true;
+            break;
+        }
+        t_max = T > t_max ? T : t_max;
+        if (now - last_step >= c.step_ms) {
+            if (T < c.target - 1.0 && n_on < n_banks) ++n_on;
+            else if (T > c.target + 1.0 && n_on > 0) --n_on;
+            last_step = now;
+        }
+        Xil_Out32(H + CTRL, mask_of(n_on));   // tambien refresca el watchdog
+        const bool in_band = T >= c.target - 2.0 && T <= c.target + 2.0;
+        stable_since = in_band ? (stable_since < 0 ? now : stable_since) : -1;
+        if (now - last_print >= 5000) {
+            std::printf("HEAT t=%6.0f s  T=%5.1f C  bancos=%2u/%u  actividad=%08" PRIx32 "\n", (now - t_start) / 1000,
+                        T, n_on, n_banks, Xil_In32(H + ACTIVITY));
+            last_print = now;
+        }
+        if (stable_since >= 0 && now - stable_since >= c.hold_s * 1000.0) { reached = true; break; }
+        // Sin potencia suficiente: todos los bancos encendidos 5 minutos sin llegar.
+        all_on_since = (n_on == n_banks) ? (all_on_since < 0 ? now : all_on_since) : -1;
+        if (all_on_since >= 0 && now - all_on_since > 300000 && T < c.target - 2.0) break;
+        usleep(200000);
+    }
+    if (abort) { Xil_Out32(H + CTRL, 0); check(false, "temperatura por debajo del limite"); return; }
+    std::printf("  %s: T = %.1f C con %u/%u bancos (maximo %.1f C)\n",
+                reached ? "objetivo alcanzado y estable" : "objetivo NO alcanzado (potencia insuficiente)", chip_temp(),
+                n_on, n_banks, t_max);
+
+    // Capturas: con el calefactor encendido (el refresco cubre los 0,7 s) y
+    // justo despues de apagarlo (la referencia: sin ruido del calefactor).
+    std::vector<uint32_t> on, off;
+    Xil_Out32(H + CTRL, mask_of(n_on));
+    print_temp("calefactor_on");
+    const uint32_t d_on = raw_capture_to(trng, on, AURORA_TRNG_CAPTURE_WORDS);
+    Xil_Out32(H + CTRL, 0);
+    print_temp("calefactor_off");
+    const uint32_t d_off = raw_capture_to(trng, off, AURORA_TRNG_CAPTURE_WORDS);
+    print_temp("fin_captura");
+    const uint32_t tripped = Xil_In32(H + STATUS) & 1u;
+    check(Xil_In32(H + CTRL) == 0, "calefactor apagado al terminar");
+    check(on.size() == AURORA_TRNG_CAPTURE_WORDS && off.size() == AURORA_TRNG_CAPTURE_WORDS && d_on == 0 && d_off == 0,
+          "capturas completas y sin perdidas");
+    check(!tripped, "el watchdog no salto durante la prueba");
+    print_capture("caliente_off", off);
+    print_capture("caliente_on", on);
 }
 
 // ----------------------------------------------------------------- TRNG -----
@@ -362,6 +488,13 @@ int main() {
 
     BoardRegs regs(board::TRNG_BASE);
     const RestartConfig rc = read_mailbox();
+    if (g_heat.active) {
+        heat_test(regs, g_heat);
+        Xil_Out32(board::HEATER_BASE + board::heater_reg::CTRL, 0);
+        std::printf("\nRESULTADO: %s (%d fallos)\n", g_fail == 0 ? "TODO OK" : "HAY FALLOS", g_fail);
+        std::printf("AURORA_END\n");
+        return 0;
+    }
     if (rc.active) {
         restart_test(regs, rc);
         std::printf("\nRESULTADO: %s (%d fallos)\n", g_fail == 0 ? "TODO OK" : "HAY FALLOS", g_fail);
