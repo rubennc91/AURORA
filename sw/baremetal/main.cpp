@@ -302,6 +302,8 @@ LdpcRun run_ldpc(const Bits &ka, const Bits &kb, const LdpcConfig &cfg) {
 
 void ldpc_hw_vs_sw(RandomSource *rng) {
     std::printf("\n== 6. Reconciliacion LDPC: PL frente a PS ==\n");
+    if (!hw_ldpc_in_pl)
+        std::printf("  AVISO: el bitstream no incluye aurora_ldpc_dec; la fila 'PL' usa el modelo SW\n");
     Bits ka = to_bits(bm_sifted_alice, bm_sifted_len), kb = to_bits(bm_sifted_bob, bm_sifted_len);
     uint32_t errors = 0;
     for (size_t i = 0; i < ka.size(); ++i) errors += ka[i] != kb[i];

@@ -39,6 +39,8 @@ constexpr uint64_t KERNEL_TIMEOUT_POLLS = 2000000000ull;
 
 // Estado del backend: true si algun kernel no termino a tiempo.
 extern bool hw_kernel_timeout;
+// true si el bitstream incluye el kernel LDPC (si no, se usa el modelo SW).
+extern const bool hw_ldpc_in_pl;
 } // namespace aurora
 
 // Modelo software del kernel LDPC (sw/baremetal/ldpc_sw_model.cpp).

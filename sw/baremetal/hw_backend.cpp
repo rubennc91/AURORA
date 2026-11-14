@@ -22,10 +22,18 @@
 #include "xaurora_sift_hw.h"
 #include "xaurora_sync_hw.h"
 #include "xaurora_toeplitz_hw.h"
+// El kernel LDPC es opcional: con un bitstream sin el, la aplicacion compila y
+// aurora_ldpc_dec usa el modelo software (mismo algoritmo).
+#if __has_include("xaurora_ldpc_dec_hw.h")
 #include "xaurora_ldpc_dec_hw.h"
+#define AURORA_HAVE_LDPC_KERNEL 1
+#else
+#define AURORA_HAVE_LDPC_KERNEL 0
+#endif
 
 namespace aurora {
 bool hw_kernel_timeout = false;
+const bool hw_ldpc_in_pl = AURORA_HAVE_LDPC_KERNEL != 0;
 }
 
 namespace {
@@ -172,6 +180,13 @@ void aurora_toeplitz(const uint64_t *key_in, uint32_t n_in, const uint64_t *seed
 // -------------------------------------------------------------- ldpc_dec ----
 // El kernel conserva el codigo cargado; solo se limpia la cache del codigo
 // cuando se recarga (load_code != 0).
+#if !AURORA_HAVE_LDPC_KERNEL
+void aurora_ldpc_dec(const uint32_t *chk_ptr, const uint16_t *chk_var, uint32_t n, uint32_t m, uint32_t load_code,
+                     const int8_t *llr, const uint8_t *syndrome, uint32_t max_iter, uint8_t *x_out,
+                     uint32_t *status) {
+    sw_aurora_ldpc_dec(chk_ptr, chk_var, n, m, load_code, llr, syndrome, max_iter, x_out, status);
+}
+#else
 void aurora_ldpc_dec(const uint32_t *chk_ptr, const uint16_t *chk_var, uint32_t n, uint32_t m, uint32_t load_code,
                      const int8_t *llr, const uint8_t *syndrome, uint32_t max_iter, uint8_t *x_out,
                      uint32_t *status) {
@@ -203,3 +218,4 @@ void aurora_ldpc_dec(const uint32_t *chk_ptr, const uint16_t *chk_var, uint32_t 
     invalidate(x_out, n);
     invalidate(status, 8);
 }
+#endif
