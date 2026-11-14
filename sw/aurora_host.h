@@ -65,9 +65,50 @@ struct LagEstimate {
     double background_per_ps = 0;
     double snr = 0;
     uint32_t n_alice_used = 0, n_bob_used = 0;
+    // Histograma fino (para elegir la ventana: choose_window).
+    std::vector<uint32_t> fine_hist;
+    int64_t fine_min = 0;
+    uint32_t fine_shift = 0;
+    double background_per_bin = 0;
 };
 
 LagEstimate estimate_lag(const Detections &alice, const Detections &bob, const SyncConfig &cfg = SyncConfig());
+
+// ------------------------------------------------- ventana adaptativa --------
+// Elige el semiancho de la ventana de coincidencia de un batch SOLO con datos
+// de tiempo (publicos): el histograma fino de la sincronizacion da, para cada
+// ventana w, los pares verdaderos S(w) (pico con el fondo restado) y los
+// accidentales A(w) = fondo * 2w. Con el QBER intrinseco de los pares
+// verdaderos (e, de bloques anteriores ya corregidos) el QBER esperado es
+//   Q(w) = (e S + A/2) / (S + A)
+// y se maximiza la clave esperada (S + A) (1 - (1 + f) h(Q)). No mira los bits
+// del batch: no hay post-seleccion (el QBER se sigue midiendo despues).
+struct WindowChoice {
+    uint32_t half_window = DEFAULT_HALF_WINDOW_PS;
+    double signal = 0, accidentals = 0, qber = 0, key_rate = 0;
+    bool adaptive = false;   // false: datos insuficientes, se usa la ventana por defecto
+};
+struct WindowConfig {
+    // QBER de los pares verdaderos en funcion de |d| (distancia al centro del
+    // pico), en tramos de 'profile_bin_ps'. Los pares de las colas tienen mas
+    // errores (retardos distintos entre detectores, ver docs/REVIEW.md).
+    // Calibrado con los 101 batches reales (bloques ya corregidos: publico).
+    // Si esta vacio, se usa 'intrinsic_qber' constante.
+    std::vector<double> error_profile = {0.0060, 0.0032, 0.0052, 0.0092, 0.0074, 0.0119, 0.0184,
+                                         0.0216, 0.0484, 0.1677, 0.35};
+    uint32_t profile_bin_ps = 50;
+    double intrinsic_qber = 0.008;
+    double f_ec = 1.2;               // eficiencia de la correccion de errores
+    uint32_t w_min = 150, w_max = 800, step = 25;
+};
+WindowChoice choose_window(const LagEstimate &e, const WindowConfig &cfg = WindowConfig());
+// QBER intrinseco a partir del QBER medido con unas ventanas dadas: suma de
+// pares verdaderos y accidentales esperados de cada batch (choose_window).
+double intrinsic_qber(double qber_measured, double sum_signal, double sum_accidentals);
+// Pares verdaderos y accidentales esperados con una ventana concreta (y, si se
+// pasa 'cfg', los errores esperados en los pares verdaderos).
+void window_expectation(const LagEstimate &e, uint32_t half_window, double &signal, double &accidentals,
+                        const WindowConfig *cfg = nullptr, double *true_errors = nullptr);
 
 // ---------------------------------------------------------------- sifting ----
 struct SiftOutput {

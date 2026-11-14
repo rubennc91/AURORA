@@ -392,6 +392,59 @@ TEST(end_to_end_synthetic_pipeline) {
     CHECK(toeplitz_hash(ka, m, 1) == toeplitz_hash(kb, m, 1));
 }
 
+// ------------------------------------------------------- ventana adaptativa --
+static WindowChoice window_for(synth::Params p) {
+    Detections a, b;
+    synth::generate(p, a, b);
+    WindowConfig cfg;
+    cfg.error_profile.clear();      // QBER intrinseco constante: el efecto es solo de pico y fondo
+    cfg.intrinsic_qber = p.qber;
+    return choose_window(estimate_lag(a, b), cfg);
+}
+
+TEST(window_choice_ignores_key_bits) {
+    // Solo usa tiempos (publicos): cambiar todos los estados no cambia la ventana.
+    synth::Params p;
+    p.seed = 41;
+    Detections a, b;
+    synth::generate(p, a, b);
+    const WindowChoice w1 = choose_window(estimate_lag(a, b));
+    std::mt19937_64 r(5);
+    for (auto &s : a.states) s = (uint8_t)(r() & 3);
+    for (auto &s : b.states) s = (uint8_t)(r() & 3);
+    const WindowChoice w2 = choose_window(estimate_lag(a, b));
+    CHECK(w1.adaptive && w2.adaptive);
+    CHECK(w1.half_window == w2.half_window);
+    CHECK(w1.key_rate == w2.key_rate);
+}
+
+TEST(window_shrinks_with_background_and_grows_with_jitter) {
+    synth::Params p;
+    p.seed = 42;
+    p.qber = 0.01;
+    const WindowChoice base = window_for(p);
+    synth::Params noisy = p;
+    noisy.bob_noise_rate *= 20;      // detector mas ruidoso
+    noisy.alice_noise_rate *= 3;
+    const WindowChoice wn = window_for(noisy);
+    synth::Params wide = p;
+    wide.jitter = 400;               // mas jitter
+    const WindowChoice ww = window_for(wide);
+    CHECK(base.adaptive && wn.adaptive && ww.adaptive);
+    CHECK_MSG(wn.half_window < base.half_window,
+              std::to_string(wn.half_window) + " vs " + std::to_string(base.half_window));
+    CHECK_MSG(ww.half_window > base.half_window,
+              std::to_string(ww.half_window) + " vs " + std::to_string(base.half_window));
+    // Ventana razonable para jitter 200 ps: entre 1,5 y 3,5 sigma.
+    CHECK_MSG(base.half_window >= 300 && base.half_window <= 700, std::to_string(base.half_window));
+}
+
+TEST(window_falls_back_when_sync_failed) {
+    LagEstimate bad;   // ok = false
+    WindowChoice w = choose_window(bad);
+    CHECK(!w.adaptive && w.half_window == DEFAULT_HALF_WINDOW_PS);
+}
+
 // ------------------------------------------------------------ aurora_ldpc_dec --
 // Llamada directa al kernel (tambien es el testbench de la C-simulation HLS).
 struct LdpcFrame {

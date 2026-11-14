@@ -164,10 +164,68 @@ LagEstimate estimate_lag(const Detections &alice, const Detections &bob, const S
         centroid(hist, fine_min, cfg.fine_shift, cfg, center, est);
         center = est.lag;
     }
+    est.fine_hist = hist;
+    est.fine_min = fine_min;
+    est.fine_shift = cfg.fine_shift;
+    est.background_per_bin = est.background_per_ps * (double)fw;
     const double range_lo = (double)cfg.coarse_lag_min;
     const double range_hi = (double)cfg.coarse_lag_min + (double)cfg.coarse_bins * cw;
     est.ok = r.complete && est.signal > 0 && est.snr >= cfg.min_snr && est.lag > range_lo + cw && est.lag < range_hi - cw;
     return est;
+}
+
+// ----------------------------------------------------- ventana adaptativa ---
+void window_expectation(const LagEstimate &e, uint32_t w, double &signal, double &accidentals,
+                        const WindowConfig *cfg, double *true_errors) {
+    signal = 0;
+    double err = 0;
+    const double bw = (double)(1u << e.fine_shift);
+    for (size_t i = 0; i < e.fine_hist.size(); ++i) {
+        const double c = (double)e.fine_min + (i + 0.5) * bw;
+        const double dist = std::fabs(c - e.lag);
+        if (dist > (double)w) continue;
+        const double s = std::max(0.0, (double)e.fine_hist[i] - e.background_per_bin);
+        signal += s;
+        if (cfg) {
+            double q = cfg->intrinsic_qber;
+            if (!cfg->error_profile.empty() && cfg->profile_bin_ps) {
+                size_t k = (size_t)(dist / cfg->profile_bin_ps);
+                q = cfg->error_profile[std::min(k, cfg->error_profile.size() - 1)];
+            }
+            err += q * s;
+        }
+    }
+    accidentals = e.background_per_ps * 2.0 * w;
+    if (true_errors) *true_errors = err;
+}
+
+WindowChoice choose_window(const LagEstimate &e, const WindowConfig &cfg) {
+    WindowChoice best;
+    if (!e.ok || e.fine_hist.empty() || e.signal <= 0) return best;
+    const double q0 = std::min(std::max(cfg.intrinsic_qber, 0.0), 0.5);
+    for (uint32_t w = cfg.w_min; w <= cfg.w_max; w += cfg.step) {
+        double S, A, E;
+        window_expectation(e, w, S, A, &cfg, &E);
+        if (S + A <= 0) continue;
+        (void)q0;
+        const double Q = (E + 0.5 * A) / (S + A);
+        const double rate = (S + A) * (1.0 - (1.0 + cfg.f_ec) * binary_entropy(Q));
+        if (!best.adaptive || rate > best.key_rate) {
+            best.half_window = w;
+            best.signal = S;
+            best.accidentals = A;
+            best.qber = Q;
+            best.key_rate = rate;
+            best.adaptive = true;
+        }
+    }
+    return best;
+}
+
+double intrinsic_qber(double q, double S, double A) {
+    if (S <= 0) return q;
+    const double e = (q * (S + A) - 0.5 * A) / S;
+    return std::min(std::max(e, 0.0), 0.5);
 }
 
 // ---------------------------------------------------------------- sifting ---

@@ -69,7 +69,10 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w,
     Bits ka, kb;
     uint64_t coinc = 0;
     int used = 0;
-    std::printf("batch | lag(ps) | sigma | snr   | coinc | sifted | QBER(%%)\n");
+    std::printf("batch | lag(ps) | sigma | snr   | coinc | sifted | QBER(%%)  ventana(+-ps)\n");
+    double sum_s = 0, sum_a = 0;
+    std::map<uint32_t, int> w_hist;
+    WindowConfig wcfg;
     for (int i = first; i <= last; ++i) {
         Detections a, b;
         std::string prefix = dir + "/batch" + std::to_string(i);
@@ -78,11 +81,18 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w,
         // Cada batch tiene su propio desfase (~77 ps rms en las capturas reales):
         // si la sincronizacion falla, el batch se descarta (no se reutiliza un lag).
         if (!lag.ok) { std::printf("%5d | sync FALLIDO (snr %.1f), se descarta\n", i, lag.snr); continue; }
-        SiftOutput s = sift_batch(a, b, (int64_t)std::llround(lag.lag), w);
+        // w == 0: ventana adaptativa (solo con el histograma de tiempos).
+        const uint32_t wb = w ? w : choose_window(lag, wcfg).half_window;
+        double S, A;
+        window_expectation(lag, wb, S, A);
+        sum_s += S;
+        sum_a += A;
+        w_hist[wb]++;
+        SiftOutput s = sift_batch(a, b, (int64_t)std::llround(lag.lag), wb);
         uint32_t e = 0;
         for (size_t k = 0; k < s.alice_key.size(); ++k) e += s.alice_key[k] != s.bob_key[k];
-        std::printf("%5d | %7.1f | %5.1f | %5.1f | %5u | %6zu | %5.2f%s\n", i, lag.lag, lag.sigma, lag.snr,
-                    s.n_coincidences, s.alice_key.size(), s.alice_key.empty() ? 0.0 : 100.0 * e / s.alice_key.size(), "");
+        std::printf("%5d | %7.1f | %5.1f | %5.1f | %5u | %6zu | %5.2f  w=%u\n", i, lag.lag, lag.sigma, lag.snr,
+                    s.n_coincidences, s.alice_key.size(), s.alice_key.empty() ? 0.0 : 100.0 * e / s.alice_key.size(), wb);
         ka.insert(ka.end(), s.alice_key.begin(), s.alice_key.end());
         kb.insert(kb.end(), s.bob_key.begin(), s.bob_key.end());
         coinc += s.n_coincidences;
@@ -115,6 +125,13 @@ static int cmd_pipeline(const std::string &dir, int first, int last, uint32_t w,
     std::printf("coincidencias        : %" PRIu64 "\n", coinc);
     std::printf("clave cribada        : %zu bits\n", ka.size());
     std::printf("errores reales       : %u (QBER %.3f%%)\n", true_err, 100.0 * true_err / ka.size());
+    std::printf("ventana              : %s", w ? "fija" : "adaptativa (");
+    if (!w) {
+        for (auto &kv : w_hist) std::printf(" %u:%d", kv.first, kv.second);
+        std::printf(" )");
+    } else std::printf(" +-%u ps", w);
+    std::printf("; pares verdaderos/accidentales esperados %.0f/%.0f; QBER intrinseco estimado %.3f%%\n", sum_s, sum_a,
+                100.0 * intrinsic_qber((double)true_err / ka.size(), sum_s, sum_a));
     std::printf("%-21s: %u corregidos, %" PRIu64 " bits filtrados (f=%.3f)", ldpc == 2 ? "LDPC (coma fija)" : (ldpc ? "LDPC" : "Cascade"), r.corrected,
                 r.leaked_ec, qber > 0 ? r.leaked_ec / (r.reconciled * binary_entropy(qber)) : 0.0);
     if (ldpc) std::printf(", %u tramas, %u descartadas, %u bits conservados", r.ec_frames, r.ec_failed, r.reconciled);
@@ -270,7 +287,7 @@ static int cmd_stream(int argc, char **argv) {
         if (a == "--block-bits") block_bits = (uint32_t)std::stoul(next());
         else if (a == "--out") out_path = next();
         else if (a == "--once") once = true;
-        else if (a == "--window") w = (uint32_t)std::stoul(next());
+        else if (a == "--window") { std::string v = next(); w = v == "auto" ? 0 : (uint32_t)std::stoul(v); }
         else if (a == "--poll") poll_s = std::stod(next());
         else if (a == "--qber-hint") hint = std::stod(next());
         else if (a == "--ec") { std::string e = next(); ldpc = e == "ldpc" ? 1 : (e == "ldpc-fixed" ? 2 : 0); }
@@ -285,12 +302,13 @@ static int cmd_stream(int argc, char **argv) {
     KeyPool pool_a(psk), pool_b(psk);
     SimulatedRandomSource alice_rng(0x5EED0002ULL);
     AuthenticatedConfig cfg;
-    cfg.half_window = w;
+    cfg.half_window = w ? w : DEFAULT_HALF_WINDOW_PS;   // informativo (va en el mensaje de parametros)
     if (ldpc) cfg.reconciliation = Reconciliation::LDPC;
     if (ldpc == 2) cfg.ldpc = ldpc_config_fixed();
     if (hint > 0) cfg.cascade.qber_hint = cfg.ldpc.qber_hint = hint;
 
-    std::printf("AURORA stream: %s, bloque %u bits, ventana +-%u ps, salida %s%s\n", dir.c_str(), block_bits, w,
+    std::printf("AURORA stream: %s, bloque %u bits, ventana %s%u ps, salida %s%s\n", dir.c_str(), block_bits,
+                w ? "+-" : "adaptativa (por defecto ", w ? w : DEFAULT_HALF_WINDOW_PS,
                 out_path.c_str(), once ? " (una pasada)" : " (Ctrl+C para parar)");
     std::printf("AVISO: clave precompartida y semillas SIMULADAS (solo PC)\n");
     std::set<std::string> done;
@@ -330,11 +348,12 @@ static int cmd_stream(int argc, char **argv) {
                 ++discarded;
                 continue;
             }
-            SiftOutput s = sift_batch(a, b, (int64_t)std::llround(lag.lag), w);
+            const uint32_t wb = w ? w : choose_window(lag).half_window;   // w = 0: ventana adaptativa
+            SiftOutput s = sift_batch(a, b, (int64_t)std::llround(lag.lag), wb);
             ka.insert(ka.end(), s.alice_key.begin(), s.alice_key.end());
             kb.insert(kb.end(), s.bob_key.begin(), s.bob_key.end());
-            std::printf("%s: lag %.1f ps, %zu bits cribados (acumulados %zu/%u)\n", name.c_str(), lag.lag,
-                        s.alice_key.size(), ka.size(), block_bits);
+            std::printf("%s: lag %.1f ps, ventana +-%u ps, %zu bits cribados (acumulados %zu/%u)\n", name.c_str(),
+                        lag.lag, wb, s.alice_key.size(), ka.size(), block_bits);
             while (ka.size() >= block_bits) {
                 Bits ba(ka.begin(), ka.begin() + block_bits), bb(kb.begin(), kb.begin() + block_bits);
                 ka.erase(ka.begin(), ka.begin() + block_bits);
@@ -381,7 +400,8 @@ int main(int argc, char **argv) {
                 ldpc = ec == "ldpc" ? 1 : (ec == "ldpc-fixed" ? 2 : 0);
             }
             else if (a == "--qber-hint" && i + 1 < argc) hint = std::atof(argv[++i]);
-            else w = (uint32_t)std::atoi(argv[i]);
+            else if (a == "--window" && i + 1 < argc) { std::string v = argv[++i]; w = v == "auto" ? 0 : (uint32_t)std::stoul(v); }
+            else w = a == "auto" ? 0 : (uint32_t)std::atoi(argv[i]);
         }
         return cmd_pipeline(argv[2], std::atoi(argv[3]), std::atoi(argv[4]), w, ldpc, hint);
     }
@@ -399,8 +419,8 @@ int main(int argc, char **argv) {
     }
     std::fprintf(stderr,
                  "uso:\n  %s batch <prefijo> [half_window_ps]\n"
-                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps] [--ec cascade|ldpc|ldpc-fixed] [--qber-hint Q]\n"
-                 "  %s stream <dir> [--block-bits N] [--out claves.txt] [--once] [--window ps] [--ec cascade|ldpc|ldpc-fixed]\n"
+                 "  %s pipeline <dir> <primero> <ultimo> [half_window_ps|auto] [--ec cascade|ldpc|ldpc-fixed] [--qber-hint Q]\n"
+                 "  %s stream <dir> [--block-bits N] [--out claves.txt] [--once] [--window ps|auto] [--ec cascade|ldpc|ldpc-fixed]\n"
                  "  %s polyhash <clave_hex32> [mensaje_hex]\n"
                  "  %s trng-analyze <captura_hex> [--h H] [--seed S | --seed-file F] [--extract salida.txt]\n"
                  "  %s trng-analyze --raw-indexed <raw.txt> [--h H] [--extract salida.txt]\n"

@@ -405,6 +405,61 @@ software, la aplicacion bare-metal, los datos embebidos y los tests): 42.142
 bits cribados y 28.686 netos. Los resultados en placa anteriores a esa fecha
 se midieron con +-350 ps.
 
+## Ventana adaptativa por batch
+
+`choose_window()` (sw/aurora_host.*): elige el semiancho de cada batch solo con
+datos de tiempo (publicos): el histograma fino de la sincronizacion da los
+pares verdaderos S(w) y los accidentales A(w) = fondo * 2w; con el perfil de
+QBER de los pares verdaderos en funcion de |d| (calibrado con bloques ya
+corregidos) se maximiza (S + A)(1 - (1 + f) h(Q)). No mira los bits del batch
+(sin post-seleccion; test `window_choice_ignores_key_bits`). Uso:
+`aurora_cli pipeline batches 0 100 auto`, `aurora_cli stream <dir> --window auto`.
+Sobre los 101 batches elige +-400 ps en 84 y +-375 en 15: 28.678 bits netos
+frente a 28.686 con +-400 fijo (igual: el perfil esta calibrado con estos
+mismos datos). Su valor es adaptarse si cambian el fondo o el jitter (tests
+sinteticos: ventana menor con mas fondo, mayor con mas jitter). La ventana
+fija de +-400 ps sigue siendo el valor por defecto.
+
+## Hallazgo: los detectores no son iguales (tiempo y eficiencia) - SEGURIDAD
+
+Los dos extremos tienen detectores (Alice tambien registra detecciones: el
+sistema parece de pares entrelazados). Con las coincidencias de las 16
+combinaciones de estados (incluidas las de base distinta) se separan los
+retardos de cada detector (ajuste d(a, b) = dA[a] - dB[b], residuo < 9,2 ps):
+
+| Detector | H | V | D | A |
+|---|---|---|---|---|
+| Alice (ps) | +35,9 | -21,3 | -58,2 | +60,1 |
+| Bob (ps) | -29,8 | +18,4 | -46,6 | +58,0 |
+
+Y las eficiencias tampoco son iguales (todos los eventos): Bob H 20,2 %, V
+27,7 %, D 19,3 %, A 32,8 %; Alice H 19,9 %, V 28,0 %, D 22,8 %, A 29,3 %.
+
+Consecuencias:
+
+1. **Fuga por tiempo.** En la base H/V, la diferencia de tiempos d de cada par
+   da **0,162 bits de informacion sobre el bit** (D/A: 0,008). Si las marcas
+   de tiempo se intercambian por un canal publico con resolucion de ps (lo
+   normal para encontrar coincidencias con dos equipos), un espia las ve. Hoy
+   la amplificacion de privacidad no lo descuenta. Compensando los retardos de
+   cada detector antes de publicar los tiempos baja a 0,033 bits (queda la
+   diferencia de forma del jitter entre detectores).
+2. **Clave sesgada.** P(bit 0) = 0,38 en H/V y 0,40 en D/A (entropia de Shannon
+   0,960 y 0,973 por bit; min-entropia menor). La formula de PA supone bits
+   uniformes.
+3. **Desajuste de eficiencia entre detectores**: es la condicion que explotan
+   ataques conocidos (efficiency mismatch / time-shift). La prueba de
+   seguridad tiene que contemplarlo.
+4. **Explica el perfil de errores**: los pares de las colas del pico tienen
+   mas errores (0,5 % en el centro, 2 % a 350-400 ps, 5 % a 400-450 ps).
+
+Recomendaciones: (a) calibrar y compensar el retardo de cada canal, mejor en
+el propio etiquetador de tiempos (preguntar al proveedor); (b) igualar las
+eficiencias o incluir el desajuste y el sesgo en el analisis de seguridad
+(UPM); (c) no publicar las marcas de tiempo con mas resolucion de la
+necesaria. Scripts del analisis: estimacion por estado y de la informacion
+mutua con los mismos datos (101 batches, |d| <= 300-400 ps).
+
 ## Integracion con el sistema de recepcion (preparada, sin la API)
 
 Lo que se sabe (reunion): conexion al sistema de recepcion (REST u otra API)
