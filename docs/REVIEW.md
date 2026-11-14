@@ -320,6 +320,12 @@ PL/PS de la seccion 6 de la aplicacion bare-metal es bit a bit.
   (300 tramas: 1,7 % con 1,50; 0,7 % con 1,55; 1,0 % con 1,60).
 - Estimacion: 1 arista/ciclo, ~30 ms por trama; del orden del A53. Para
   acelerar de verdad: QC-LDPC y varias filas en paralelo.
+- **Medido en el A53 (14/11/2026, bitstream sin el kernel)**: 40.755 bits
+  reales en 502 ms (min-sum coma fija, 4 tramas, 1 fallida tras 100
+  iteraciones) y 617 ms (sum-product flotante, 3 tramas, 0 fallidas);
+  construccion de codigos 3,2 s una vez. Se generan en ~2,5 s: el PS ya va
+  ~4 veces sobrado (la estimacion previa de 2-3 s era pesimista). Con las
+  tasas actuales el kernel en la PL no es necesario para el LDPC.
 - **Pendiente**: `make hls KERNEL=aurora_ldpc_dec` (C-sim + sintesis), nuevo
   bitstream y comprobar la direccion del kernel en `address_map.txt`
   (`aurora_board.h` supone 0xA004_0000).

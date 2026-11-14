@@ -400,16 +400,20 @@ variante que se puede llevar a hardware.
 Decodificador & Tiempo & Resultado & Clave neta \\
 \midrule
 PL, min-sum coma fija & \pend & \pend & \pend \\
-PS (A53), min-sum coma fija & \pend & \pend & \pend \\
-PS (A53), sum-product flotante & \pend & \pend & \pend \\
+PS (A53), min-sum coma fija & 502\,ms & 4 tramas, 1 fallida & 25\,841 \\
+PS (A53), sum-product flotante & 617\,ms & 3 tramas, 0 fallidas & \pend \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \noindent
-Estimación previa: el \emph{kernel} procesa una arista por ciclo (100\,M aristas/s); con $\sim$83\,000
-aristas, tres pasadas por iteración y $\sim$10 iteraciones, son unos 30\,ms por trama. Es del mismo orden
-que el A53, así que la aceleración esperada de esta primera versión es pequeña. Para una ganancia grande
+Medido en la placa: el A53 reconcilia los 40\,755 bits en 0,5--0,6\,s, mientras que se tardan $\sim$2,5\,s
+en generarlos, así que el PS ya sigue el ritmo con un margen de $\sim$4 veces (la estimación previa de
+2--3\,s era pesimista). La construcción de los códigos tarda 3,2\,s, una sola vez al arrancar. En la
+ejecución en coma fija, la trama que falla agota las 100 iteraciones y se lleva buena parte del tiempo.
+El \emph{kernel} procesa una arista por ciclo (100\,M aristas/s): con $\sim$83\,000 aristas, tres pasadas
+por iteración y $\sim$10 iteraciones, unos 30\,ms por trama, del mismo orden que el A53. Con las tasas
+actuales la PL no es necesaria para el LDPC; lo sería si la tasa de clave creciera. Para una ganancia grande
 habría que procesar varias filas en paralelo, lo que exige códigos cuasi-cíclicos (QC-LDPC): es el
 siguiente paso si la medida en placa lo justifica.
 
