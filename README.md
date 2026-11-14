@@ -88,7 +88,7 @@ cadena completa autenticada con semillas del TRNG. Termina con
 ## Processing chain
 1. **Sync (PL)**: histograma de diferencias de tiempo Alice-Bob (grueso 1 ns, fino 8 ps);
    el PS calcula el lag como centroide con el fondo restado. Se sincroniza cada batch.
-2. **Sifting (PL)**: emparejamiento voraz en la ventana +-350 ps y descarte de bases distintas;
+2. **Sifting (PL)**: emparejamiento voraz en la ventana +-400 ps (`DEFAULT_HALF_WINDOW_PS`) y descarte de bases distintas;
    genera las claves de Alice y Bob empaquetadas. El PS trocea batches de cualquier tamano
    en lotes de hasta 65.536 tags (resultado identico a una sola pasada).
 3. **Correccion de errores (PS)**: Cascade de 4 pases con efecto cascada y recuento de la informacion filtrada.

@@ -136,7 +136,7 @@ struct AuthenticatedConfig {
     CascadeConfig cascade;
     LdpcConfig ldpc;
     int64_t lag_ps = 0;
-    uint32_t half_window = 350;
+    uint32_t half_window = DEFAULT_HALF_WINDOW_PS;
     bool refill_pools = true;      // reponer la reserva con clave nueva
 };
 

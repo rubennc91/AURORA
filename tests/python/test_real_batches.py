@@ -31,7 +31,9 @@ CLI = Path(os.environ.get("AURORA_CLI", ROOT / "build" / "aurora_cli"))
 if not CLI.exists() and CLI.with_suffix(".exe").exists():   # Windows
     CLI = CLI.with_suffix(".exe")
 BATCHES = Path(os.environ.get("AURORA_BATCHES", ROOT / "batches"))
-HALF_WINDOW = 350
+import re as _re
+HALF_WINDOW = int(_re.search(r"DEFAULT_HALF_WINDOW_PS\s*=\s*(\d+)",
+                             (Path(__file__).resolve().parents[2] / "sw" / "aurora_host.h").read_text()).group(1))
 
 # Umbrales de plausibilidad (ajustables segun el montaje experimental).
 # Observado en las capturas reales: cada batch tiene su propio desfase
@@ -116,7 +118,7 @@ class RealBatches(unittest.TestCase):
             with self.subTest(batch=i):
                 self.assertGreater(r["sigma"], SIGMA_RANGE_PS[0])
                 self.assertLess(r["sigma"], SIGMA_RANGE_PS[1])
-                # La ventana +-350 ps debe cubrir al menos ~1.5 sigma.
+                # La ventana por defecto debe cubrir al menos ~1.5 sigma.
                 self.assertGreater(HALF_WINDOW, 1.5 * r["sigma"])
 
     def test_qber_is_below_threshold(self):

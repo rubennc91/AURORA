@@ -168,7 +168,7 @@ paralelizable); el código LDPC de la sección~\ref{sec:ldpc} está preparado co
         (1,024\,ns) y fino (8\,ps); lag por centroide con el fondo restado. Las capturas reales tienen un
         desfase distinto por batch ($\sim$77\,ps rms) y sin deriva dentro del batch: si la sincronización
         falla, el batch se descarta.
-  \item \textbf{Sifting}: emparejamiento voraz de detecciones dentro de $\pm350$\,ps y comparación de bases.
+  \item \textbf{Sifting}: emparejamiento voraz de detecciones dentro de $\pm400$\,ps y comparación de bases (ventana óptima en el barrido de la sección~\ref{sec:ventana}; los resultados en placa de este informe se midieron con $\pm350$\,ps).
   \item \textbf{Reconciliación}: Cascade (4 pases, $k_1 = 0{,}73/Q$, efecto cascada, límite de trabajo) o
         LDPC (sección~\ref{sec:ldpc}).
   \item \textbf{Verificación}: hash polinómico 2-universal módulo $2^{61}-1$ con semilla nueva del TRNG (64 bits).
@@ -278,6 +278,28 @@ Cadena autenticada & 40\,755 cribados $\rightarrow$ 29\,529 tras PA $\rightarrow
 Sync + sift ocupan $\sim$7,8\,ms por batch de 25\,ms (31\% del tiempo real), con margen para procesar en
 línea. El cuello de botella del post-procesado es la generación de semillas; se puede sacar del camino
 crítico generándolas en segundo plano mientras llegan los batches.
+
+\subsection{Ventana de coincidencia}
+\label{sec:ventana}
+Barrido del semiancho de la ventana sobre los 101 batches (clave neta con Cascade y PA asintótica). Una
+ventana mayor recupera más pares, pero también más accidentales (QBER mayor). El óptimo está en
+$\pm400$\,ps, que es el valor por defecto desde el 14/11/2026; la ventana de $\pm250$\,ps del algoritmo de
+correlación recibido pierde un 13\% de clave.
+
+\begin{table}[htbp]
+\centering
+\caption{Clave neta frente al semiancho de la ventana de coincidencia.}
+\small
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+$\pm w$ (ps) & 150 & 200 & 250 & 300 & 350 & \textbf{400} & 450 & 500 & 600 \\
+\midrule
+Cribados & 22\,935 & 29\,288 & 34\,485 & 38\,338 & 40\,755 & \textbf{42\,142} & 42\,802 & 43\,116 & 43\,412 \\
+QBER (\%) & 1,25 & 1,37 & 1,44 & 1,56 & 1,72 & \textbf{1,87} & 2,04 & 2,24 & 2,56 \\
+Neta & 16\,678 & 21\,256 & 24\,945 & 27\,315 & 28\,381 & \textbf{28\,686} & 28\,339 & 27\,562 & 26\,197 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Entropía del TRNG}
 

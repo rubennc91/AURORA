@@ -231,7 +231,7 @@ void kernels_vs_pc() {
         LagEstimate e = estimate_lag(A, B);
         double t1 = now_ms();
         const int64_t lag = (int64_t)compat::llround(e.lag);
-        SiftOutput s = sift_batch(A, B, lag, 350);
+        SiftOutput s = sift_batch(A, B, lag, DEFAULT_HALF_WINDOW_PS);
         double t2 = now_ms();
 
         std::printf("  %s: lag %" PRId64 " ps (PC %" PRId64 "), coincidencias %u (PC %u), cribados %zu (PC %u); "

@@ -259,7 +259,7 @@ static std::pair<long long, std::string> natural_key(const std::string &name) {
 
 static int cmd_stream(int argc, char **argv) {
     const std::string dir = argv[2];
-    uint32_t block_bits = 40000, w = 350;
+    uint32_t block_bits = 40000, w = DEFAULT_HALF_WINDOW_PS;
     double poll_s = 0.5, hint = 0;
     bool once = false;
     int ldpc = 0;
@@ -367,11 +367,11 @@ static int cmd_stream(int argc, char **argv) {
 int main(int argc, char **argv) {
     if (argc >= 3 && std::string(argv[1]) == "stream") return cmd_stream(argc, argv);
     if (argc >= 3 && std::string(argv[1]) == "batch") {
-        uint32_t w = argc >= 4 ? (uint32_t)std::atoi(argv[3]) : 350;
+        uint32_t w = argc >= 4 ? (uint32_t)std::atoi(argv[3]) : DEFAULT_HALF_WINDOW_PS;
         return cmd_batch(argv[2], w);
     }
     if (argc >= 5 && std::string(argv[1]) == "pipeline") {
-        uint32_t w = 350;
+        uint32_t w = DEFAULT_HALF_WINDOW_PS;
         int ldpc = 0;
         double hint = 0;
         for (int i = 5; i < argc; ++i) {

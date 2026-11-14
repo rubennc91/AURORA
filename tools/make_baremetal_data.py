@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import os
 import random
 import subprocess
@@ -18,6 +19,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# Ventana de coincidencia: la misma constante que usa el software (aurora_host.h).
+HALF_WINDOW = int(re.search(r"DEFAULT_HALF_WINDOW_PS\s*=\s*(\d+)", (ROOT / "sw" / "aurora_host.h").read_text()).group(1))
 sys.path.insert(0, str(ROOT / "tests" / "python"))
 import aurora_ref as ref  # noqa: E402
 
@@ -78,7 +81,7 @@ def main() -> int:
     for i in [int(x) for x in args.batches.split(",") if x != ""]:
         prefix = Path(args.batches_dir) / f"batch{i}"
         ta, sa, tb, sb = ref.load_batch(prefix)
-        r = json.loads(subprocess.run([str(cli), "batch", str(prefix), "350"], capture_output=True, text=True).stdout)
+        r = json.loads(subprocess.run([str(cli), "batch", str(prefix), str(HALF_WINDOW)], capture_output=True, text=True).stdout)
         if not r.get("ok"):
             sys.exit(f"batch{i}: la cadena del PC no da resultado valido: {r}")
         parts.append(carray("uint64_t", f"b{i}_at", ta, 8))
@@ -101,7 +104,7 @@ def main() -> int:
     ka, kb = [], []
     all_ids = sorted(int(p.name[5:-len("_alice.detections")]) for p in Path(args.batches_dir).glob("batch*_alice.detections"))
     for i in all_ids:
-        r = json.loads(subprocess.run([str(cli), "batch", str(Path(args.batches_dir) / f"batch{i}"), "350"],
+        r = json.loads(subprocess.run([str(cli), "batch", str(Path(args.batches_dir) / f"batch{i}"), str(HALF_WINDOW)],
                                       capture_output=True, text=True).stdout)
         if not r.get("ok"):
             continue

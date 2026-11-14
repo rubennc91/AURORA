@@ -380,6 +380,11 @@ Ventana (lo que mas influye; clave neta con Cascade, PA asintotica):
 | Neta | 16.678 | 21.256 | 24.945 | 27.315 | 28.381 | 28.686 | 28.339 | 27.562 | 26.197 |
 
 Optimo en ~400 ps; con 250 ps se pierde un 13 % de clave frente a 400.
+**Desde el 14/11/2026 la ventana por defecto es +-400 ps**
+(`DEFAULT_HALF_WINDOW_PS` en `sw/aurora_host.h`, unica fuente para el
+software, la aplicacion bare-metal, los datos embebidos y los tests): 42.142
+bits cribados y 28.686 netos. Los resultados en placa anteriores a esa fecha
+se midieron con +-350 ps.
 
 ## Integracion con el sistema de recepcion (preparada, sin la API)
 

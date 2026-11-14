@@ -16,6 +16,11 @@
 
 namespace aurora {
 
+// Semiancho por defecto de la ventana de coincidencia (ps). Barrido sobre los
+// 101 batches reales (clave neta con Cascade, PA asintotica): 250 ps -> 24.945,
+// 350 -> 28.381, 400 -> 28.686 (maximo), 450 -> 28.339. Ver docs/REVIEW.md.
+constexpr uint32_t DEFAULT_HALF_WINDOW_PS = 400;
+
 struct Detections {
     std::vector<uint64_t> tags;    // ps, ordenados
     std::vector<uint8_t> states;   // 0..3
