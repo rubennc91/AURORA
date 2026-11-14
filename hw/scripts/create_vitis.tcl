@@ -36,6 +36,14 @@ foreach k {aurora_sync aurora_sift aurora_toeplitz aurora_ldpc_dec} {
     set h [find_all [file join $ws aurora_pf] "x${k}_hw.h"]
     puts [format "AURORA: kernel %-16s %s" $k [expr {[llength $h] ? "presente" : "NO presente en el .xsa"}]]
 }
+# El calefactor (RTL, sin driver) solo se ve en el mapa de direcciones.
+set amap [file join $root build vivado address_map.txt]
+set has_heater 0
+if {[file exists $amap]} {
+    set fh [open $amap r]; set txt [read $fh]; close $fh
+    set has_heater [regexp -nocase {heater} $txt]
+}
+puts [format "AURORA: %-23s %s" "calefactor (RTL)" [expr {$has_heater ? "presente (make board-heat)" : "no incluido (VIVADO_ARGS=heater)"}]]
 puts "AURORA: .xsa usado: $xsa ([clock format [file mtime $xsa] -format {%Y-%m-%d %H:%M}])"
 
 # Aplicacion C++ vacia + nuestras fuentes. El nombre de la plantilla cambia
