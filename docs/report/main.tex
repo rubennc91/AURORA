@@ -418,12 +418,18 @@ variante que se puede llevar a hardware.
 \toprule
 Decodificador & Tiempo & Resultado & Clave neta \\
 \midrule
-PL, min-sum coma fija & \pend & \pend & \pend \\
+PL, min-sum coma fija & \textbf{384\,ms} & 4 tramas, 1 fallida & 25\,845 \\
 PS (A53), min-sum coma fija & 502\,ms & 4 tramas, 1 fallida & 25\,841 \\
-PS (A53), sum-product flotante & 617\,ms & 3 tramas, 0 fallidas & \pend \\
+PS (A53), sum-product flotante & 617\,ms & 3 tramas, 0 fallidas & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\noindent
+La PL y el A53 obtienen \textbf{resultados idénticos bit a bit} (mismas claves, fuga, tramas fallidas e
+iteraciones), y la PL es \textbf{1,3 veces más rápida} con el mismo algoritmo, en línea con la estimación por
+síntesis ($\sim$3,1\,ms por iteración frente a $\sim$3,9\,ms en el A53). La clave neta difiere en unos pocos
+bits entre ejecuciones porque las semillas de la amplificación de privacidad salen del TRNG.
 
 \noindent
 Medido en la placa: el A53 reconcilia los 40\,755 bits en 0,5--0,6\,s, mientras que se tardan $\sim$2,5\,s

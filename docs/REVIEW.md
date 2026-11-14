@@ -338,8 +338,11 @@ PL/PS de la seccion 6 de la aplicacion bare-metal es bit a bit.
   24 URAM; implementado: 3.227 LUT, 4.046 FF, 41/5 BRAM36/18. Por iteracion,
   ~(d+7) ciclos/fila en la comprobacion y ~(2d+13) en la actualizacion: ~3,1 ms
   por iteracion con R = 0,80 a 100 MHz (el A53 tarda ~3,9 ms).
-- Pendiente: la medida en placa (la primera ejecucion uso aun la aplicacion
-  sin el driver del kernel).
+- **Medido en placa (14/11/2026)**: PL 383,8 ms frente a 501,5 ms del A53
+  con el mismo algoritmo (x1,3), **identicos bit a bit** (claves, fuga, tramas
+  fallidas e iteraciones); cadena autenticada con LDPC en la PL: 25.845 bits
+  netos. La primera ejecucion con este bitstream uso aun una aplicacion
+  compilada sin el driver del kernel (`make baremetal` ahora lo avisa).
 
 ## Algoritmo de correlacion recibido (`nuevo_algoritmo.cpp`, 13/11/2026)
 
